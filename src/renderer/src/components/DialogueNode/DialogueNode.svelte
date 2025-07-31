@@ -11,6 +11,14 @@
   let isPortraitFieldEnabled: boolean = $state(false)
 
   const { updateNodeData, deleteElements } = useSvelteFlow()
+
+  const autoResize = (event: Event) => {
+    const textarea = event.target as HTMLTextAreaElement
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = `${textarea.scrollHeight}px`
+    }
+  }
 </script>
 
 <div {id} class="node-container">
@@ -57,14 +65,15 @@
     {/if}
     <div>
       <label for="text">Text:</label>
-      <textarea id="text" class="nodrag" placeholder="Enter the dialogue text."></textarea>
+      <textarea id="text" class="nodrag" placeholder="Enter the dialogue text." oninput={autoResize}
+      ></textarea>
     </div>
   </form>
 </div>
 
 <style>
   :root {
-    --node-cross-bg-color: #d95d5e;
+    --node-cross-bg-color: #ef5454;
     --node-bg-color: #ffffff;
   }
 
@@ -74,6 +83,7 @@
 
   textarea {
     resize: none;
+    overflow: hidden;
   }
 
   form {
@@ -100,7 +110,6 @@
     border-radius: 0.2rem;
     background: none;
     border: none;
-    transition: background 0.2s ease-in-out;
   }
 
   .cross:hover {
