@@ -25,10 +25,18 @@
     nodes = [...nodes, newDialogueNode]
   }
 
+  const clearNodes = () => {
+    nodes = []
+  }
+
   const buttons: Button[] = [
     {
       text: '+ Node',
       onClick: addNode
+    },
+    {
+      text: 'Clear',
+      onClick: clearNodes
     }
   ]
 
