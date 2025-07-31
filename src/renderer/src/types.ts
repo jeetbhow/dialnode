@@ -9,6 +9,7 @@ export type DialogueNodeData = {
     speaker?: string,
     portrait?: string,
     text: string,
+    showOptions: boolean;
 }
 
 export type DialogueNodeType = Node<DialogueNodeData>

@@ -3,7 +3,7 @@
   import { SvelteFlow, Background, Panel, MiniMap, Controls } from '@xyflow/svelte'
 
   import ButtonsContainer from './components/ButtonsContainer.svelte'
-  import DialogueNode from './components/DialogueNode.svelte'
+  import DialogueNode from './components/DialogueNode/DialogueNode.svelte'
 
   import '@xyflow/svelte/dist/style.css'
 
@@ -25,7 +25,7 @@
       id,
       type: 'dialogueNode',
       position,
-      data: { text: '' }
+      data: { text: '', showOptions: false }
     }
 
     nodes = [...nodes, newDialogueNode]
