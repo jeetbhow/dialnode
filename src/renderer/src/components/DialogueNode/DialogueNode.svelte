@@ -15,6 +15,10 @@
   const autoResize = (event: Event) => {
     const textarea = event.target as HTMLTextAreaElement
     if (textarea) {
+      /**
+       * Setting the height to "auto" allows the textarea to shrink
+       * to its "natural" height, so that the client height is equal to the content height.
+       */
       textarea.style.height = 'auto'
       textarea.style.height = `${textarea.scrollHeight}px`
     }
@@ -81,6 +85,12 @@
     display: block;
   }
 
+  input,
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   textarea {
     resize: none;
     overflow: hidden;
@@ -103,7 +113,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
   }
 
   .cross {
