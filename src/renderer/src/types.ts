@@ -11,4 +11,4 @@ export type DialogueNodeData = {
     text: string,
 }
 
-export type DialogueNodeType = Node<DialogueNodeData>;
+export type DialogueNodeType = Node<DialogueNodeData>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Button } from '../types'
+
   import NodeButton from './NodeButton.svelte'
 
   export let flexDirection: 'row' | 'column'
@@ -7,9 +8,9 @@
 </script>
 
 <div style="flex-direction: {flexDirection}">
-    {#each buttons as { text, onClick }}
-        <NodeButton {text} onClick={onClick} />
-    {/each}
+  {#each buttons as { text, onClick }}
+    <NodeButton {text} {onClick} />
+  {/each}
 </div>
 
 <style>

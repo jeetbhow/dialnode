@@ -11,11 +11,17 @@
     dialogueNode: DialogueNode
   }
 
+  let nodes: DialogueNodeType[] = $state.raw([])
+
+  const clearNodes = () => {
+    nodes = []
+  }
+
   const addNode = () => {
     const id = crypto.randomUUID()
     const position = { x: 0, y: 0 } // TODO: We're going to be replacing fixed-positions with drag and drop later on.
 
-    const newDialogueNode = {
+    const newDialogueNode: DialogueNodeType = {
       id,
       type: 'dialogueNode',
       position,
@@ -23,10 +29,6 @@
     }
 
     nodes = [...nodes, newDialogueNode]
-  }
-
-  const clearNodes = () => {
-    nodes = []
   }
 
   const buttons: Button[] = [
@@ -39,8 +41,6 @@
       onClick: clearNodes
     }
   ]
-
-  let nodes: DialogueNodeType[] = $state.raw([])
 </script>
 
 <div style:width="100vw" style:height="100vh">
