@@ -6,7 +6,7 @@
   const { updateNodeData } = useSvelteFlow()
 </script>
 
-<div {id}>
+<div {id} class="node-container">
   <form
     onsubmit={(e) => {
       e.preventDefault()
@@ -42,5 +42,21 @@
 <style>
   label {
     display: block;
+  }
+
+  textarea {
+    resize: none;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .node-container {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 0.5rem;
+    border-radius: 0.3rem;
   }
 </style>
