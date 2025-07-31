@@ -22,6 +22,7 @@
     <div>
       <label for="speaker">Speaker:</label>
       <input
+        class="nodrag"
         id="speaker"
         type="text"
         value={data.speaker ?? ''}
@@ -32,6 +33,7 @@
     <div>
       <label for="portrait">Portrait:</label>
       <input
+        class="nodrag"
         id="portrait"
         type="text"
         value={data.portrait ?? ''}
@@ -41,7 +43,7 @@
     </div>
     <div>
       <label for="text">Text:</label>
-      <textarea id="text" placeholder="Enter the dialogue text."></textarea>
+      <textarea id="text" class="nodrag" placeholder="Enter the dialogue text."></textarea>
     </div>
   </form>
 </div>
