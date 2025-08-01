@@ -1,7 +1,7 @@
 <script lang="ts">
   import { SvelteFlow, Background, Panel, MiniMap, Controls } from '@xyflow/svelte';
 
-  import type { Button, DialogueNodeType } from './types';
+  import type { Button, DialogueNodeType, Portrait } from './types';
 
   import ButtonsContainer from './components/buttons/ButtonsContainer.svelte';
   import DialogueNode from './components/dialogueNode/DialogueNode.svelte';
@@ -9,13 +9,14 @@
 
   import '@xyflow/svelte/dist/style.css';
 
+  let portraits: Portrait[] = $state([]);
+
+  let nodes: DialogueNodeType[] = $state.raw([]);
+  let showPortraitModal = $state(false);
+
   const nodeTypes = {
     dialogueNode: DialogueNode
   };
-
-  let nodes: DialogueNodeType[] = $state.raw([]);
-  let edges: any[] = $state.raw([]);
-  let showPortraitModal = $state(false);
 
   const closePortraitModal = () => {
     showPortraitModal = false;
@@ -75,6 +76,12 @@
     <Background />
   </SvelteFlow>
   {#if showPortraitModal}
-    <PortraitModal onClose={closePortraitModal} />
+    <PortraitModal bind:portraits onClose={closePortraitModal} />
   {/if}
 </div>
+
+<style>
+  div {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+</style>
