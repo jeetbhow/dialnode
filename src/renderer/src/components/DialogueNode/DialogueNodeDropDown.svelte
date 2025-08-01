@@ -1,27 +1,27 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount } from 'svelte';
 
-  import threeDots from '../../assets/three-dots.svg'
+  import threeDots from '../../assets/three-dots.svg';
 
-  export let show: boolean = false
-  export let isSpeakerEnabled: boolean = false
-  export let isPortraitEnabled: boolean = false
+  export let show: boolean = false;
+  export let isSpeakerEnabled: boolean = false;
+  export let isPortraitEnabled: boolean = false;
 
-  let dropdownElement: HTMLDivElement
+  let dropdownElement: HTMLDivElement;
 
   function handleDocumentClick(event: MouseEvent) {
     if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
-      show = false
+      show = false;
     }
   }
 
   onMount(() => {
-    document.addEventListener('click', handleDocumentClick)
+    document.addEventListener('click', handleDocumentClick);
 
     return () => {
-      document.removeEventListener('click', handleDocumentClick)
-    }
-  })
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  });
 </script>
 
 <div class="dropdown" bind:this={dropdownElement}>
@@ -32,7 +32,7 @@
     <div class="dropdown-content">
       <form
         onsubmit={(e) => {
-          e.preventDefault()
+          e.preventDefault();
         }}
       >
         <div>

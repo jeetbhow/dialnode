@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { Button } from '../types'
+  import type { Button } from '../../types';
 
-  import NodeButton from './NodeButton.svelte'
+  import NodeButton from './Button.svelte';
 
-  export let flexDirection: 'row' | 'column'
-  export let buttons: Button[]
+  export let flexDirection: 'row' | 'column';
+  export let buttons: Button[];
 </script>
 
 <div style="flex-direction: {flexDirection}">

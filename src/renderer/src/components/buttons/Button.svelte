@@ -3,7 +3,7 @@
   export let onClick: () => void
 </script>
 
-<button on:click={onClick}>{text}</button>
+<button on:click|stopPropagation={onClick}>{text}</button>
 
 <style>
   button {

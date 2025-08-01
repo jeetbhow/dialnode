@@ -1,28 +1,28 @@
 <script lang="ts">
-  import type { DialogueNodeType } from '../../types'
-  import cross from '../../assets/cross.svg'
+  import type { DialogueNodeType } from '../../types';
+  import cross from '../../assets/cross.svg';
 
-  import { useSvelteFlow, type NodeProps } from '@xyflow/svelte'
+  import { useSvelteFlow, type NodeProps } from '@xyflow/svelte';
 
-  import DialogueNodeDropDown from './DialogueNodeDropDown.svelte'
+  import DialogueNodeDropDown from './DialogueNodeDropDown.svelte';
 
-  let { id, data }: NodeProps<DialogueNodeType> = $props()
-  let isSpeakerFieldEnabled: boolean = $state(false)
-  let isPortraitFieldEnabled: boolean = $state(false)
+  let { id, data }: NodeProps<DialogueNodeType> = $props();
+  let isSpeakerFieldEnabled: boolean = $state(false);
+  let isPortraitFieldEnabled: boolean = $state(false);
 
-  const { updateNodeData, deleteElements } = useSvelteFlow()
+  const { updateNodeData, deleteElements } = useSvelteFlow();
 
   const autoResize = (event: Event) => {
-    const textarea = event.target as HTMLTextAreaElement
+    const textarea = event.target as HTMLTextAreaElement;
     if (textarea) {
       /**
        * Setting the height to "auto" allows the textarea to shrink
        * to its "natural" height, so that the client height is equal to the content height.
        */
-      textarea.style.height = 'auto'
-      textarea.style.height = `${textarea.scrollHeight}px`
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  }
+  };
 </script>
 
 <div {id} class="node-container">
@@ -38,7 +38,7 @@
 
   <form
     onsubmit={(e) => {
-      e.preventDefault()
+      e.preventDefault();
     }}
   >
     {#if isSpeakerFieldEnabled}
@@ -119,9 +119,5 @@
     border-radius: 0.2rem;
     background: none;
     border: none;
-  }
-
-  .cross:hover {
-    background-color: var(--node-cross-bg-color);
   }
 </style>

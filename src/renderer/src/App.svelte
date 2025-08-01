@@ -1,46 +1,65 @@
 <script lang="ts">
-  import type { Button, DialogueNodeType } from './types'
-  import { SvelteFlow, Background, Panel, MiniMap, Controls } from '@xyflow/svelte'
+  import { SvelteFlow, Background, Panel, MiniMap, Controls } from '@xyflow/svelte';
 
-  import ButtonsContainer from './components/ButtonsContainer.svelte'
-  import DialogueNode from './components/DialogueNode/DialogueNode.svelte'
+  import type { Button, DialogueNodeType } from './types';
 
-  import '@xyflow/svelte/dist/style.css'
+  import ButtonsContainer from './components/buttons/ButtonsContainer.svelte';
+  import DialogueNode from './components/dialogueNode/DialogueNode.svelte';
+  import PortraitModal from './components/portrait/PortraitModal.svelte';
+
+  import '@xyflow/svelte/dist/style.css';
 
   const nodeTypes = {
     dialogueNode: DialogueNode
-  }
+  };
 
-  let nodes: DialogueNodeType[] = $state.raw([])
+  let nodes: DialogueNodeType[] = $state.raw([]);
+  let edges: any[] = $state.raw([]);
+  let showPortraitModal = $state(false);
+
+  const closePortraitModal = () => {
+    showPortraitModal = false;
+  };
 
   const clearNodes = () => {
-    nodes = []
-  }
+    nodes = [];
+  };
 
   const addNode = () => {
-    const id = crypto.randomUUID()
-    const position = { x: 0, y: 0 } // TODO: We're going to be replacing fixed-positions with drag and drop later on.
+    const id = crypto.randomUUID();
+    const position = { x: 0, y: 0 }; // TODO: We're going to be replacing fixed-positions with drag and drop later on.
 
     const newDialogueNode: DialogueNodeType = {
       id,
       type: 'dialogueNode',
       position,
       data: { text: '', showOptions: false }
-    }
+    };
 
-    nodes = [...nodes, newDialogueNode]
-  }
+    nodes = [...nodes, newDialogueNode];
+  };
 
-  const buttons: Button[] = [
+  const togglePortraitModal = () => {
+    showPortraitModal = !showPortraitModal;
+  };
+
+  const controlButtons: Button[] = [
     {
-      text: '+ Node',
-      onClick: addNode
+      text: 'Portraits',
+      onClick: togglePortraitModal
     },
     {
       text: 'Clear',
       onClick: clearNodes
     }
-  ]
+  ];
+
+  const nodeButtons: Button[] = [
+    {
+      text: '+ Node',
+      onClick: addNode
+    }
+  ];
 </script>
 
 <div style:width="100vw" style:height="100vh">
@@ -48,8 +67,14 @@
     <MiniMap />
     <Controls />
     <Panel position="top-left">
-      <ButtonsContainer flexDirection="row" {buttons} />
+      <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
+    </Panel>
+    <Panel position="top-right">
+      <ButtonsContainer flexDirection="row" buttons={controlButtons} />
     </Panel>
     <Background />
   </SvelteFlow>
+  {#if showPortraitModal}
+    <PortraitModal onClose={closePortraitModal} />
+  {/if}
 </div>
