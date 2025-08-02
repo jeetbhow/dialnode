@@ -15,6 +15,8 @@
   let newPortraitName: string = $state();
   let projectDir: string = $state();
 
+  let selectedPortrait: Portrait = $derived(portraits.find((p) => p.id === selectedId) ?? null);
+
   function selectPortrait(id: string) {
     selectedId = id;
   }
@@ -24,16 +26,17 @@
   }
 
   async function addPortrait() {
-    const dir = await window.api.selectImage();
+    const metadata = await window.api.selectImage();
     const id = crypto.randomUUID();
 
     const newPortrait = {
       id,
       name: newPortraitName,
-      path: dir
+      ...metadata
     };
+
     portraits.push(newPortrait);
-    newPortraitName = null;
+    newPortraitName = '';
   }
 </script>
 
@@ -58,7 +61,16 @@
         {/each}
       </ul>
       <div class="info">
-        <p>This is where the portrait info goes.</p>
+        {#if selectedPortrait}
+          <img
+            src={selectedPortrait.dataURL}
+            alt={selectedPortrait.name}
+            width="100"
+            height="100"
+          />
+          <p>{selectedPortrait.filename}</p>
+          <p>{selectedPortrait.width} x {selectedPortrait.height}</p>
+        {/if}
       </div>
     </div>
     <div class="controls">
@@ -72,7 +84,7 @@
   header {
     display: flex;
     justify-content: space-between;
-    flex-flow: row nowrap;
+    flex-flow: row;
     padding: 0.5rem 0;
   }
 
@@ -86,7 +98,7 @@
     top: 50%;
     left: 50%;
     width: 50%;
-    height: 75%;
+    height: 70%;
     transform: translate(-50%, -50%);
     background-color: rgb(255, 255, 255);
     padding: 0 0.8rem;
@@ -97,7 +109,7 @@
 
   .content {
     display: flex;
-    flex-flow: column nowrap;
+    flex-flow: column;
     justify-content: space-between;
     box-sizing: border-box;
     padding: 0.8rem;
@@ -108,18 +120,28 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    flex: 1 1 auto;
+    flex: 0 0 40%;
+    overflow-y: auto;
   }
 
   .info {
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem;
     flex: 2 2 auto;
+  }
+
+  .info p {
+    margin: 0;
   }
 
   .view {
     display: flex;
-    flex-flow: row nowrap;
+    flex-flow: row;
     justify-content: space-between;
-    flex: 1 1 auto;
     gap: 1rem;
+    flex: 1 1 auto;
   }
 </style>

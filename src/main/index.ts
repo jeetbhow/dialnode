@@ -1,16 +1,55 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron';
-import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 
+import { join, basename, extname } from 'path';
+import { readFileSync } from 'fs';
+
+import { imageSize } from 'image-size';
+
+function getMimeType(filePath: string): string {
+  const ext = extname(filePath).toLowerCase();
+  switch (ext) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.gif':
+      return 'image/gif';
+    case '.bmp':
+      return 'image/bmp';
+    case '.webp':
+      return 'image/webp';
+    case '.svg':
+      return 'image/svg+xml';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
 ipcMain.handle('select-image', async () => {
-  const result = await dialog.showOpenDialog({
+  const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'] }]
   });
 
-  if (result.canceled) return null;
-  return result.filePaths[0];
+  if (canceled || !filePaths.length) return null;
+
+  const buf = readFileSync(filePaths[0]);
+  const base64 = buf.toString('base64');
+  const mimeType = getMimeType(filePaths[0]);
+  const dataURL = `data:${mimeType};base64,${base64}`;
+  const metadata = imageSize(buf);
+
+  return {
+    dataURL,
+    width: metadata.width,
+    height: metadata.height,
+    type: metadata.type,
+    path: filePaths[0],
+    filename: basename(filePaths[0])
+  };
 });
 
 function createWindow(): void {

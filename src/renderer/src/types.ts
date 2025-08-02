@@ -17,5 +17,9 @@ export type DialogueNodeType = Node<DialogueNodeData>;
 export type Portrait = {
   id: string;
   name: string;
+  dataURL: string;
+  width: number;
+  height: number;
   path: string;
+  filename: string;
 };

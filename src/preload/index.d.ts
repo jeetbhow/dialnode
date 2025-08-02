@@ -1,7 +1,16 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
 
+type ImageMetaData = {
+  dataURL: string;
+  width: number;
+  height: number;
+  type?: string;
+  path: string;
+  filename: string;
+};
+
 interface AppApi {
-  selectImage: () => Promise<string | null>;
+  selectImage: () => Promise<ImageMetaData | null>;
 }
 
 declare global {
