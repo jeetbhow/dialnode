@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import icon from '../../resources/icon.png?asset';
 
-import { join, basename, extname } from 'path';
+import { join, basename, extname, relative } from 'path';
 import { readFileSync } from 'fs';
 
 import { imageSize } from 'image-size';
@@ -28,7 +28,7 @@ function getMimeType(filePath: string): string {
   }
 }
 
-ipcMain.handle('select-image', async () => {
+ipcMain.handle('select-image', async (_event, projectDir: string) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'] }]
@@ -41,14 +41,16 @@ ipcMain.handle('select-image', async () => {
   const mimeType = getMimeType(filePaths[0]);
   const dataURL = `data:${mimeType};base64,${base64}`;
   const metadata = imageSize(buf);
+  const path = filePaths[0];
 
   return {
     dataURL,
     width: metadata.width,
     height: metadata.height,
     type: metadata.type,
-    path: filePaths[0],
-    filename: basename(filePaths[0])
+    path,
+    relPath: relative(projectDir, path),
+    filename: basename(path)
   };
 });
 

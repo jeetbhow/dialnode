@@ -21,5 +21,7 @@ export type Portrait = {
   width: number;
   height: number;
   path: string;
+  relPath: string;
+  virtualPath: string;
   filename: string;
 };

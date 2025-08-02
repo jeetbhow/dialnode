@@ -25,17 +25,30 @@
     portraits = portraits.filter((portrait) => portrait.id != id);
   }
 
-  async function selectDirectory(): Promise<void> {
-    projectDir = await window.api.selectDirectory();
-  }
-
   async function addPortrait() {
-    const metadata = await window.api.selectImage();
+    if (!newPortraitName || newPortraitName === '') {
+      return;
+    }
+
+    if (!projectDir || projectDir === '') {
+      alert('A project directory must be set before you can add portraits.');
+      return;
+    }
+
     const id = crypto.randomUUID();
+    const metadata = await window.api.selectImage(projectDir);
+
+    if (!metadata.path.startsWith(projectDir)) {
+      alert('The selected portrait is not contained in the project.');
+      return;
+    }
+
+    const virtualPath = 'res://' + metadata.relPath.replaceAll('\\', '/');
 
     const newPortrait = {
       id,
       name: newPortraitName,
+      virtualPath,
       ...metadata
     };
 
@@ -52,6 +65,7 @@
         <img src={cross} alt="Cross" width="24" height="24" />
       </button>
     </header>
+    <p class="project-dir">Project: {projectDir}</p>
     <div class="view">
       <ul class="list">
         {#each portraits as portrait}
@@ -74,18 +88,13 @@
           />
           <p>{selectedPortrait.filename}</p>
           <p>{selectedPortrait.width} x {selectedPortrait.height}</p>
+          <p>{selectedPortrait.virtualPath}</p>
         {/if}
       </div>
     </div>
     <div class="controls">
-      <div>
-        <input type="text" bind:value={newPortraitName} />
-        <button onclick={addPortrait}>Add Portrait</button>
-      </div>
-      <div>
-        <p>{projectDir}</p>
-        <button onclick={selectDirectory}>Set Godot Project Directory</button>
-      </div>
+      <input type="text" bind:value={newPortraitName} />
+      <button onclick={addPortrait}>Add Portrait</button>
     </div>
   </div>
 </div>
@@ -108,24 +117,13 @@
     top: 50%;
     left: 50%;
     width: 50%;
-    height: 65%;
+    height: 60%;
     transform: translate(-50%, -50%);
     background-color: rgb(255, 255, 255);
     padding: 0 0.8rem;
     border-radius: 0.8rem;
     box-shadow: 0 2px 10px rgba(124, 119, 119, 0.1);
     z-index: 1000;
-  }
-
-  .controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: end;
-  }
-
-  .controls p {
-    font-size: x-small;
-    margin: 0;
   }
 
   .content {
@@ -135,6 +133,10 @@
     box-sizing: border-box;
     padding: 0.8rem;
     height: 100%;
+  }
+
+  .project-dir {
+    margin-bottom: 1rem;
   }
 
   .list {
@@ -154,8 +156,13 @@
     flex: 2 2 auto;
   }
 
-  .info p {
+  h2,
+  p {
     margin: 0;
+  }
+
+  p {
+    font-size: small;
   }
 
   .view {

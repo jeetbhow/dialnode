@@ -6,11 +6,12 @@ type ImageMetaData = {
   height: number;
   type?: string;
   path: string;
+  relPath: string;
   filename: string;
 };
 
 interface AppApi {
-  selectImage: () => Promise<ImageMetaData | null>;
+  selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
   selectDirectory: () => Promise<string | null>;
 }
 

@@ -3,8 +3,8 @@ import { electronAPI } from '@electron-toolkit/preload';
 
 // Custom APIs for renderer
 const api = {
-  selectImage: async () => {
-    return await ipcRenderer.invoke('select-image');
+  selectImage: async (projectDir: string) => {
+    return await ipcRenderer.invoke('select-image', projectDir);
   },
   selectDirectory: async () => {
     return await ipcRenderer.invoke('select-directory');

@@ -19,6 +19,10 @@
     dialogueNode: DialogueNode
   };
 
+  async function selectDirectory(): Promise<void> {
+    projectDir = await window.api.selectDirectory();
+  }
+
   const closePortraitModal = () => {
     showPortraitModal = false;
   };
@@ -53,6 +57,10 @@
     {
       text: 'Clear',
       onClick: clearNodes
+    },
+    {
+      text: 'Project',
+      onClick: selectDirectory
     }
   ];
 
@@ -82,7 +90,7 @@
 </div>
 
 <style>
-  div {
+  * {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
 </style>
