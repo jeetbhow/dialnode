@@ -11,6 +11,7 @@ type ImageMetaData = {
 
 interface AppApi {
   selectImage: () => Promise<ImageMetaData | null>;
+  selectDirectory: () => Promise<string | null>;
 }
 
 declare global {

@@ -6,23 +6,27 @@
 
   type Props = {
     portraits: Portrait[];
+    projectDir: string;
     onClose: () => void;
   };
 
-  let { portraits = $bindable(), onClose }: Props = $props();
+  let { portraits = $bindable(), projectDir = $bindable(), onClose }: Props = $props();
 
-  let selectedId: string = $state();
-  let newPortraitName: string = $state();
-  let projectDir: string = $state();
+  let selectedId: string = $state('');
+  let newPortraitName: string = $state('');
 
   let selectedPortrait: Portrait = $derived(portraits.find((p) => p.id === selectedId) ?? null);
 
-  function selectPortrait(id: string) {
+  function selectPortrait(id: string): void {
     selectedId = id;
   }
 
-  function deletePortrait(id: string) {
+  function deletePortrait(id: string): void {
     portraits = portraits.filter((portrait) => portrait.id != id);
+  }
+
+  async function selectDirectory(): Promise<void> {
+    projectDir = await window.api.selectDirectory();
   }
 
   async function addPortrait() {
@@ -74,8 +78,14 @@
       </div>
     </div>
     <div class="controls">
-      <input type="text" bind:value={newPortraitName} />
-      <button onclick={addPortrait}>Add Portrait</button>
+      <div>
+        <input type="text" bind:value={newPortraitName} />
+        <button onclick={addPortrait}>Add Portrait</button>
+      </div>
+      <div>
+        <p>{projectDir}</p>
+        <button onclick={selectDirectory}>Set Godot Project Directory</button>
+      </div>
     </div>
   </div>
 </div>
@@ -98,13 +108,24 @@
     top: 50%;
     left: 50%;
     width: 50%;
-    height: 70%;
+    height: 65%;
     transform: translate(-50%, -50%);
     background-color: rgb(255, 255, 255);
     padding: 0 0.8rem;
     border-radius: 0.8rem;
     box-shadow: 0 2px 10px rgba(124, 119, 119, 0.1);
     z-index: 1000;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+  }
+
+  .controls p {
+    font-size: x-small;
+    margin: 0;
   }
 
   .content {

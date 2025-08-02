@@ -5,6 +5,9 @@ import { electronAPI } from '@electron-toolkit/preload';
 const api = {
   selectImage: async () => {
     return await ipcRenderer.invoke('select-image');
+  },
+  selectDirectory: async () => {
+    return await ipcRenderer.invoke('select-directory');
   }
 };
 

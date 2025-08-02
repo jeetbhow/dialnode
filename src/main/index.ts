@@ -52,6 +52,15 @@ ipcMain.handle('select-image', async () => {
   };
 });
 
+ipcMain.handle('select-directory', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openDirectory']
+  });
+
+  if (canceled || !filePaths.length) return null;
+  return filePaths[0];
+});
+
 function createWindow(): void {
   // Create the browser window
   const mainWindow = new BrowserWindow({

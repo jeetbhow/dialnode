@@ -9,6 +9,7 @@
 
   import '@xyflow/svelte/dist/style.css';
 
+  let projectDir: string = $state('');
   let portraits: Portrait[] = $state([]);
 
   let nodes: DialogueNodeType[] = $state.raw([]);
@@ -76,7 +77,7 @@
     <Background />
   </SvelteFlow>
   {#if showPortraitModal}
-    <PortraitModal bind:portraits onClose={closePortraitModal} />
+    <PortraitModal bind:portraits bind:projectDir onClose={closePortraitModal} />
   {/if}
 </div>
 
