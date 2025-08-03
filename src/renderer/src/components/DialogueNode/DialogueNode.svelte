@@ -1,18 +1,42 @@
 <script lang="ts">
-  import type { DialogueNodeType } from '../../types';
-  import cross from '../../assets/cross.svg';
-
   import { useSvelteFlow, type NodeProps } from '@xyflow/svelte';
+
+  import cross from '../../assets/cross.svg';
+  import plus from '../../assets/plus.svg';
+  import minus from '../../assets/minus.svg';
+  import type { DialogueNodeType, DbRequestType } from '../../types';
+
+  import { requestModal } from '../../stores/portraitModal.svelte';
 
   import DialogueNodeDropDown from './DialogueNodeDropDown.svelte';
 
   let { id, data }: NodeProps<DialogueNodeType> = $props();
+
   let isSpeakerFieldEnabled: boolean = $state(false);
   let isPortraitFieldEnabled: boolean = $state(false);
 
   const { updateNodeData, deleteElements } = useSvelteFlow();
 
-  const autoResize = (event: Event) => {
+  async function requestData(type: DbRequestType): Promise<void> {
+    const response = await requestModal(id, type);
+    if (response === null || response.nodeId !== id) return;
+
+    if (type === 'Portrait') {
+      updateNodeData(id, { portrait: response.value });
+    } else {
+      updateNodeData(id, { speaker: response.value });
+    }
+  }
+
+  function removeData(type: DbRequestType): void {
+    if (type === 'Portrait') {
+      updateNodeData(id, { portrait: null });
+    } else {
+      updateNodeData(id, { speaker: null });
+    }
+  }
+
+  function autoResize(event: Event): void {
     const textarea = event.target as HTMLTextAreaElement;
     if (textarea) {
       /**
@@ -22,7 +46,7 @@
       textarea.style.height = 'auto';
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  };
+  }
 </script>
 
 <div {id} class="node-container">
@@ -41,30 +65,43 @@
       e.preventDefault();
     }}
   >
-    {#if isSpeakerFieldEnabled}
-      <div>
-        <label for="speaker">Speaker:</label>
-        <input
-          class="nodrag"
-          id="speaker"
-          type="text"
-          value={data.speaker ?? ''}
-          oninput={(e) => updateNodeData(id, { speaker: (e.target as HTMLInputElement).value })}
-          placeholder="Enter speaker name."
-        />
+    {#if isPortraitFieldEnabled}
+      <div class="field">
+        {#if data.portrait}
+          <div class="portrait-overlay">
+            <img
+              src={data.portrait.dataURL}
+              alt="A portrait of a character."
+              width="50"
+              height="50"
+            />
+            <button class="minus-btn" onclick={() => removeData('Portrait')}>
+              <img src={minus} alt="Delete portrait." width="18" height="18" />
+            </button>
+          </div>
+        {:else}
+          <p>Portrait:</p>
+          <button class="plus-btn" onclick={() => requestData('Portrait')}>
+            <img src={plus} alt="Add portrait." width="16" height="16" />
+          </button>
+        {/if}
       </div>
     {/if}
-    {#if isPortraitFieldEnabled}
-      <div>
-        <label for="portrait">Portrait:</label>
-        <input
-          class="nodrag"
-          id="portrait"
-          type="text"
-          value={data.portrait ?? ''}
-          oninput={(e) => updateNodeData(id, { portrait: (e.target as HTMLInputElement).value })}
-          placeholder="Enter portrait directory."
-        />
+    {#if isSpeakerFieldEnabled}
+      <div class="field">
+        {#if data.speaker}
+          <div class="speaker-view">
+            <p>{data.speaker.name}</p>
+            <button class="minus-btn" onclick={() => removeData('Speaker')}>
+              <img src={minus} alt="Delete portrait." width="16" height="16" />
+            </button>
+          </div>
+        {:else}
+          <p>Speaker:</p>
+          <button class="plus-btn" onclick={() => requestData('Speaker')}>
+            <img src={plus} alt="Add Speaker." width="16" height="16" />
+          </button>
+        {/if}
       </div>
     {/if}
     <div>
@@ -76,16 +113,14 @@
 </div>
 
 <style>
-  :root {
-    --node-cross-bg-color: #ef5454;
-    --node-bg-color: #ffffff;
+  p {
+    margin: 0;
   }
 
   label {
     display: block;
   }
 
-  input,
   textarea {
     width: 100%;
     box-sizing: border-box;
@@ -102,6 +137,11 @@
     gap: 0.3rem;
   }
 
+  button {
+    all: unset;
+    cursor: pointer;
+  }
+
   .node-container {
     background: var(--node-bg-color);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -113,6 +153,71 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .field {
+    display: flex;
+    gap: 0.5rem;
+    margin: auto;
+  }
+
+  .plus-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem;
+    border-radius: 100%;
+  }
+
+  .plus-btn:hover {
+    background-color: #8ec3f4;
+  }
+
+  .minus-btn {
+    display: flex;
+    align-items: center;
+    padding: 0.2rem;
+    border-radius: 100%;
+  }
+
+  .minus-btn:hover {
+    background-color: #f46c6c;
+  }
+
+  .portrait-overlay {
+    position: relative;
+    margin: auto;
+  }
+
+  .portrait-overlay img {
+    display: block;
+  }
+
+  .portrait-overlay button {
+    all: unset;
+    position: absolute;
+    top: 0.2rem;
+    right: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 100%;
+    background-color: rgba(219, 217, 217, 0.453);
+    left: auto;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 200ms ease-in-out;
+  }
+
+  .portrait-overlay button:hover {
+    cursor: pointer;
+  }
+
+  .portrait-overlay:hover button {
+    opacity: 1;
+  }
+
+  .speaker-view {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
   }
 
   .cross {

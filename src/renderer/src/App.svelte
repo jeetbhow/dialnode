@@ -1,19 +1,20 @@
 <script lang="ts">
   import { SvelteFlow, Background, Panel, MiniMap, Controls } from '@xyflow/svelte';
 
-  import type { Button, DialogueNodeType, Portrait } from './types';
+  import type { Button, DialogueNodeType, Portrait, Speaker } from './types';
+  import { modal } from './stores/portraitModal.svelte';
 
   import ButtonsContainer from './components/buttons/ButtonsContainer.svelte';
   import DialogueNode from './components/dialogueNode/DialogueNode.svelte';
-  import PortraitModal from './components/portrait/PortraitModal.svelte';
+  import PortraitModal from './components/database/DatabaseModal.svelte';
 
   import '@xyflow/svelte/dist/style.css';
 
   let projectDir: string = $state('');
   let portraits: Portrait[] = $state([]);
+  let speakers: Speaker[] = $state([]);
 
   let nodes: DialogueNodeType[] = $state.raw([]);
-  let showPortraitModal = $state(false);
 
   const nodeTypes = {
     dialogueNode: DialogueNode
@@ -22,10 +23,6 @@
   async function selectDirectory(): Promise<void> {
     projectDir = await window.api.selectDirectory();
   }
-
-  const closePortraitModal = () => {
-    showPortraitModal = false;
-  };
 
   const clearNodes = () => {
     nodes = [];
@@ -45,14 +42,14 @@
     nodes = [...nodes, newDialogueNode];
   };
 
-  const togglePortraitModal = () => {
-    showPortraitModal = !showPortraitModal;
+  const openPortraitModal = () => {
+    modal.open = true;
   };
 
   const controlButtons: Button[] = [
     {
-      text: 'Portraits',
-      onClick: togglePortraitModal
+      text: 'Database',
+      onClick: openPortraitModal
     },
     {
       text: 'Clear',
@@ -84,8 +81,8 @@
     </Panel>
     <Background />
   </SvelteFlow>
-  {#if showPortraitModal}
-    <PortraitModal bind:portraits bind:projectDir onClose={closePortraitModal} />
+  {#if modal.open}
+    <PortraitModal bind:portraits bind:speakers bind:projectDir />
   {/if}
 </div>
 

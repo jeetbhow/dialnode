@@ -1,13 +1,15 @@
 import type { Node } from '@xyflow/svelte';
 
+export type DbRequestType = 'Portrait' | 'Speaker';
+
 export type Button = {
   text: string;
   onClick: () => void;
 };
 
 export type DialogueNodeData = {
-  speaker?: string;
-  portrait?: string;
+  speaker?: Speaker;
+  portrait?: Portrait;
   text: string;
   showOptions: boolean;
 };
@@ -24,4 +26,9 @@ export type Portrait = {
   relPath: string;
   virtualPath: string;
   filename: string;
+};
+
+export type Speaker = {
+  id: string;
+  name: string;
 };
