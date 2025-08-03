@@ -7,18 +7,19 @@
 
 <style>
   button {
+    color: rgb(78, 96, 249);
     background: none;
-    border: solid 1px black;
+    border: solid 1px rgb(78, 96, 249);
     border-radius: 0.2rem;
-    padding: 0.5rem;
+    padding: 0.6rem 1.5rem;
     cursor: pointer;
     transition:
-      background 0.2s ease-in-out,
-      color 0.2s ease-in-out;
+      background 150ms ease-in-out,
+      color 150ms ease-in-out;
   }
 
   button:hover {
-    background: black;
-    color: white;
+    background: rgb(78, 96, 249);
+    color: rgb(205, 198, 247);
   }
 </style>

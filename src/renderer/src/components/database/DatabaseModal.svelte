@@ -165,22 +165,29 @@
     cursor: pointer;
   }
 
+  input {
+  }
+
   .controls {
     display: flex;
     gap: 0.3rem;
   }
 
   .controls button {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: rgb(228, 231, 244);
     background-color: rgb(78, 96, 249);
-    padding: 0.3rem 1rem;
+    padding: 0.5rem 1.7rem;
     border-radius: 0.2rem;
   }
 
   .controls input {
-    font-size: 0.8rem;
-    color: rgb(85, 85, 86);
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-radius: 0.2rem;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    color: rgb(123, 121, 121);
   }
 
   .modal {
