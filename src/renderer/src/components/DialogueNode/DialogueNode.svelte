@@ -105,7 +105,6 @@
       </div>
     {/if}
     <div>
-      <label for="text">Text:</label>
       <textarea id="text" class="nodrag" placeholder="Enter the dialogue text." oninput={autoResize}
       ></textarea>
     </div>
@@ -115,10 +114,6 @@
 <style>
   p {
     margin: 0;
-  }
-
-  label {
-    display: block;
   }
 
   textarea {
@@ -143,10 +138,10 @@
   }
 
   .node-container {
-    background: var(--node-bg-color);
+    background-color: white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     padding: 0.5rem;
-    border-radius: 0.3rem;
+    border-radius: 0.5rem;
   }
 
   .header {
