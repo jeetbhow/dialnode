@@ -1,14 +1,14 @@
 <script lang="ts">
   import { useSvelteFlow, type NodeProps } from '@xyflow/svelte';
 
+  import DialogueNodeDropDown from './DialogueNodeDropDown.svelte';
+
+  import '../../styles.css';
   import cross from '../../assets/cross.svg';
   import plus from '../../assets/plus.svg';
   import minus from '../../assets/minus.svg';
   import type { DialogueNodeType, DbRequestType } from '../../types';
-
   import { requestModal } from '../../stores/portraitModal.svelte';
-
-  import DialogueNodeDropDown from './DialogueNodeDropDown.svelte';
 
   let { id, data }: NodeProps<DialogueNodeType> = $props();
 
@@ -124,6 +124,11 @@
   textarea {
     resize: none;
     overflow: hidden;
+    padding: 0.5rem;
+    border-radius: 0.2rem;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    font-family: 'Iosevka-Regular', monospace;
   }
 
   form {
