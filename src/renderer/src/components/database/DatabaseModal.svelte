@@ -165,9 +165,6 @@
     cursor: pointer;
   }
 
-  input {
-  }
-
   .controls {
     display: flex;
     gap: 0.3rem;

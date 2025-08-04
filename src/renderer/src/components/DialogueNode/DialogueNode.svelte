@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useSvelteFlow, type NodeProps } from '@xyflow/svelte';
+  import { useSvelteFlow, Handle, Position, type NodeProps } from '@xyflow/svelte';
 
   import DialogueNodeDropDown from './DialogueNodeDropDown.svelte';
 
@@ -10,10 +10,18 @@
   import type { DialogueNodeType, DbRequestType } from '../../types';
   import { requestModal } from '../../stores/portraitModal.svelte';
 
-  let { id, data }: NodeProps<DialogueNodeType> = $props();
+  const DEFAULT_HANDLE_STYLE = 'width: 0.5rem; height: 0.5rem';
+  const HANDLE_ID = {
+    leftTarget: 'left-target',
+    topTarget: 'top-target',
+    rightSource: 'right-source',
+    bottomSource: 'bottom-source'
+  };
 
+  let { id, data }: NodeProps<DialogueNodeType> = $props();
   let isSpeakerFieldEnabled: boolean = $state(false);
   let isPortraitFieldEnabled: boolean = $state(false);
+  let currActiveHandleId: string = $state();
 
   const { updateNodeData, deleteElements } = useSvelteFlow();
 
@@ -49,6 +57,38 @@
   }
 </script>
 
+<Handle
+  id={HANDLE_ID.leftTarget}
+  type="target"
+  position={Position.Left}
+  style="{DEFAULT_HANDLE_STYLE}; background-color: red;"
+/>
+<Handle
+  id={HANDLE_ID.topTarget}
+  type="target"
+  position={Position.Top}
+  style="{DEFAULT_HANDLE_STYLE}; background-color: red;"
+/>
+{#if !currActiveHandleId || currActiveHandleId == HANDLE_ID.rightSource}
+  <Handle
+    id={HANDLE_ID.rightSource}
+    type="source"
+    position={Position.Right}
+    style="{DEFAULT_HANDLE_STYLE}; background-color: blue;"
+    onconnect={() => (currActiveHandleId = HANDLE_ID.rightSource)}
+    ondisconnect={() => (currActiveHandleId = null)}
+  />
+{/if}
+{#if !currActiveHandleId || currActiveHandleId == HANDLE_ID.bottomSource}
+  <Handle
+    id={HANDLE_ID.bottomSource}
+    type="source"
+    position={Position.Bottom}
+    style="{DEFAULT_HANDLE_STYLE}; background-color: blue;"
+    onconnect={() => (currActiveHandleId = HANDLE_ID.bottomSource)}
+    ondisconnect={() => (currActiveHandleId = null)}
+  />
+{/if}
 <div {id} class="node-container">
   <div class="header">
     <DialogueNodeDropDown

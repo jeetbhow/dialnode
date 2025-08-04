@@ -1,6 +1,18 @@
 <script lang="ts">
-  import { SvelteFlow, Background, Panel, MiniMap, Controls } from '@xyflow/svelte';
+  import {
+    SvelteFlow,
+    Background,
+    Panel,
+    MiniMap,
+    Controls,
+    MarkerType,
+    type Edge,
+    type EdgeTypes,
+    type NodeTypes,
+    type Connection
+  } from '@xyflow/svelte';
 
+  import '@xyflow/svelte/dist/style.css';
   import type { Button, DialogueNodeType, Portrait, Speaker } from './types';
   import { modal } from './stores/portraitModal.svelte';
 
@@ -8,25 +20,51 @@
   import DialogueNode from './components/dialogueNode/DialogueNode.svelte';
   import PortraitModal from './components/database/DatabaseModal.svelte';
 
-  import '@xyflow/svelte/dist/style.css';
+  import DialogueEdge from './components/dialogueNode/DialogueEdge.svelte';
+
+  // Alias for parameter type in SvelteFlow's onedgeclick callback.
+  type EdgeClickEvent = {
+    edge: Edge;
+    event: MouseEvent;
+  };
 
   let projectDir: string = $state('');
   let portraits: Portrait[] = $state([]);
   let speakers: Speaker[] = $state([]);
 
   let nodes: DialogueNodeType[] = $state.raw([]);
+  let edges: Edge[] = $state.raw([]);
 
-  const nodeTypes = {
+  const nodeTypes: NodeTypes = {
     dialogueNode: DialogueNode
   };
+
+  const edgeTypes: EdgeTypes = {
+    dialogueEdge: DialogueEdge
+  };
+
+  function handleConnect(connection: Connection): Edge {
+    edges = edges.filter((e) => e.sourceHandle !== connection.sourceHandle);
+    return {
+      id: crypto.randomUUID(),
+      ...connection,
+      type: 'dialogueEdge',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 28,
+        height: 28
+      }
+    };
+  }
+
+  function handleEdgeClick(event: EdgeClickEvent): void {
+    const { edge } = event;
+    edges = edges.filter((e) => e.id !== edge.id);
+  }
 
   async function selectDirectory(): Promise<void> {
     projectDir = await window.api.selectDirectory();
   }
-
-  const clearNodes = () => {
-    nodes = [];
-  };
 
   const addNode = () => {
     const id = crypto.randomUUID();
@@ -42,18 +80,18 @@
     nodes = [...nodes, newDialogueNode];
   };
 
-  const openPortraitModal = () => {
-    modal.open = true;
-  };
-
   const controlButtons: Button[] = [
     {
       text: 'Database',
-      onClick: openPortraitModal
+      onClick: () => {
+        modal.open = true;
+      }
     },
     {
       text: 'Clear',
-      onClick: clearNodes
+      onClick: () => {
+        nodes = [];
+      }
     },
     {
       text: 'Project',
@@ -70,7 +108,15 @@
 </script>
 
 <div style:width="100vw" style:height="100vh">
-  <SvelteFlow bind:nodes {nodeTypes} fitView>
+  <SvelteFlow
+    bind:nodes
+    bind:edges
+    {nodeTypes}
+    {edgeTypes}
+    onbeforeconnect={handleConnect}
+    onedgeclick={handleEdgeClick}
+    fitView
+  >
     <MiniMap />
     <Controls />
     <Panel position="top-left">
