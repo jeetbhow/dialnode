@@ -6,6 +6,7 @@
     MiniMap,
     Controls,
     MarkerType,
+    type Node,
     type Edge,
     type EdgeTypes,
     type NodeTypes,
@@ -13,14 +14,15 @@
   } from '@xyflow/svelte';
 
   import '@xyflow/svelte/dist/style.css';
-  import type { Button, DialogueNodeType, Portrait, Speaker } from './types';
+  import type { Button, Portrait, Speaker } from './types';
   import { modal } from './stores/portraitModal.svelte';
 
   import ButtonsContainer from './components/buttons/ButtonsContainer.svelte';
-  import DialogueNode from './components/dialogueNode/DialogueNode.svelte';
+  import DialogueNode from './components/node/Dialogue.svelte';
   import PortraitModal from './components/database/DatabaseModal.svelte';
-
-  import DialogueEdge from './components/dialogueNode/DialogueEdge.svelte';
+  import DialogueEdge from './components/node/DialogueEdge.svelte';
+  import BranchContainer from './components/node/BranchContainer.svelte';
+  import Branch from './components/node/Branch.svelte';
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -28,15 +30,20 @@
     event: MouseEvent;
   };
 
+  const BRANCH_NODE_INITIAL_WIDTH = 240;
+  const BRANCH_NODE_INITIAL_HEIGHT = 240;
+
   let projectDir: string = $state('');
   let portraits: Portrait[] = $state([]);
   let speakers: Speaker[] = $state([]);
 
-  let nodes: DialogueNodeType[] = $state.raw([]);
+  let nodes: Node[] = $state.raw([]);
   let edges: Edge[] = $state.raw([]);
 
   const nodeTypes: NodeTypes = {
-    dialogueNode: DialogueNode
+    dialogue: DialogueNode,
+    branchContainer: BranchContainer,
+    branch: Branch
   };
 
   const edgeTypes: EdgeTypes = {
@@ -68,19 +75,38 @@
     projectDir = await window.api.selectDirectory();
   }
 
-  const addNode = () => {
+  function addNode(type: string, parentId?: string) {
     const id = crypto.randomUUID();
     const position = { x: 0, y: 0 }; // TODO: We're going to be replacing fixed-positions with drag and drop later on.
 
-    const newDialogueNode: DialogueNodeType = {
+    let newNode: Node = {
       id,
-      type: 'dialogueNode',
+      parentId,
+      type: type,
       position,
-      data: { text: '', showOptions: false }
+      data: {},
+      ...(parentId && {
+        extent: 'parent'
+      })
     };
 
-    nodes = [...nodes, newDialogueNode];
-  };
+    switch (type) {
+      case 'dialogue':
+        newNode.data = { text: '', showOptions: false };
+        break;
+      case 'branchContainer':
+        newNode.data = { addBranch: addNode };
+        newNode.width = BRANCH_NODE_INITIAL_WIDTH;
+        newNode.height = BRANCH_NODE_INITIAL_HEIGHT;
+        break;
+      case 'branch':
+        newNode.data = { name: '' };
+      default:
+        break;
+    }
+
+    nodes = [...nodes, newNode];
+  }
 
   const controlButtons: Button[] = [
     {
@@ -104,7 +130,11 @@
   const nodeButtons: Button[] = [
     {
       text: '+ Node',
-      onClick: addNode
+      onClick: () => addNode('dialogue')
+    },
+    {
+      text: '+ Branch',
+      onClick: () => addNode('branchContainer')
     }
   ];
 </script>

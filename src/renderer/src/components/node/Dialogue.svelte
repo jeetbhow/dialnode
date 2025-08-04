@@ -1,7 +1,7 @@
 <script lang="ts">
   import { useSvelteFlow, Handle, Position, type NodeProps } from '@xyflow/svelte';
 
-  import DialogueNodeDropDown from './DialogueNodeDropDown.svelte';
+  import DialogueDropDown from './DialogueDropDown.svelte';
 
   import '../../styles.css';
   import cross from '../../assets/cross.svg';
@@ -91,7 +91,7 @@
 {/if}
 <div {id} class="node-container">
   <div class="header">
-    <DialogueNodeDropDown
+    <DialogueDropDown
       bind:isSpeakerEnabled={isSpeakerFieldEnabled}
       bind:isPortraitEnabled={isPortraitFieldEnabled}
     />
@@ -159,9 +159,6 @@
   textarea {
     width: 100%;
     box-sizing: border-box;
-  }
-
-  textarea {
     resize: none;
     overflow: hidden;
     padding: 0.5rem;

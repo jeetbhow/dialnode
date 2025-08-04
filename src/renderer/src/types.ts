@@ -14,7 +14,17 @@ export type DialogueNodeData = {
   showOptions: boolean;
 };
 
+export type BranchNodeData = {
+  addBranch: (type: string, parentId: string) => void;
+};
+
+export type Branch = {
+  name: string;
+};
+
 export type DialogueNodeType = Node<DialogueNodeData>;
+export type BranchNodeType = Node<BranchNodeData>;
+export type BranchType = Node<Branch>;
 
 export type Portrait = {
   id: string;
