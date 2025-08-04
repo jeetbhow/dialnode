@@ -44,7 +44,9 @@
   };
 
   function handleConnect(connection: Connection): Edge {
-    edges = edges.filter((e) => e.sourceHandle !== connection.sourceHandle);
+    edges = edges.filter(
+      (e) => e.source !== connection.source || e.sourceHandle !== connection.sourceHandle
+    );
     return {
       id: crypto.randomUUID(),
       ...connection,
