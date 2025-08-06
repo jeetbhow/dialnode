@@ -1,12 +1,19 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
 
-  import threeDots from '../../assets/three-dots.svg';
+  import "../../styles.css";
 
-  export let show: boolean = false;
-  export let isSpeakerEnabled: boolean = false;
-  export let isPortraitEnabled: boolean = false;
+  import ThreeDots from "../icons/ThreeDots.svelte";
 
+  const ICON_SIZE = 24;
+
+  type Props = {
+    isSpeakerEnabled: boolean;
+    isPortraitEnabled: boolean;
+  };
+
+  let { isSpeakerEnabled = $bindable(), isPortraitEnabled = $bindable() }: Props = $props();
+  let show: boolean = $state(false);
   let dropdownElement: HTMLDivElement;
 
   function handleDocumentClick(event: MouseEvent) {
@@ -16,17 +23,17 @@
   }
 
   onMount(() => {
-    document.addEventListener('click', handleDocumentClick);
+    document.addEventListener("click", handleDocumentClick);
 
     return () => {
-      document.removeEventListener('click', handleDocumentClick);
+      document.removeEventListener("click", handleDocumentClick);
     };
   });
 </script>
 
 <div class="dropdown" bind:this={dropdownElement}>
   <button class="dropdown-button" onclick={() => (show = !show)}>
-    <img src={threeDots} alt="toggle dropdown" width="24" height="24" />
+    <ThreeDots width={ICON_SIZE} height={ICON_SIZE} />
   </button>
   {#if show}
     <div class="dropdown-content">
@@ -66,23 +73,17 @@
     display: inline-block;
   }
 
-  .dropdown-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-
   .dropdown-content {
     display: block;
     position: absolute;
-    background-color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--node-bg-color);
+    box-shadow: 0 2px 8px var(--node-bg-color);
     min-width: 160px;
     z-index: 1;
   }
 
   .dropdown-content form div {
     padding: 0.3rem;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--tab-bottom-border-color);
   }
 </style>

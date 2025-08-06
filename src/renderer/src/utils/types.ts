@@ -1,20 +1,20 @@
-import type { Node } from '@xyflow/svelte';
+import type { Node } from "@xyflow/svelte";
 
-export type DbRequestType = 'Portrait' | 'Speaker';
+export type DbRequestType = "Portrait" | "Speaker";
 
 export type Button = {
   text: string;
   onClick: () => void;
 };
 
-export type DialogueNodeData = {
+export type DialogueData = {
   speaker?: Speaker;
   portrait?: Portrait;
   text: string;
   showOptions: boolean;
 };
 
-export type BranchNodeData = {
+export type BranchData = {
   addBranch: (type: string, parentId: string) => void;
 };
 
@@ -22,9 +22,9 @@ export type Branch = {
   name: string;
 };
 
-export type DialogueNodeType = Node<DialogueNodeData>;
-export type BranchNodeType = Node<BranchNodeData>;
-export type BranchType = Node<Branch>;
+export type DialogueNodeType = Node<DialogueData>;
+export type BranchContainerNodeType = Node<BranchData>;
+export type BranchNodeType = Node<Branch>;
 
 export type Portrait = {
   id: string;

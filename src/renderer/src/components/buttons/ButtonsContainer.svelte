@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Button } from '../../types';
+  import type { Button } from "../../utils/types";
 
-  import MainButton from './MainButton.svelte';
+  import MainButton from "./MainButton.svelte";
 
-  export let flexDirection: 'row' | 'column';
+  export let flexDirection: "row" | "column";
   export let buttons: Button[];
 </script>
 

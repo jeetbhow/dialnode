@@ -1,21 +1,22 @@
 <script lang="ts">
-  import { useSvelteFlow, Handle, Position, type NodeProps } from '@xyflow/svelte';
+  import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
 
-  import DialogueDropDown from './DialogueDropDown.svelte';
+  import "../../styles.css";
+  import type { DialogueNodeType, DbRequestType } from "../../utils/types";
+  import { requestModal } from "../../stores/dbModal.svelte";
 
-  import '../../styles.css';
-  import cross from '../../assets/cross.svg';
-  import plus from '../../assets/plus.svg';
-  import minus from '../../assets/minus.svg';
-  import type { DialogueNodeType, DbRequestType } from '../../types';
-  import { requestModal } from '../../stores/portraitModal.svelte';
+  import DialogueDropDown from "./DialogueDropDown.svelte";
+  import Cross from "../icons/Cross.svelte";
+  import Plus from "../icons/Plus.svelte";
+  import Minus from "../icons/Minus.svelte";
 
-  const DEFAULT_HANDLE_STYLE = 'width: 0.5rem; height: 0.5rem';
+  const ICON_SIZE = 18;
+  const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
   const HANDLE_ID = {
-    leftTarget: 'left-target',
-    topTarget: 'top-target',
-    rightSource: 'right-source',
-    bottomSource: 'bottom-source'
+    leftTarget: "left-target",
+    topTarget: "top-target",
+    rightSource: "right-source",
+    bottomSource: "bottom-source"
   };
 
   let { id, data }: NodeProps<DialogueNodeType> = $props();
@@ -29,7 +30,7 @@
     const response = await requestModal(id, type);
     if (response === null || response.nodeId !== id) return;
 
-    if (type === 'Portrait') {
+    if (type === "Portrait") {
       updateNodeData(id, { portrait: response.value });
     } else {
       updateNodeData(id, { speaker: response.value });
@@ -37,7 +38,7 @@
   }
 
   function removeData(type: DbRequestType): void {
-    if (type === 'Portrait') {
+    if (type === "Portrait") {
       updateNodeData(id, { portrait: null });
     } else {
       updateNodeData(id, { speaker: null });
@@ -51,7 +52,7 @@
        * Setting the height to "auto" allows the textarea to shrink
        * to its "natural" height, so that the client height is equal to the content height.
        */
-      textarea.style.height = 'auto';
+      textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
   }
@@ -61,20 +62,20 @@
   id={HANDLE_ID.leftTarget}
   type="target"
   position={Position.Left}
-  style="{DEFAULT_HANDLE_STYLE}; background-color: red;"
+  style="{DEFAULT_HANDLE_STYLE}; background-color: var(--target-handle-color);"
 />
 <Handle
   id={HANDLE_ID.topTarget}
   type="target"
   position={Position.Top}
-  style="{DEFAULT_HANDLE_STYLE}; background-color: red;"
+  style="{DEFAULT_HANDLE_STYLE}; background-color: var(--target-handle-color)"
 />
 {#if !currActiveHandleId || currActiveHandleId == HANDLE_ID.rightSource}
   <Handle
     id={HANDLE_ID.rightSource}
     type="source"
     position={Position.Right}
-    style="{DEFAULT_HANDLE_STYLE}; background-color: blue;"
+    style="{DEFAULT_HANDLE_STYLE}; background-color: var(--source-handle-color);"
     onconnect={() => (currActiveHandleId = HANDLE_ID.rightSource)}
     ondisconnect={() => (currActiveHandleId = null)}
   />
@@ -84,19 +85,19 @@
     id={HANDLE_ID.bottomSource}
     type="source"
     position={Position.Bottom}
-    style="{DEFAULT_HANDLE_STYLE}; background-color: blue;"
+    style="{DEFAULT_HANDLE_STYLE}; background-color: var(--source-handle-color);"
     onconnect={() => (currActiveHandleId = HANDLE_ID.bottomSource)}
     ondisconnect={() => (currActiveHandleId = null)}
   />
 {/if}
-<div {id} class="node-container">
+<div {id} class="container">
   <div class="header">
     <DialogueDropDown
       bind:isSpeakerEnabled={isSpeakerFieldEnabled}
       bind:isPortraitEnabled={isPortraitFieldEnabled}
     />
     <button class="cross" onclick={() => deleteElements({ nodes: [{ id }] })}>
-      <img src={cross} alt="delete" width="24" height="24" />
+      <Cross />
     </button>
   </div>
 
@@ -115,14 +116,14 @@
               width="50"
               height="50"
             />
-            <button class="minus-btn" onclick={() => removeData('Portrait')}>
-              <img src={minus} alt="Delete portrait." width="18" height="18" />
+            <button class="field-btn" onclick={() => removeData("Portrait")}>
+              <Minus width={ICON_SIZE} height={ICON_SIZE} />
             </button>
           </div>
         {:else}
           <p>Portrait:</p>
-          <button class="plus-btn" onclick={() => requestData('Portrait')}>
-            <img src={plus} alt="Add portrait." width="16" height="16" />
+          <button class="field-btn" onclick={() => requestData("Portrait")}>
+            <Plus width={ICON_SIZE} height={ICON_SIZE} />
           </button>
         {/if}
       </div>
@@ -132,14 +133,14 @@
         {#if data.speaker}
           <div class="speaker-view">
             <p>{data.speaker.name}</p>
-            <button class="minus-btn" onclick={() => removeData('Speaker')}>
-              <img src={minus} alt="Delete portrait." width="16" height="16" />
+            <button class="field-btn" onclick={() => removeData("Speaker")}>
+              <Minus width={ICON_SIZE} height={ICON_SIZE} />
             </button>
           </div>
         {:else}
           <p>Speaker:</p>
-          <button class="plus-btn" onclick={() => requestData('Speaker')}>
-            <img src={plus} alt="Add Speaker." width="16" height="16" />
+          <button class="field-btn" onclick={() => requestData("Speaker")}>
+            <Plus width={ICON_SIZE} height={ICON_SIZE} />
           </button>
         {/if}
       </div>
@@ -163,27 +164,15 @@
     overflow: hidden;
     padding: 0.5rem;
     border-radius: 0.2rem;
-    border: 1px solid #ccc;
-    background-color: #f9f9f9;
-    font-family: 'Iosevka-Regular', monospace;
+    border: 1px solid var(--textfield-border-color);
+    background-color: var(--textfield-bg-color);
+    font-family: var(--textfield-font-family);
   }
 
   form {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
-  }
-
-  button {
-    all: unset;
-    cursor: pointer;
-  }
-
-  .node-container {
-    background-color: white;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    padding: 0.5rem;
-    border-radius: 0.5rem;
   }
 
   .header {
@@ -198,26 +187,15 @@
     margin: auto;
   }
 
-  .plus-btn {
+  .field-btn {
     display: flex;
     align-items: center;
     padding: 0.2rem;
     border-radius: 100%;
   }
 
-  .plus-btn:hover {
-    background-color: #8ec3f4;
-  }
-
-  .minus-btn {
-    display: flex;
-    align-items: center;
-    padding: 0.2rem;
-    border-radius: 100%;
-  }
-
-  .minus-btn:hover {
-    background-color: #f46c6c;
+  .field-btn:hover {
+    background-color: var(--primary-color);
   }
 
   .portrait-overlay {
@@ -230,21 +208,16 @@
   }
 
   .portrait-overlay button {
-    all: unset;
     position: absolute;
     top: 0.2rem;
     right: 0.2rem;
     padding: 0.2rem;
     border-radius: 100%;
-    background-color: rgba(219, 217, 217, 0.453);
+    background-color: var(--transparent-color);
     left: auto;
     z-index: 1;
     opacity: 0;
     transition: opacity 200ms ease-in-out;
-  }
-
-  .portrait-overlay button:hover {
-    cursor: pointer;
   }
 
   .portrait-overlay:hover button {
@@ -255,11 +228,5 @@
     display: flex;
     justify-content: center;
     gap: 0.5rem;
-  }
-
-  .cross {
-    border-radius: 0.2rem;
-    background: none;
-    border: none;
   }
 </style>

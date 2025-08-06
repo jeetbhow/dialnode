@@ -1,0 +1,15 @@
+<script lang="ts">
+  type Props = {
+    width: number;
+    height: number;
+  };
+
+  const { width, height }: Props = $props();
+</script>
+
+<svg xmlns="http://www.w3.org/2000/svg" {width} {height} viewBox="0 0 24 24"
+  ><path
+    fill="currentColor"
+    d="M12 14a2 2 0 1 0 0-4a2 2 0 0 0 0 4m-6 0a2 2 0 1 0 0-4a2 2 0 0 0 0 4m12 0a2 2 0 1 0 0-4a2 2 0 0 0 0 4"
+  /></svg
+>

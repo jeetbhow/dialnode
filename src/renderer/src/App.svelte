@@ -11,18 +11,31 @@
     type EdgeTypes,
     type NodeTypes,
     type Connection
-  } from '@xyflow/svelte';
+  } from "@xyflow/svelte";
+  import "@xyflow/svelte/dist/style.css";
 
-  import '@xyflow/svelte/dist/style.css';
-  import type { Button, Portrait, Speaker } from './types';
-  import { modal } from './stores/portraitModal.svelte';
+  import { modal } from "./stores/dbModal.svelte";
+  import {
+    BRANCH_NODE_INITIAL_WIDTH,
+    BRANCH_NODE_INITIAL_HEIGHT,
+    MARKER_END_HEIGHT,
+    MARKER_END_WIDTH
+  } from "./utils/utils";
+  import type {
+    DialogueNodeType,
+    Button,
+    Portrait,
+    Speaker,
+    BranchContainerNodeType,
+    BranchNodeType
+  } from "./utils/types";
 
-  import ButtonsContainer from './components/buttons/ButtonsContainer.svelte';
-  import DialogueNode from './components/node/Dialogue.svelte';
-  import PortraitModal from './components/database/DatabaseModal.svelte';
-  import DialogueEdge from './components/node/DialogueEdge.svelte';
-  import BranchContainer from './components/node/BranchContainer.svelte';
-  import Branch from './components/node/Branch.svelte';
+  import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
+  import DialogueNode from "./components/node/Dialogue.svelte";
+  import PortraitModal from "./components/database/DatabaseModal.svelte";
+  import DialogueEdge from "./components/node/DialogueEdge.svelte";
+  import BranchContainer from "./components/node/BranchContainer.svelte";
+  import Branch from "./components/node/Branch.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -30,15 +43,11 @@
     event: MouseEvent;
   };
 
-  const BRANCH_NODE_INITIAL_WIDTH = 240;
-  const BRANCH_NODE_INITIAL_HEIGHT = 240;
-
-  let projectDir: string = $state('');
+  let projectDir: string = $state("");
   let portraits: Portrait[] = $state([]);
   let speakers: Speaker[] = $state([]);
-
-  let nodes: Node[] = $state.raw([]);
-  let edges: Edge[] = $state.raw([]);
+  let nodes = $state.raw<Node[]>([]);
+  let edges = $state.raw<Edge[]>([]);
 
   const nodeTypes: NodeTypes = {
     dialogue: DialogueNode,
@@ -57,11 +66,11 @@
     return {
       id: crypto.randomUUID(),
       ...connection,
-      type: 'dialogueEdge',
+      type: "dialogueEdge",
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        width: 28,
-        height: 28
+        width: MARKER_END_WIDTH,
+        height: MARKER_END_HEIGHT
       }
     };
   }
@@ -75,71 +84,76 @@
     projectDir = await window.api.selectDirectory();
   }
 
-  function addNode(type: string, parentId?: string) {
+  function addDialogue() {
     const id = crypto.randomUUID();
-    const position = { x: 0, y: 0 }; // TODO: We're going to be replacing fixed-positions with drag and drop later on.
+    const position = { x: 0, y: 0 }; // TODO: Replacing fixed-positions with drag and drop later on.
 
-    let newNode: Node = {
+    const newNode: DialogueNodeType = {
       id,
-      parentId,
-      type: type,
+      type: "dialogue",
       position,
-      data: {},
-      ...(parentId && {
-        extent: 'parent'
-      })
+      data: { text: "", showOptions: false }
     };
-
-    switch (type) {
-      case 'dialogue':
-        newNode.data = { text: '', showOptions: false };
-        break;
-      case 'branchContainer':
-        newNode.data = { addBranch: addNode };
-        newNode.width = BRANCH_NODE_INITIAL_WIDTH;
-        newNode.height = BRANCH_NODE_INITIAL_HEIGHT;
-        break;
-      case 'branch':
-        newNode.data = { name: '' };
-      default:
-        break;
-    }
 
     nodes = [...nodes, newNode];
   }
 
+  function addBranchContainer() {
+    const id = crypto.randomUUID();
+    const newNode: BranchContainerNodeType = {
+      id,
+      type: "branchContainer",
+      position: { x: 0, y: 0 },
+      data: { addBranch: () => addBranch(id) },
+      width: BRANCH_NODE_INITIAL_WIDTH,
+      height: BRANCH_NODE_INITIAL_HEIGHT
+    };
+
+    nodes = [...nodes, newNode];
+  }
+
+  function addBranch(parentId: string) {
+    const newNode: BranchNodeType = {
+      id: crypto.randomUUID(),
+      parentId,
+      extent: "parent",
+      type: "branch",
+      position: { x: 0, y: 0 },
+      data: { name: "" }
+    };
+
+    nodes = [...nodes, newNode];
+  }
+
+  function clearGraph() {
+    nodes = [];
+    edges = [];
+  }
+
   const controlButtons: Button[] = [
     {
-      text: 'Database',
+      text: "Database",
       onClick: () => {
         modal.open = true;
       }
     },
-    {
-      text: 'Clear',
-      onClick: () => {
-        nodes = [];
-      }
-    },
-    {
-      text: 'Project',
-      onClick: selectDirectory
-    }
+    { text: "Clear", onClick: clearGraph },
+    { text: "Project", onClick: selectDirectory }
   ];
 
   const nodeButtons: Button[] = [
     {
-      text: '+ Node',
-      onClick: () => addNode('dialogue')
+      text: "+ Node",
+      onClick: addDialogue
     },
     {
-      text: '+ Branch',
-      onClick: () => addNode('branchContainer')
+      text: "+ Branch",
+      onClick: addBranchContainer
     }
   ];
 </script>
 
-<div style:width="100vw" style:height="100vh">
+<div>
   <SvelteFlow
     bind:nodes
     bind:edges
@@ -147,7 +161,6 @@
     {edgeTypes}
     onbeforeconnect={handleConnect}
     onedgeclick={handleEdgeClick}
-    fitView
   >
     <MiniMap />
     <Controls />
@@ -165,7 +178,14 @@
 </div>
 
 <style>
-  * {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  :global(body) {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+
+  div {
+    width: 100vw;
+    height: 100vh;
   }
 </style>

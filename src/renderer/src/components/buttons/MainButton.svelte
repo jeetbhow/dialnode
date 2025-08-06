@@ -1,4 +1,6 @@
 <script lang="ts">
+  import "../../styles.css";
+
   export let text: string;
   export let onClick: () => void;
 </script>
@@ -7,19 +9,9 @@
 
 <style>
   button {
-    color: rgb(78, 96, 249);
-    background: none;
-    border: solid 1px rgb(78, 96, 249);
+    color: var(--button-text-color);
+    background: var(--primary-color);
     border-radius: 0.2rem;
     padding: 0.6rem 1.5rem;
-    cursor: pointer;
-    transition:
-      background 150ms ease-in-out,
-      color 150ms ease-in-out;
-  }
-
-  button:hover {
-    background: rgb(78, 96, 249);
-    color: rgb(205, 198, 247);
   }
 </style>

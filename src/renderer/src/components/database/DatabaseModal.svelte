@@ -1,9 +1,9 @@
 <script lang="ts">
-  import cross from '../../assets/cross.svg';
-  import { modal, cancelModal, fufillModal } from '../../stores/portraitModal.svelte';
-  import type { Portrait, Speaker } from '../../types';
+  import { modal, cancelModal, fufillModal } from "../../stores/dbModal.svelte";
+  import type { DbRequestType, Portrait, Speaker } from "../../utils/types";
 
-  import DatabaseListButton from './DatabaseListButton.svelte';
+  import DatabaseListButton from "./DatabaseListButton.svelte";
+  import Cross from "../icons/Cross.svelte";
 
   type Props = {
     portraits: Portrait[];
@@ -17,10 +17,10 @@
     projectDir = $bindable()
   }: Props = $props();
 
-  const initialSelectedTab = modal.requestType ?? 'Portrait';
+  const initialSelectedTab: DbRequestType = modal.requestType ?? "Portrait";
 
-  let selectedId: string = $state('');
-  let newDbEntry: string = $state('');
+  let selectedId: string = $state();
+  let newDbEntry: string = $state();
   let currSelectedTab: string = $state(initialSelectedTab);
   let selectedPortrait: Portrait = $derived(portraits.find((p) => p.id === selectedId) ?? null);
   let selectedSpeaker: Speaker = $derived(speakers.find((s) => s.id === selectedId) ?? null);
@@ -30,7 +30,7 @@
   }
 
   function deleteDbElem(id: string): void {
-    if (currSelectedTab === 'Portrait') {
+    if (currSelectedTab === "Portrait") {
       portraits = portraits.filter((portrait) => portrait.id !== id);
     } else {
       speakers = speakers.filter((speaker) => speaker.id !== id);
@@ -38,12 +38,12 @@
   }
 
   async function addPortrait() {
-    if (!newDbEntry || newDbEntry === '') {
+    if (!newDbEntry || newDbEntry === "") {
       return;
     }
 
-    if (!projectDir || projectDir === '') {
-      alert('A project directory must be set before you can add portraits.');
+    if (!projectDir || projectDir === "") {
+      alert("A project directory must be set before you can add portraits.");
       return;
     }
 
@@ -51,11 +51,11 @@
     const metadata = await window.api.selectImage(projectDir);
 
     if (!metadata.path.startsWith(projectDir)) {
-      alert('The selected portrait is not contained in the project.');
+      alert("The selected portrait is not contained in the project.");
       return;
     }
 
-    const virtualPath = 'res://' + metadata.relPath.replaceAll('\\', '/');
+    const virtualPath = "res://" + metadata.relPath.replaceAll("\\", "/");
 
     const newPortrait = {
       id,
@@ -65,7 +65,7 @@
     };
 
     portraits.push(newPortrait);
-    newDbEntry = '';
+    newDbEntry = null;
   }
 
   async function addSpeaker() {
@@ -80,29 +80,29 @@
   }
 </script>
 
-<div class="modal">
+<div class="container modal">
   <div class="content">
     <header>
       <div class="tabs">
         <button
-          disabled={modal.requestType === 'Speaker'}
-          class:selected={currSelectedTab === 'Portrait'}
-          onclick={() => (currSelectedTab = 'Portrait')}>Portrait</button
+          disabled={modal.requestType === "Speaker"}
+          class:selected={currSelectedTab === "Portrait"}
+          onclick={() => (currSelectedTab = "Portrait")}>Portrait</button
         >
         <button
-          disabled={modal.requestType === 'Portrait'}
-          class:selected={currSelectedTab === 'Speaker'}
-          onclick={() => (currSelectedTab = 'Speaker')}>Speaker</button
+          disabled={modal.requestType === "Portrait"}
+          class:selected={currSelectedTab === "Speaker"}
+          onclick={() => (currSelectedTab = "Speaker")}>Speaker</button
         >
       </div>
       <button onclick={cancelModal}>
-        <img src={cross} alt="Cross" width="24" height="24" />
+        <Cross />
       </button>
     </header>
     <p class="project-dir">Project: {projectDir}</p>
     <div class="view">
       <ul class="list">
-        {#if currSelectedTab === 'Portrait'}
+        {#if currSelectedTab === "Portrait"}
           {#each portraits as portrait}
             <DatabaseListButton
               id={portrait.id}
@@ -140,11 +140,11 @@
     </div>
     <div class="controls">
       <input type="text" bind:value={newDbEntry} />
-      <button onclick={currSelectedTab === 'Portrait' ? addPortrait : addSpeaker}>Add</button>
+      <button onclick={currSelectedTab === "Portrait" ? addPortrait : addSpeaker}>Add</button>
       {#if modal.nodeId}
         <button
           onclick={() =>
-            fufillModal(currSelectedTab === 'Portrait' ? selectedPortrait : selectedSpeaker)}
+            fufillModal(currSelectedTab === "Portrait" ? selectedPortrait : selectedSpeaker)}
           >Select</button
         >
       {/if}
@@ -160,11 +160,6 @@
     padding: 0.5rem 0;
   }
 
-  button {
-    all: unset;
-    cursor: pointer;
-  }
-
   .controls {
     display: flex;
     gap: 0.3rem;
@@ -172,8 +167,8 @@
 
   .controls button {
     font-size: 0.9rem;
-    color: rgb(228, 231, 244);
-    background-color: rgb(78, 96, 249);
+    color: var(--button-text-color);
+    background-color: var(--primary-color);
     padding: 0.5rem 1.7rem;
     border-radius: 0.2rem;
   }
@@ -182,9 +177,9 @@
     font-size: 0.9rem;
     padding: 0.5rem;
     border-radius: 0.2rem;
-    border: 1px solid #ccc;
-    background-color: #f9f9f9;
-    color: rgb(123, 121, 121);
+    border: 1px solid var(--textfield-border-color);
+    background-color: var(--textfield-bg-color);
+    color: var(--text-color);
   }
 
   .modal {
@@ -194,10 +189,6 @@
     width: 50%;
     height: 60%;
     transform: translate(-50%, -50%);
-    background-color: rgb(255, 255, 255);
-    padding: 0 0.8rem;
-    border-radius: 0.8rem;
-    box-shadow: 0 2px 10px rgba(124, 119, 119, 0.1);
     z-index: 1000;
   }
 
@@ -206,16 +197,16 @@
     padding: 0.3rem;
     font-size: 1rem;
     font-weight: 500;
-    color: rgb(47, 46, 46);
+    color: var(--text-color);
   }
 
   .tabs button.selected {
-    color: rgb(78, 96, 249);
-    border-bottom: 1px solid rgb(173, 179, 229);
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--tab-bottom-border-color);
   }
 
   .tabs button[disabled] {
-    color: rgb(230, 230, 232);
+    color: var(--tab-disabled-color);
     cursor: default;
   }
 
@@ -252,7 +243,7 @@
   p {
     margin: 0;
     font-size: 0.7rem;
-    color: rgb(156, 156, 156);
+    color: var(--small-text-color);
   }
 
   .view {

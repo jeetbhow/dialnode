@@ -4,3 +4,34 @@
   font-weight: normal;
   font-style: normal;
 }
+
+:root {
+  --textfield-bg-color: #f9f9f9;
+  --textfield-border-color: #cccccc;
+  --textfield-font-family: "Iosevka-Regular", monospace;
+  --target-handle-color: #f65c5c;
+  --source-handle-color: #636fed;
+  --text-color: #2f2e2e;
+  --small-text-color: #9c9c9c;
+  --button-text-color: #e4e7f4;
+  --primary-color: #4e60f9;
+  --secondary-color: #f5f5f5;
+  --transparent-color: #dbd9d974;
+  --node-bg-color: #ffffff;
+  --node-box-shadow: 0 4px 8px #00000033;
+  --node-border-radius: 0.8rem;
+  --tab-disabled-color: #e6e6e8;
+  --tab-bottom-border-color: #dadcf3;
+}
+
+.container {
+  background-color: var(--node-bg-color);
+  border-radius: var(--node-border-radius);
+  box-shadow: var(--node-box-shadow);
+  padding: 0.5rem;
+}
+
+button {
+  all: unset;
+  cursor: pointer;
+}

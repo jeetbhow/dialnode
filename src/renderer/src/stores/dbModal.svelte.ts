@@ -1,4 +1,4 @@
-import type { Portrait, DbRequestType, Speaker } from '../types';
+import type { Portrait, DbRequestType, Speaker } from "../utils/types";
 
 type PortraitModalStore = {
   open: boolean;
