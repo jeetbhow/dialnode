@@ -1,8 +1,8 @@
-import type { Portrait, DbRequestType, Speaker } from "../utils/types";
+import type { DbEntity, DbEntityKind, Portrait, Skill, Speaker } from "./dbStore.svelte";
 
 type PortraitModalStore = {
   open: boolean;
-  requestType?: DbRequestType;
+  requestType?: DbEntityKind;
   nodeId?: string;
 };
 
@@ -16,17 +16,23 @@ type SpeakerResult = {
   value: Speaker;
 };
 
-let _resolve: (result: PortraitResult | SpeakerResult) => void | null = null;
+type SkillResult = {
+  nodeId: string;
+  value: Skill;
+};
+
+let _resolve: ((result: PortraitResult | SpeakerResult | SkillResult) => void) | null = null;
 
 export const modal: PortraitModalStore = $state({
   open: false,
+  requestType: null,
   nodeId: null
 });
 
 export function requestModal(
   forNodeId: string,
-  type: DbRequestType
-): Promise<PortraitResult | SpeakerResult> {
+  type: DbEntityKind
+): Promise<PortraitResult | SpeakerResult | SkillResult> {
   modal.open = true;
   modal.nodeId = forNodeId;
   modal.requestType = type;
@@ -36,11 +42,23 @@ export function requestModal(
   });
 }
 
-export function fufillModal(value: Portrait | Speaker) {
-  if (_resolve) {
-    _resolve({ nodeId: modal.nodeId, value });
-    _resolve = null;
+export function fufillModal(entity: DbEntity) {
+  if (!_resolve) {
+    return;
   }
+
+  switch (entity.kind) {
+    case "portrait":
+      _resolve({ nodeId: modal.nodeId, value: entity as Portrait });
+      break;
+    case "speaker":
+      _resolve({ nodeId: modal.nodeId, value: entity as Speaker });
+      break;
+    case "skill":
+      _resolve({ nodeId: modal.nodeId, value: entity as Skill });
+      break;
+  }
+
   modal.open = false;
   modal.nodeId = null;
   modal.requestType = null;

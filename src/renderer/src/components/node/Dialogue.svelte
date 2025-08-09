@@ -2,7 +2,8 @@
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
 
   import "../../styles.css";
-  import type { DialogueNodeType, DbRequestType } from "../../utils/types";
+  import type { DialogueNodeType } from "../../utils/types";
+  import { type DbEntityKind } from "../../stores/dbStore.svelte";
   import { requestModal } from "../../stores/dbModal.svelte";
 
   import DialogueDropDown from "./DialogueDropDown.svelte";
@@ -26,22 +27,28 @@
 
   const { updateNodeData, deleteElements } = useSvelteFlow();
 
-  async function requestData(type: DbRequestType): Promise<void> {
+  async function requestData(type: DbEntityKind): Promise<void> {
     const response = await requestModal(id, type);
     if (response === null || response.nodeId !== id) return;
 
-    if (type === "Portrait") {
-      updateNodeData(id, { portrait: response.value });
-    } else {
-      updateNodeData(id, { speaker: response.value });
+    switch (type) {
+      case "portrait":
+        updateNodeData(id, { portrait: response.value });
+        break;
+      case "speaker":
+        updateNodeData(id, { speaker: response.value });
+        break;
     }
   }
 
-  function removeData(type: DbRequestType): void {
-    if (type === "Portrait") {
-      updateNodeData(id, { portrait: null });
-    } else {
-      updateNodeData(id, { speaker: null });
+  function removeData(type: DbEntityKind): void {
+    switch (type) {
+      case "portrait":
+        updateNodeData(id, { portrait: null });
+        break;
+      case "speaker":
+        updateNodeData(id, { speaker: null });
+        break;
     }
   }
 
@@ -116,13 +123,13 @@
               width="50"
               height="50"
             />
-            <button class="field-btn" onclick={() => removeData("Portrait")}>
+            <button class="field-btn" onclick={() => removeData("portrait")}>
               <Minus width={ICON_SIZE} height={ICON_SIZE} />
             </button>
           </div>
         {:else}
           <p>Portrait:</p>
-          <button class="field-btn" onclick={() => requestData("Portrait")}>
+          <button class="field-btn" onclick={() => requestData("portrait")}>
             <Plus width={ICON_SIZE} height={ICON_SIZE} />
           </button>
         {/if}
@@ -133,13 +140,13 @@
         {#if data.speaker}
           <div class="speaker-view">
             <p>{data.speaker.name}</p>
-            <button class="field-btn" onclick={() => removeData("Speaker")}>
+            <button class="field-btn" onclick={() => removeData("speaker")}>
               <Minus width={ICON_SIZE} height={ICON_SIZE} />
             </button>
           </div>
         {:else}
           <p>Speaker:</p>
-          <button class="field-btn" onclick={() => requestData("Speaker")}>
+          <button class="field-btn" onclick={() => requestData("speaker")}>
             <Plus width={ICON_SIZE} height={ICON_SIZE} />
           </button>
         {/if}

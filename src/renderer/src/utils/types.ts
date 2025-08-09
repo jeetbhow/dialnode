@@ -1,6 +1,5 @@
 import type { Node } from "@xyflow/svelte";
-
-export type DbRequestType = "Portrait" | "Speaker";
+import type { Speaker, Portrait } from "../stores/dbStore.svelte";
 
 export type Button = {
   text: string;
@@ -25,20 +24,3 @@ export type Branch = {
 export type DialogueNodeType = Node<DialogueData>;
 export type BranchContainerNodeType = Node<BranchData>;
 export type BranchNodeType = Node<Branch>;
-
-export type Portrait = {
-  id: string;
-  name: string;
-  dataURL: string;
-  width: number;
-  height: number;
-  path: string;
-  relPath: string;
-  virtualPath: string;
-  filename: string;
-};
-
-export type Speaker = {
-  id: string;
-  name: string;
-};

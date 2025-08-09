@@ -1,6 +1,6 @@
 @font-face {
-  font-family: 'Iosevka-Regular';
-  src: url('./assets/fonts/iosevka/Iosevka-Regular.ttf') format('truetype');
+  font-family: "Iosevka-Regular";
+  src: url("./assets/fonts/iosevka/Iosevka-Regular.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
 }
@@ -11,11 +11,13 @@
   --textfield-font-family: "Iosevka-Regular", monospace;
   --target-handle-color: #f65c5c;
   --source-handle-color: #636fed;
-  --text-color: #2f2e2e;
+  --secondary-text-color: #2f2e2e;
   --small-text-color: #9c9c9c;
-  --button-text-color: #e4e7f4;
-  --primary-color: #4e60f9;
-  --secondary-color: #f5f5f5;
+  --primary-text-color: #e4e7f4;
+  --primary-color: #5d6dfe;
+  --primary-hover-color: #3947c6;
+  --secondary-color: #f4efef;
+  --secondary-color-hover: #dbd6d6;
   --transparent-color: #dbd9d974;
   --node-bg-color: #ffffff;
   --node-box-shadow: 0 4px 8px #00000033;
@@ -34,4 +36,40 @@
 button {
   all: unset;
   cursor: pointer;
+}
+
+.secondary-btn {
+  background-color: var(--secondary-color);
+  color: var(--secondary-text-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color ease-in-out 200ms;
+}
+
+.secondary-btn:hover {
+  background-color: #dbd6d6;
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: var(--primary-text-color);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color ease-in-out 200ms;
+}
+
+.primary-btn:hover {
+  background-color: var(--primary-hover-color);
+}
+
+input,
+textarea {
+  padding: 0.5rem;
+  border-radius: 0.2rem;
+  border: 1px solid var(--textfield-border-color);
+  background-color: var(--textfield-bg-color);
 }

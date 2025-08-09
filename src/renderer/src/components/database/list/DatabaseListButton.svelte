@@ -1,24 +1,31 @@
 <script lang="ts">
-  import "../../styles.css";
+  import { deleteEntity, selectEntity, useDb, type DbEntity } from "../../../stores/dbStore.svelte";
+  import "../../../styles.css";
 
-  import Trash from "../icons/Trash.svelte";
+  import Trash from "../../icons/Trash.svelte";
 
   const ICON_SIZE = 16;
 
   type Props = {
-    id: string;
-    text: string;
-    isSelected: boolean;
-    onSelect: (id: string) => void;
-    onDelete: (id: string) => void;
+    entity: DbEntity;
   };
 
-  let { id, text, isSelected, onSelect, onDelete }: Props = $props();
+  const db = useDb();
+
+  let { entity }: Props = $props();
+
+  function handleSelect() {
+    selectEntity(entity);
+  }
+
+  function handleDelete() {
+    deleteEntity(entity);
+  }
 </script>
 
-<li class:selected={isSelected}>
-  <button class="select" onclick={() => onSelect(id)}>{text}</button>
-  <button class="delete" onclick={() => onDelete(id)}>
+<li class:selected={db.selectedId === entity.id}>
+  <button class="select" onclick={handleSelect}>{entity.name}</button>
+  <button class="delete" onclick={handleDelete}>
     <Trash width={ICON_SIZE} height={ICON_SIZE} />
   </button>
 </li>
@@ -51,7 +58,7 @@
   }
 
   .delete {
-    flex: 1 1 auto;
+    flex: 0 0 4rem;
     text-align: center;
     background-color: var(--node-bg-color);
   }

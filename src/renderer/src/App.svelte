@@ -15,6 +15,7 @@
   import "@xyflow/svelte/dist/style.css";
 
   import { modal } from "./stores/dbModal.svelte";
+  import { setProjectDirectory } from "./stores/projectStore.svelte";
   import {
     BRANCH_NODE_INITIAL_WIDTH,
     BRANCH_NODE_INITIAL_HEIGHT,
@@ -24,8 +25,6 @@
   import type {
     DialogueNodeType,
     Button,
-    Portrait,
-    Speaker,
     BranchContainerNodeType,
     BranchNodeType
   } from "./utils/types";
@@ -43,9 +42,6 @@
     event: MouseEvent;
   };
 
-  let projectDir: string = $state("");
-  let portraits: Portrait[] = $state([]);
-  let speakers: Speaker[] = $state([]);
   let nodes = $state.raw<Node[]>([]);
   let edges = $state.raw<Edge[]>([]);
 
@@ -81,7 +77,7 @@
   }
 
   async function selectDirectory(): Promise<void> {
-    projectDir = await window.api.selectDirectory();
+    setProjectDirectory(await window.api.selectDirectory());
   }
 
   function addDialogue() {
@@ -173,7 +169,7 @@
     <Background />
   </SvelteFlow>
   {#if modal.open}
-    <PortraitModal bind:portraits bind:speakers bind:projectDir />
+    <PortraitModal />
   {/if}
 </div>
 
