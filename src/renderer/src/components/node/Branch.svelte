@@ -21,7 +21,7 @@
 />
 <div {id} class="container">
   <label for="branch-name">Branch</label>
-  <div class="view">
+  <div>
     <button aria-label="Delete branch" onclick={deleteBranch}>
       <Cross width={ICON_SIZE} height={ICON_SIZE} />
     </button>
@@ -45,7 +45,7 @@
     font-family: "Iosevka-Regular", monospace;
   }
 
-  .view {
+  .container > div {
     display: flex;
   }
 </style>
