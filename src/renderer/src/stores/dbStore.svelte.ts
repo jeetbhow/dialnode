@@ -17,22 +17,29 @@ export type Speaker = {
   name: string;
 };
 
-export type SkillType = "Body" | "Mind" | "Psyche" | "Sense";
+export type SkillType = "body" | "mind" | "psyche" | "sense";
+
+export type SkillCategory = {
+  id: string;
+  kind: "skill-category";
+  name: string;
+  skills: Skill[];
+};
+
 export type Skill = {
   id: string;
   kind: "skill";
+  category: SkillCategory;
   name: string;
-  color: string;
-  type: string;
 };
 
-export type DbEntityKind = "portrait" | "speaker" | "skill";
-export type DbEntity = Speaker | Portrait | Skill;
+export type DbEntityKind = "portrait" | "speaker" | "skill-category" | "skill";
+export type DbEntity = Speaker | Portrait | SkillCategory | Skill;
 
 const db = $state({
   portraits: [] as Portrait[],
   speakers: [] as Speaker[],
-  skills: [] as Skill[],
+  skillCategories: [] as SkillCategory[],
   selectedId: ""
 });
 
@@ -43,8 +50,11 @@ export function addEntity(entity: DbEntity) {
     case "portrait":
       db.portraits = [...db.portraits, entity];
       break;
+    case "skill-category":
+      db.skillCategories = [...db.skillCategories, entity];
+      break;
     case "skill":
-      db.skills = [...db.skills, entity];
+      entity.category.skills.push(entity);
       break;
     case "speaker":
       db.speakers = [...db.speakers, entity];
@@ -63,8 +73,11 @@ export function deleteEntity(entity: DbEntity) {
     case "portrait":
       db.portraits = db.portraits.filter((p) => p.id !== entity.id);
       break;
+    case "skill-category":
+      db.skillCategories = db.skillCategories.filter((s) => s.id !== entity.id);
+      break;
     case "skill":
-      db.skills = db.skills.filter((s) => s.id !== entity.id);
+      entity.category.skills = entity.category.skills.filter((s) => s.id !== entity.id);
       break;
     case "speaker":
       db.speakers = db.speakers.filter((s) => s.id !== entity.id);

@@ -42,7 +42,7 @@ export function requestModal(
   });
 }
 
-export function fufillModal(entity: DbEntity) {
+export function fulfillModal(entity: DbEntity) {
   if (!_resolve) {
     return;
   }

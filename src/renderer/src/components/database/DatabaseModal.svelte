@@ -1,17 +1,18 @@
 <script lang="ts">
   import Cross from "../icons/Cross.svelte";
   import DatabaseTabs from "./tabs/DatabaseTabs.svelte";
-  import PortraitView from "./views/portrait/PortraitView.svelte";
+  import PortraitView from "./views/PortraitView.svelte";
+  import SpeakerView from "./views/SpeakerView.svelte";
 
   import { modal, cancelModal } from "../../stores/dbModal.svelte";
   import { type DbEntityKind } from "../../stores/dbStore.svelte";
   import { useProject } from "../../stores/projectStore.svelte";
-  import SpeakerView from "./views/speaker/SpeakerView.svelte";
+  import SkillView from "./views/SkillView.svelte";
 
   const project = useProject();
   const initialSelectedTab: DbEntityKind = modal.requestType ?? "portrait";
 
-  let currSelectedTab: string = $state(initialSelectedTab);
+  let currSelectedTab: DbEntityKind = $state(initialSelectedTab);
 </script>
 
 <div class="container modal">
@@ -27,7 +28,9 @@
       <PortraitView />
     {:else if currSelectedTab === "speaker"}
       <SpeakerView />
-    {:else if currSelectedTab === "skill"}{/if}
+    {:else if currSelectedTab === "skill"}
+      <SkillView />
+    {/if}
   </div>
 </div>
 

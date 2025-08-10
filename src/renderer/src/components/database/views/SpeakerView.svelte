@@ -1,7 +1,10 @@
 <script lang="ts">
-  import DatabaseList from "../../list/DatabaseList.svelte";
-  import { useDb, addEntity, type Speaker } from "../../../../stores/dbStore.svelte";
-  import { modal, fufillModal } from "../../../../stores/dbModal.svelte";
+  import DatabaseList from "../list/DatabaseList.svelte";
+
+  import "./views.css";
+
+  import { useDb, addEntity, type Speaker } from "../../../stores/dbStore.svelte";
+  import { modal, fulfillModal } from "../../../stores/dbModal.svelte";
 
   const db = useDb();
 
@@ -9,6 +12,10 @@
   const selectedSpeaker = $derived(db.speakers.find((p) => p.id === db.selectedId));
 
   function addSpeaker() {
+    if (newSpeakerName === "") {
+      return;
+    }
+
     const newSpeaker: Speaker = {
       id: crypto.randomUUID(),
       kind: "speaker",
@@ -16,10 +23,11 @@
     };
 
     addEntity(newSpeaker);
+    newSpeakerName = "";
   }
 
   function handleSelect() {
-    fufillModal(selectedSpeaker);
+    fulfillModal(selectedSpeaker);
   }
 </script>
 
@@ -29,7 +37,7 @@
   </div>
 
   {#if modal.requestType === "speaker"}
-    <button onclick={handleSelect} class="select-speaker-btn secondary-btn">Select Speaker</button>
+    <button onclick={handleSelect} class="select-btn secondary-btn">Select Speaker</button>
   {/if}
 
   <div class="controller">
@@ -41,29 +49,9 @@
 </div>
 
 <style>
-  .parent {
-    display: flex;
-    flex-flow: column;
-    justify-content: space-between;
-    height: 100%;
-  }
-
-  .view {
-    display: flex;
-    box-sizing: border-box;
-    height: 100%;
-    width: 100%;
-    padding: 2rem;
-  }
-
   .name {
     display: flex;
     text-align: center;
     gap: 0.3rem;
-  }
-
-  .select-speaker-btn {
-    width: 25%;
-    margin: 3rem auto;
   }
 </style>

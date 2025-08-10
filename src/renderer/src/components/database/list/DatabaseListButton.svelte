@@ -38,6 +38,7 @@
     background-color: var(--node-bg-color);
     border-radius: 0.5rem;
     padding: 0.5rem;
+    transition: background-color ease 300ms;
   }
 
   li:hover {

@@ -1,9 +1,12 @@
 <script lang="ts">
-  import Folder from "../../../icons/Folder.svelte";
-  import { addEntity, useDb, type Portrait } from "../../../../stores/dbStore.svelte";
-  import { useProject } from "../../../../stores/projectStore.svelte";
-  import DatabaseList from "../../list/DatabaseList.svelte";
-  import { fufillModal, modal } from "../../../../stores/dbModal.svelte";
+  import Folder from "../../icons/Folder.svelte";
+  import DatabaseList from "../list/DatabaseList.svelte";
+
+  import "./views.css";
+
+  import { addEntity, useDb, type Portrait } from "../../../stores/dbStore.svelte";
+  import { useProject } from "../../../stores/projectStore.svelte";
+  import { fulfillModal, modal } from "../../../stores/dbModal.svelte";
 
   type ImageMetaData = {
     dataURL: string;
@@ -57,7 +60,7 @@
   }
 
   function handleSelect() {
-    fufillModal(selectedPortrait);
+    fulfillModal(selectedPortrait);
   }
 </script>
 
@@ -80,8 +83,7 @@
   </div>
 
   {#if modal.requestType === "portrait"}
-    <button onclick={handleSelect} class="select-portrait-btn secondary-btn">Select Portrait</button
-    >
+    <button onclick={handleSelect} class="select-btn secondary-btn">Select Portrait</button>
   {/if}
 
   <div class="controller">
@@ -104,18 +106,6 @@
     font-size: 0.8rem;
   }
 
-  .select-portrait-btn {
-    width: 25%;
-    margin: 3rem auto;
-  }
-
-  .parent {
-    display: flex;
-    flex-flow: column;
-    justify-content: space-between;
-    height: 100%;
-  }
-
   .controller {
     display: flex;
     gap: 0.9rem;
@@ -124,15 +114,6 @@
   .controller div {
     display: flex;
     align-items: center;
-  }
-
-  .view {
-    display: flex;
-    box-sizing: border-box;
-    height: 100%;
-    width: 100%;
-    padding: 2rem;
-    gap: 1rem;
   }
 
   .portrait-info {

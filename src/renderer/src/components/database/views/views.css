@@ -1,0 +1,18 @@
+.view {
+  display: flex;
+  box-sizing: border-box;
+  padding-bottom: 2rem;
+  gap: 1rem;
+}
+
+.select-btn {
+  width: 25%;
+  margin: 3rem auto;
+}
+
+.parent {
+  display: flex;
+  flex-flow: column;
+  justify-content: space-between;
+  height: 100%;
+}

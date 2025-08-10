@@ -24,6 +24,11 @@
     class:selected={selected === "speaker"}
     onclick={() => handleSelect("speaker")}>Speaker</button
   >
+  <button
+    disabled={modal.requestType && modal.requestType === "skill"}
+    class:selected={selected === "skill"}
+    onclick={() => handleSelect("skill")}>Skill</button
+  >
 </div>
 
 <style>
