@@ -1,4 +1,11 @@
 <script lang="ts">
+  import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
+  import DialogueNode from "./components/node/Dialogue.svelte";
+  import PortraitModal from "./components/database/DatabaseModal.svelte";
+  import DialogueEdge from "./components/node/DialogueEdge.svelte";
+  import BranchContainer from "./components/node/BranchContainer.svelte";
+  import Branch from "./components/node/Branch.svelte";
+  import SkillCheck from "./components/node/SkillCheck.svelte";
   import {
     SvelteFlow,
     Background,
@@ -13,7 +20,6 @@
     type Connection
   } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
-
   import { modal } from "./stores/dbModal.svelte";
   import { setProjectDirectory } from "./stores/projectStore.svelte";
   import {
@@ -26,15 +32,9 @@
     DialogueNodeType,
     Button,
     BranchContainerNodeType,
-    BranchNodeType
+    BranchNodeType,
+    SkillCheckNodeType
   } from "./utils/types";
-
-  import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
-  import DialogueNode from "./components/node/Dialogue.svelte";
-  import PortraitModal from "./components/database/DatabaseModal.svelte";
-  import DialogueEdge from "./components/node/DialogueEdge.svelte";
-  import BranchContainer from "./components/node/BranchContainer.svelte";
-  import Branch from "./components/node/Branch.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -48,7 +48,8 @@
   const nodeTypes: NodeTypes = {
     dialogue: DialogueNode,
     branchContainer: BranchContainer,
-    branch: Branch
+    branch: Branch,
+    skillCheck: SkillCheck
   };
 
   const edgeTypes: EdgeTypes = {
@@ -100,7 +101,7 @@
       id,
       type: "branchContainer",
       position: { x: 0, y: 0 },
-      data: { addBranch: () => addBranch(id) },
+      data: { addBranch: () => addBranch(id), addSkillCheck: () => addSkillCheck(id) },
       width: BRANCH_NODE_INITIAL_WIDTH,
       height: BRANCH_NODE_INITIAL_HEIGHT
     };
@@ -116,6 +117,19 @@
       type: "branch",
       position: { x: 0, y: 0 },
       data: { name: "" }
+    };
+
+    nodes = [...nodes, newNode];
+  }
+
+  function addSkillCheck(parentId: string) {
+    const newNode: SkillCheckNodeType = {
+      id: crypto.randomUUID(),
+      parentId,
+      extent: "parent",
+      type: "skillCheck",
+      position: { x: 0, y: 0 },
+      data: { skill: null, difficulty: 0 }
     };
 
     nodes = [...nodes, newNode];

@@ -66,6 +66,7 @@ button {
   background-color: var(--primary-hover-color);
 }
 
+select,
 input,
 textarea {
   padding: 0.5rem;

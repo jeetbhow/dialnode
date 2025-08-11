@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { deleteEntity, selectEntity, useDb, type DbEntity } from "../../../stores/dbStore.svelte";
-  import "../../../styles.css";
-
   import Trash from "../../icons/Trash.svelte";
+
+  import { deleteEntity, selectEntity, useDb, type DbEntity } from "../../../stores/dbStore.svelte";
+
+  import "../../../styles.css";
 
   const ICON_SIZE = 16;
 
