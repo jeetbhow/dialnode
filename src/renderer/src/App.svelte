@@ -6,6 +6,7 @@
   import BranchContainer from "./components/node/BranchContainer.svelte";
   import Branch from "./components/node/Branch.svelte";
   import SkillCheck from "./components/node/SkillCheck.svelte";
+  import StartNode from "./components/node/StartNode.svelte";
   import {
     SvelteFlow,
     Background,
@@ -35,6 +36,7 @@
     BranchNodeType,
     SkillCheckNodeType
   } from "./utils/types";
+  import EndNode from "./components/node/EndNode.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -49,7 +51,9 @@
     dialogue: DialogueNode,
     branchContainer: BranchContainer,
     branch: Branch,
-    skillCheck: SkillCheck
+    skillCheck: SkillCheck,
+    start: StartNode,
+    end: EndNode
   };
 
   const edgeTypes: EdgeTypes = {
@@ -79,6 +83,28 @@
 
   async function selectDirectory(): Promise<void> {
     setProjectDirectory(await window.api.selectDirectory());
+  }
+
+  function addStart() {
+    const newNode = {
+      id: crypto.randomUUID(),
+      type: "start",
+      position: { x: 0, y: 0 },
+      data: {}
+    };
+
+    nodes = [...nodes, newNode];
+  }
+
+  function addEnd() {
+    const newNode = {
+      id: crypto.randomUUID(),
+      type: "end",
+      position: { x: 0, y: 0 },
+      data: {}
+    };
+
+    nodes = [...nodes, newNode];
   }
 
   function addDialogue() {
@@ -153,12 +179,20 @@
 
   const nodeButtons: Button[] = [
     {
+      text: "+ Start",
+      onClick: addStart
+    },
+    {
       text: "+ Node",
       onClick: addDialogue
     },
     {
       text: "+ Branch",
       onClick: addBranchContainer
+    },
+    {
+      text: "+ End",
+      onClick: addEnd
     }
   ];
 </script>
