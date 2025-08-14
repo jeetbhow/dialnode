@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { type DbEntity } from "../../../stores/dbStore.svelte";
   import DatabaseListButton from "./DatabaseListButton.svelte";
+  import type { DbEntity } from "../../../../../shared/types";
 
   type Props = {
     data: DbEntity[];

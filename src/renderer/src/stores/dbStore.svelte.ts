@@ -9,10 +9,8 @@ const db = $state({
 
 // Load speakers from the database on app start
 export async function loadSpeakersFromDb() {
-  if (window.api?.getAllSpeakers) {
-    const speakers = await window.api.getAllSpeakers();
-    db.speakers = speakers ?? [];
-  }
+  const speakers = await window.api.getAllSpeakers();
+  db.speakers = (speakers ?? []).map((s) => ({ ...s, kind: "speaker" }));
 }
 
 export function addEntity(entity: DbEntity) {
@@ -30,6 +28,7 @@ export function addEntity(entity: DbEntity) {
       break;
     case "speaker":
       db.speakers = [...db.speakers, entity];
+      window.api.createSpeaker(entity);
       break;
   }
 }
@@ -38,7 +37,7 @@ export function selectEntity(entity: DbEntity) {
   db.selectedId = entity.id;
 }
 
-export function deleteEntity(entity: DbEntity) {
+export async function deleteEntity(entity: DbEntity) {
   if (!entity) return;
 
   switch (entity.kind) {
@@ -53,6 +52,7 @@ export function deleteEntity(entity: DbEntity) {
       break;
     case "speaker":
       db.speakers = db.speakers.filter((s) => s.id !== entity.id);
+      window.api.deleteSpeaker(entity.id);
       break;
   }
 }

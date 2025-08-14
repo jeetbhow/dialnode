@@ -1,7 +1,7 @@
 <script lang="ts">
   import Trash from "../../icons/Trash.svelte";
-
-  import { deleteEntity, selectEntity, useDb, type DbEntity } from "../../../stores/dbStore.svelte";
+  import type { DbEntity } from "../../../../../shared/types";
+  import { deleteEntity, selectEntity, useDb } from "../../../stores/dbStore.svelte";
 
   import "../../../styles.css";
 

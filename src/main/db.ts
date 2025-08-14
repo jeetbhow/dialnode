@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import type { Portrait, Speaker, SkillCategory, Skill } from "../shared/types";
 
-const db = new Database("db.dqlite");
+const db = new Database("db.sqlite");
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS portraits (
