@@ -20,6 +20,26 @@ const api = {
   },
   deleteSpeaker: async (speakerId: string) => {
     return await ipcRenderer.invoke("delete-speaker", speakerId);
+  },
+  getAllPortraits: async () => {
+    return await ipcRenderer.invoke("get-all-portraits");
+  },
+  createPortrait: async (portrait: {
+    id: string;
+    name: string;
+    dataURL: string;
+    width: number;
+    height: number;
+    path: string;
+    relPath: string;
+    virtualPath: string;
+    filename: string;
+    kind: string;
+  }) => {
+    return await ipcRenderer.invoke("create-portrait", portrait);
+  },
+  deletePortrait: async (portraitId: string) => {
+    return await ipcRenderer.invoke("delete-portrait", portraitId);
   }
 };
 

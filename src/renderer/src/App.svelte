@@ -23,7 +23,7 @@
   } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
   import { modal } from "./stores/dbModal.svelte";
-  import { useDb, loadSpeakersFromDb } from "./stores/dbStore.svelte";
+  import { useDb, loadSpeakersFromDb, loadPortraitsFromDb } from "./stores/dbStore.svelte";
   import { setProjectDirectory } from "./stores/projectStore.svelte";
   import {
     BRANCH_NODE_INITIAL_WIDTH,
@@ -55,6 +55,7 @@
 
   onMount(() => {
     loadSpeakersFromDb();
+    loadPortraitsFromDb();
   });
 
   const nodeTypes: NodeTypes = {

@@ -7,10 +7,16 @@ const db = $state({
   selectedId: ""
 });
 
-// Load speakers from the database on app start
 export async function loadSpeakersFromDb() {
   const speakers = await window.api.getAllSpeakers();
   db.speakers = (speakers ?? []).map((s) => ({ ...s, kind: "speaker" }));
+}
+
+export async function loadPortraitsFromDb() {
+  if (window.api?.getAllPortraits) {
+    const portraits = await window.api.getAllPortraits();
+    db.portraits = (portraits ?? []).map((p) => ({ ...p, kind: "portrait" }));
+  }
 }
 
 export function addEntity(entity: DbEntity) {
@@ -19,6 +25,7 @@ export function addEntity(entity: DbEntity) {
   switch (entity.kind) {
     case "portrait":
       db.portraits = [...db.portraits, entity];
+      window.api.createPortrait(entity);
       break;
     case "skill-category":
       db.skillCategories = [...db.skillCategories, entity];
@@ -43,6 +50,7 @@ export async function deleteEntity(entity: DbEntity) {
   switch (entity.kind) {
     case "portrait":
       db.portraits = db.portraits.filter((p) => p.id !== entity.id);
+      window.api.deletePortrait(entity.id);
       break;
     case "skill-category":
       db.skillCategories = db.skillCategories.filter((s) => s.id !== entity.id);

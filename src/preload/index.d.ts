@@ -17,6 +17,20 @@ interface AppApi {
   createSpeaker: (speaker: { id: string; name: string; kind: string }) => Promise<void>;
   deleteSpeaker: (speakerId: string) => Promise<void>;
   getAllSpeakers: () => Promise<Speaker[]>;
+  getAllPortraits: () => Promise<Portrait[]>;
+  createPortrait: (portrait: {
+    id: string;
+    name: string;
+    dataURL: string;
+    width: number;
+    height: number;
+    path: string;
+    relPath: string;
+    virtualPath: string;
+    filename: string;
+    kind: string;
+  }) => Promise<void>;
+  deletePortrait: (portraitId: string) => Promise<void>;
 }
 
 declare global {

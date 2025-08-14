@@ -1,5 +1,12 @@
-import { getAllSpeakers, createSpeaker, deleteSpeaker } from "./db";
-import { closeDb } from "./db";
+import {
+  closeDb,
+  getAllSpeakers,
+  createSpeaker,
+  deleteSpeaker,
+  getAllPortraits,
+  createPortrait,
+  deletePortrait
+} from "./db";
 
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
@@ -43,6 +50,20 @@ ipcMain.handle("create-speaker", async (_event, speaker) => {
 
 ipcMain.handle("delete-speaker", async (_event, speakerId) => {
   deleteSpeaker(speakerId);
+  return true;
+});
+
+ipcMain.handle("get-all-portraits", async () => {
+  return getAllPortraits();
+});
+
+ipcMain.handle("create-portrait", async (_event, portrait) => {
+  createPortrait(portrait);
+  return true;
+});
+
+ipcMain.handle("delete-portrait", async (_event, portraitId) => {
+  deletePortrait(portraitId);
   return true;
 });
 
