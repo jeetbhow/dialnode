@@ -42,7 +42,7 @@ export function requestModal(
   });
 }
 
-export function fulfillModal(entity: DbEntity) {
+export function fulfillModal(entity: DbEntity): void {
   if (!_resolve) {
     return;
   }
@@ -64,7 +64,7 @@ export function fulfillModal(entity: DbEntity) {
   modal.requestType = null;
 }
 
-export function cancelModal() {
+export function cancelModal(): void {
   if (_resolve) {
     _resolve(null);
     _resolve = null;

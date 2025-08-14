@@ -1,23 +1,30 @@
 import type { Portrait, Speaker, SkillCategory, DbEntity } from "../../../shared/types";
 
-const db = $state({
+type Database = {
+  portraits: Portrait[];
+  speakers: Speaker[];
+  skillCategories: SkillCategory[];
+  selectedId: string;
+};
+
+const db = $state<Database>({
   portraits: [] as Portrait[],
   speakers: [] as Speaker[],
   skillCategories: [] as SkillCategory[],
   selectedId: ""
 });
 
-export async function loadSpeakersFromDb() {
+export async function loadSpeakersFromDb(): Promise<void> {
   const speakers = await window.api.getAllSpeakers();
   db.speakers = (speakers ?? []).map((s) => ({ ...s, kind: "speaker" }));
 }
 
-export async function loadPortraitsFromDb() {
+export async function loadPortraitsFromDb(): Promise<void> {
   const portraits = await window.api.getAllPortraits();
   db.portraits = (portraits ?? []).map((p) => ({ ...p, kind: "portrait" }));
 }
 
-export async function loadSkillsFromDb() {
+export async function loadSkillsFromDb(): Promise<void> {
   const categories = await window.api.getAllSkillCategories();
   db.skillCategories = (categories ?? []).map((c) => ({
     ...c,
@@ -35,7 +42,7 @@ export async function loadSkillsFromDb() {
   });
 }
 
-export function addEntity(entity: DbEntity) {
+export function addEntity(entity: DbEntity): void {
   if (!entity) return;
 
   switch (entity.kind) {
@@ -47,7 +54,7 @@ export function addEntity(entity: DbEntity) {
       db.skillCategories = [...db.skillCategories, entity];
       window.api.createSkillCategory(entity);
       break;
-    case "skill":
+    case "skill": {
       entity.category.skills.push(entity);
       const skillPayload = {
         id: entity.id,
@@ -57,6 +64,7 @@ export function addEntity(entity: DbEntity) {
       };
       window.api.createSkill(skillPayload);
       break;
+    }
     case "speaker":
       db.speakers = [...db.speakers, entity];
       window.api.createSpeaker(entity);
@@ -64,11 +72,11 @@ export function addEntity(entity: DbEntity) {
   }
 }
 
-export function selectEntity(entity: DbEntity) {
+export function selectEntity(entity: DbEntity): void {
   db.selectedId = entity.id;
 }
 
-export function deleteEntity(entity: DbEntity) {
+export function deleteEntity(entity: DbEntity): void {
   if (!entity) return;
 
   switch (entity.kind) {
@@ -91,6 +99,6 @@ export function deleteEntity(entity: DbEntity) {
   }
 }
 
-export function useDb() {
+export function useDb(): Database {
   return db;
 }

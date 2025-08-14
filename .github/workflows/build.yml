@@ -52,10 +52,11 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
       - name: Type check (TS + Svelte)
         run: npm run typecheck
 
-      - name: Bundle with electron-vite
+      - name: Build and bundle with electron-vite
         run: npm run build
 
       - name: Package with electron-builder

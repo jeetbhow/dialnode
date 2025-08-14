@@ -6,7 +6,7 @@ const project = $state({
   dir: ""
 });
 
-export function setProjectDirectory(dir: string) {
+export function setProjectDirectory(dir: string): void {
   project.dir = dir;
 }
 
