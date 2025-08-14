@@ -130,10 +130,15 @@ export function deleteSkillCategory(id: string): void {
 }
 
 // --- Skills CRUD ---
-export function createSkill(skill: Skill): void {
+export function createSkill(skill: {
+  id: string;
+  category_id: string;
+  name: string;
+  kind: string;
+}): void {
   db.prepare(`INSERT INTO skills (id, category_id, name) VALUES (?, ?, ?)`).run(
     skill.id,
-    skill.category.id,
+    skill.category_id,
     skill.name
   );
 }

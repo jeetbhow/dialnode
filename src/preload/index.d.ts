@@ -11,6 +11,14 @@ type ImageMetaData = {
 };
 
 interface AppApi {
+  getAllSkills: () => Promise<Skill[]>;
+  createSkill: (skill: {
+    id: string;
+    category_id: string;
+    name: string;
+    kind: string;
+  }) => Promise<void>;
+  deleteSkill: (skillId: string) => Promise<void>;
   getAllSkillCategories: () => Promise<SkillCategory[]>;
   createSkillCategory: (category: { id: string; name: string; kind: string }) => Promise<void>;
   deleteSkillCategory: (categoryId: string) => Promise<void>;

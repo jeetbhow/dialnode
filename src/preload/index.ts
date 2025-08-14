@@ -3,6 +3,15 @@ import { electronAPI } from "@electron-toolkit/preload";
 
 // Custom APIs for renderer
 const api = {
+  getAllSkills: async () => {
+    return await ipcRenderer.invoke("get-all-skills");
+  },
+  createSkill: async (skill: { id: string; category_id: string; name: string; kind: string }) => {
+    return await ipcRenderer.invoke("create-skill", skill);
+  },
+  deleteSkill: async (skillId: string) => {
+    return await ipcRenderer.invoke("delete-skill", skillId);
+  },
   getAllSkillCategories: async () => {
     return await ipcRenderer.invoke("get-all-skill-categories");
   },

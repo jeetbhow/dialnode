@@ -13,17 +13,26 @@ export async function loadSpeakersFromDb() {
 }
 
 export async function loadPortraitsFromDb() {
-  if (window.api?.getAllPortraits) {
-    const portraits = await window.api.getAllPortraits();
-    db.portraits = (portraits ?? []).map((p) => ({ ...p, kind: "portrait" }));
-  }
+  const portraits = await window.api.getAllPortraits();
+  db.portraits = (portraits ?? []).map((p) => ({ ...p, kind: "portrait" }));
 }
 
-export async function loadSkillCategoriesFromDb() {
-  if (window.api?.getAllSkillCategories) {
-    const categories = await window.api.getAllSkillCategories();
-    db.skillCategories = (categories ?? []).map((c) => ({ ...c, kind: "skill-category" }));
-  }
+export async function loadSkillsFromDb() {
+  const categories = await window.api.getAllSkillCategories();
+  db.skillCategories = (categories ?? []).map((c) => ({
+    ...c,
+    kind: "skill-category",
+    skills: []
+  }));
+
+  const skills = await window.api.getAllSkills();
+  (skills ?? []).forEach((skill) => {
+    skill.kind = "skill";
+    const category = db.skillCategories.find((c) => c.id === skill.category_id);
+    if (category) {
+      category.skills.push(skill);
+    }
+  });
 }
 
 export function addEntity(entity: DbEntity) {
@@ -40,6 +49,13 @@ export function addEntity(entity: DbEntity) {
       break;
     case "skill":
       entity.category.skills.push(entity);
+      const skillPayload = {
+        id: entity.id,
+        category_id: entity.category.id,
+        name: entity.name,
+        kind: "skill"
+      };
+      window.api.createSkill(skillPayload);
       break;
     case "speaker":
       db.speakers = [...db.speakers, entity];
@@ -66,6 +82,7 @@ export function deleteEntity(entity: DbEntity) {
       break;
     case "skill":
       entity.category.skills = entity.category.skills.filter((s) => s.id !== entity.id);
+      window.api.deleteSkill(entity.id);
       break;
     case "speaker":
       db.speakers = db.speakers.filter((s) => s.id !== entity.id);

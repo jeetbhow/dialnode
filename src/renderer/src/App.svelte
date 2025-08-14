@@ -27,7 +27,7 @@
     useDb,
     loadSpeakersFromDb,
     loadPortraitsFromDb,
-    loadSkillCategoriesFromDb
+    loadSkillsFromDb
   } from "./stores/dbStore.svelte";
   import { setProjectDirectory } from "./stores/projectStore.svelte";
   import {
@@ -61,7 +61,7 @@
   onMount(() => {
     loadSpeakersFromDb();
     loadPortraitsFromDb();
-    loadSkillCategoriesFromDb();
+    loadSkillsFromDb();
   });
 
   const nodeTypes: NodeTypes = {

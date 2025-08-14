@@ -1,17 +1,14 @@
 <script lang="ts">
+  import { slide } from "svelte/transition";
+
+  import Checkmark from "../../icons/Checkmark.svelte";
+  import DatabaseListButton from "../list/DatabaseListButton.svelte";
   import Chevron from "../../icons/Chevron.svelte";
   import Cross from "../../icons/Cross.svelte";
   import Plus from "../../icons/Plus.svelte";
 
-  import { slide } from "svelte/transition";
-  import {
-    addEntity,
-    deleteEntity,
-    type Skill,
-    type SkillCategory
-  } from "../../../stores/dbStore.svelte";
-  import Checkmark from "../../icons/Checkmark.svelte";
-  import DatabaseListButton from "../list/DatabaseListButton.svelte";
+  import type { SkillCategory, Skill } from "../../../../../shared/types";
+  import { addEntity, deleteEntity } from "../../../stores/dbStore.svelte";
 
   type Props = {
     category: SkillCategory;
