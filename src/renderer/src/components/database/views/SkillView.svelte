@@ -4,10 +4,11 @@
   import SkillCategoryAccordion from "./SkillCategoryAccordion.svelte";
 
   import "./views.css";
+  import type { SkillCategory } from "../../../../../shared/types";
 
   import { slide } from "svelte/transition";
   import { modal } from "../../../stores/dbModal.svelte";
-  import { useDb, addEntity, type SkillCategory } from "../../../stores/dbStore.svelte";
+  import { useDb, addEntity } from "../../../stores/dbStore.svelte";
   import Cross from "../../icons/Cross.svelte";
 
   const ICON_SIZE = 24;
