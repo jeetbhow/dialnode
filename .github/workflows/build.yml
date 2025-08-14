@@ -18,14 +18,14 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            builder_args: "--linux"
+            builder_args: "--linux zip"
           - os: windows-latest
-            builder_args: "--win"
+            builder_args: "--win zip"
           - os: macos-13
-            builder_args: "--mac --x64"
+            builder_args: "--mac zip --x64"
             arch: x64
           - os: macos-14
-            builder_args: "--mac --arm64"
+            builder_args: "--mac zip --arm64"
             arch: arm64
 
     steps:
@@ -65,19 +65,9 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}-${{ matrix.arch || 'x64' }}-artifacts
-          path: |
-            dist/*.dmg
-            dist/*.pkg
-            dist/*.zip
-            dist/*.exe
-            dist/*.msi
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.rpm
-            dist/*.snap
-            dist/*.blockmap
-          if-no-files-found: ignore
+          name: ${{ runner.os }}-${{ matrix.arch || 'x64' }}-zips
+          path: dist/*.zip
+          if-no-files-found: error
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
