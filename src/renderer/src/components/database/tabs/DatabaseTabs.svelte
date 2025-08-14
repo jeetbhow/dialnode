@@ -8,7 +8,7 @@
 
   let { selected = $bindable() }: Props = $props();
 
-  function handleSelect(name: string) {
+  function handleSelect(name: string): void {
     selected = name;
   }
 </script>

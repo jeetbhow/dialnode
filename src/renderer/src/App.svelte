@@ -8,6 +8,7 @@
   import Branch from "./components/node/Branch.svelte";
   import SkillCheck from "./components/node/SkillCheck.svelte";
   import StartNode from "./components/node/StartNode.svelte";
+  import EndNode from "./components/node/EndNode.svelte";
   import {
     SvelteFlow,
     Background,
@@ -21,6 +22,7 @@
     type NodeTypes,
     type Connection
   } from "@xyflow/svelte";
+  import { SvelteMap } from "svelte/reactivity";
   import "@xyflow/svelte/dist/style.css";
   import { modal } from "./stores/dbModal.svelte";
   import {
@@ -45,7 +47,6 @@
     StartNodeType,
     ConnectedTypeData
   } from "./utils/types";
-  import EndNode from "./components/node/EndNode.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -125,7 +126,7 @@
     setProjectDirectory(await window.api.selectDirectory());
   }
 
-  function addStart() {
+  function addStart(): void {
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
@@ -136,7 +137,7 @@
     nodes = [...nodes, newNode];
   }
 
-  function addEnd() {
+  function addEnd(): void {
     const newNode = {
       id: crypto.randomUUID(),
       type: "end",
@@ -147,7 +148,7 @@
     nodes = [...nodes, newNode];
   }
 
-  function addDialogue() {
+  function addDialogue(): void {
     const id = crypto.randomUUID();
     const position = { x: 0, y: 0 }; // TODO: Replacing fixed-positions with drag and drop later on.
 
@@ -161,7 +162,7 @@
     nodes = [...nodes, newNode];
   }
 
-  function addBranchContainer() {
+  function addBranchContainer(): void {
     const id = crypto.randomUUID();
     const newNode: BranchContainerNodeType = {
       id,
@@ -178,7 +179,7 @@
     nodes = [...nodes, newNode];
   }
 
-  function addBranch(parentId: string) {
+  function addBranch(parentId: string): void {
     const newNode: BranchNodeType = {
       id: crypto.randomUUID(),
       parentId,
@@ -191,7 +192,7 @@
     nodes = [...nodes, newNode];
   }
 
-  function addSkillCheck(parentId: string) {
+  function addSkillCheck(parentId: string): void {
     const newNode: SkillCheckNodeType = {
       id: crypto.randomUUID(),
       parentId,
@@ -204,9 +205,9 @@
     nodes = [...nodes, newNode];
   }
 
-  function exportJSON() {
+  function exportJSON(): void {
     const json = [];
-    const map: Map<string, Node> = new Map();
+    const map: SvelteMap<string, Node> = new SvelteMap();
     let start: Node = null;
 
     for (const node of nodes) {
@@ -267,7 +268,7 @@
     window.api.exportJson(json);
   }
 
-  function clearGraph() {
+  function clearGraph(): void {
     nodes = [];
     edges = [];
   }

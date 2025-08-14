@@ -8,7 +8,7 @@
 </script>
 
 <div style="flex-direction: {flexDirection}">
-  {#each buttons as { text, onClick }}
+  {#each buttons as { text, onClick } (text)}
     <MainButton {text} {onClick} />
   {/each}
 </div>

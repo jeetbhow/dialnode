@@ -15,11 +15,11 @@
 
   let { entity }: Props = $props();
 
-  function handleSelect() {
+  function handleSelect(): void {
     selectEntity(entity);
   }
 
-  function handleDelete() {
+  function handleDelete(): void {
     deleteEntity(entity);
   }
 </script>

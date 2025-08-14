@@ -31,7 +31,7 @@ db.exec(`
     );
 `);
 
-export function closeDb() {
+export function closeDb(): void {
   db.close();
 }
 

@@ -21,23 +21,23 @@
   let controllerVisible = $state(false);
   let newSkillName = $state("");
 
-  function toggleAccordion() {
+  function toggleAccordion(): void {
     open = !open;
   }
 
-  function showController() {
+  function showController(): void {
     controllerVisible = true;
   }
 
-  function hideController() {
+  function hideController(): void {
     controllerVisible = false;
   }
 
-  function deleteAccordion() {
+  function deleteAccordion(): void {
     deleteEntity(category);
   }
 
-  function addSkill() {
+  function addSkill(): void {
     if (newSkillName === "") {
       return;
     }
@@ -66,7 +66,7 @@
 
   {#if open}
     <ul transition:slide>
-      {#each category.skills as skill}
+      {#each category.skills as skill (skill.id)}
         <DatabaseListButton entity={skill} />
       {/each}
     </ul>

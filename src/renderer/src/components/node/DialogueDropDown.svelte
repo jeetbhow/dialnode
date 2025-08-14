@@ -16,7 +16,7 @@
   let show: boolean = $state(false);
   let dropdownElement: HTMLDivElement;
 
-  function handleDocumentClick(event: MouseEvent) {
+  function handleDocumentClick(event: MouseEvent): void {
     if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
       show = false;
     }

@@ -10,11 +10,11 @@
   let { id, data }: NodeProps<BranchNodeType> = $props();
   const { deleteElements } = useSvelteFlow();
 
-  function deleteBranch() {
+  function deleteBranch(): void {
     deleteElements({ nodes: [{ id }] });
   }
 
-  function handleChange(e: Event) {
+  function handleChange(e: Event): void {
     const target = e.target as HTMLInputElement;
     data.name = target.value;
   }

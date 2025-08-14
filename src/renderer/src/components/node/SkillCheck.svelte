@@ -15,18 +15,18 @@
   let skills = $derived(db.skillCategories.flatMap((category) => category.skills) ?? []);
   let selectedIndex = $state(0);
 
-  function handleSkillChange(e: Event) {
+  function handleSkillChange(e: Event): void {
     const target = e.target as HTMLSelectElement;
     selectedIndex = target.selectedIndex;
     data.skill = skills[selectedIndex];
   }
 
-  function handleDifficultyChange(e: Event) {
+  function handleDifficultyChange(e: Event): void {
     const target = e.target as HTMLInputElement;
     data.difficulty = parseInt(target.value);
   }
 
-  function deleteThisNode() {
+  function deleteThisNode(): void {
     deleteElements({ nodes: [{ id }] });
   }
 </script>

@@ -29,11 +29,11 @@
   let newPortraitName = $state("");
   const selectedPortrait = $derived(db.portraits.find((p) => p.id === db.selectedId));
 
-  async function setImageMetaData() {
+  async function setImageMetaData(): Promise<void> {
     imageMetaData = await window.api.selectImage(project.dir);
   }
 
-  function addPortrait() {
+  function addPortrait(): void {
     if (!imageMetaData || newPortraitName === "") {
       return;
     }
@@ -60,7 +60,7 @@
     newPortraitName = "";
   }
 
-  function handleSelect() {
+  function handleSelect(): void {
     fulfillModal(selectedPortrait);
   }
 </script>

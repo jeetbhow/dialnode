@@ -17,15 +17,15 @@
   let newSkillCategoryName = $state("");
   let controllerOpen = $state(false);
 
-  function openController() {
+  function openController(): void {
     controllerOpen = true;
   }
 
-  function closeController() {
+  function closeController(): void {
     controllerOpen = false;
   }
 
-  function addSkillCategory() {
+  function addSkillCategory(): void {
     if (newSkillCategoryName === "") {
       return;
     }
@@ -45,7 +45,7 @@
 <div class="parent">
   <div class="view">
     <ul>
-      {#each db.skillCategories as category}
+      {#each db.skillCategories as category (category.id)}
         <SkillCategoryAccordion {category} />
       {/each}
     </ul>

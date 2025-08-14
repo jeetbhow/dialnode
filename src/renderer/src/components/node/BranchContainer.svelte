@@ -18,11 +18,11 @@
   let { id, data, selected }: NodeProps<BranchContainerNodeType> = $props();
   const { deleteElements } = useSvelteFlow();
 
-  function addBranch() {
+  function addBranch(): void {
     data.addBranch("branch", id);
   }
 
-  function addSkillCheck() {
+  function addSkillCheck(): void {
     const skills = db.skillCategories.flatMap((category) => category.skills);
     if (skills.length === 0) {
       alert("Skill checks require at least 1 skill in the database");
@@ -31,7 +31,7 @@
     data.addSkillCheck("skillCheck", id);
   }
 
-  function handleDelete() {
+  function handleDelete(): void {
     deleteElements({ nodes: [{ id }] });
   }
 </script>

@@ -12,7 +12,7 @@
   let newSpeakerName = $state("");
   const selectedSpeaker = $derived(db.speakers.find((p) => p.id === db.selectedId));
 
-  async function addSpeaker() {
+  async function addSpeaker(): Promise<void> {
     if (newSpeakerName === "") {
       return;
     }
@@ -27,7 +27,7 @@
     newSpeakerName = "";
   }
 
-  function handleSelect() {
+  function handleSelect(): void {
     fulfillModal(selectedSpeaker);
   }
 </script>

@@ -9,7 +9,7 @@
 
   let { id }: NodeProps = $props();
 
-  function deleteThisNode() {
+  function deleteThisNode(): void {
     deleteElements({ nodes: [{ id }] });
   }
 </script>
