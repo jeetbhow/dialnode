@@ -4,8 +4,9 @@
   import PortraitView from "./views/PortraitView.svelte";
   import SpeakerView from "./views/SpeakerView.svelte";
 
+  import { type DbEntityKind } from "../../../../shared/types";
+
   import { modal, cancelModal } from "../../stores/dbModal.svelte";
-  import { type DbEntityKind } from "../../stores/dbStore.svelte";
   import { useProject } from "../../stores/projectStore.svelte";
   import SkillView from "./views/SkillView.svelte";
 

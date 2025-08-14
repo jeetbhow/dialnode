@@ -7,11 +7,16 @@
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
 
-  let { id }: NodeProps<BranchNodeType> = $props();
+  let { id, data }: NodeProps<BranchNodeType> = $props();
   const { deleteElements } = useSvelteFlow();
 
   function deleteBranch() {
     deleteElements({ nodes: [{ id }] });
+  }
+
+  function handleChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    data.name = target.value;
   }
 </script>
 
@@ -26,7 +31,7 @@
     <button aria-label="Delete branch" onclick={deleteBranch}>
       <Cross width={ICON_SIZE} height={ICON_SIZE} />
     </button>
-    <input name="branch-name" placeholder="Branch name" />
+    <input name="branch-name" placeholder="Branch name" onchange={handleChange} />
   </div>
 </div>
 

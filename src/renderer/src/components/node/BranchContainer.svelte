@@ -8,9 +8,12 @@
   import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
   import type { BranchContainerNodeType } from "../../utils/types";
   import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../utils/utils";
+  import { useDb } from "../../stores/dbStore.svelte";
 
   const ICON_SIZE = 24;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
+
+  const db = useDb();
 
   let { id, data, selected }: NodeProps<BranchContainerNodeType> = $props();
   const { deleteElements } = useSvelteFlow();
@@ -20,7 +23,16 @@
   }
 
   function addSkillCheck() {
+    const skills = db.skillCategories.flatMap((category) => category.skills);
+    if (skills.length === 0) {
+      alert("Skill checks require at least 1 skill in the database");
+      return;
+    }
     data.addSkillCheck("skillCheck", id);
+  }
+
+  function handleDelete() {
+    deleteElements({ nodes: [{ id }] });
   }
 </script>
 
@@ -45,7 +57,7 @@
       <Dice width={ICON_SIZE} height={ICON_SIZE} />
     </button>
   </div>
-  <button aria-label="Delete node" onclick={() => deleteElements({ nodes: [{ id }] })}>
+  <button aria-label="Delete node" onclick={handleDelete}>
     <Cross />
   </button>
 </div>

@@ -2,10 +2,10 @@
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
 
   import "../../styles.css";
-  import type { DialogueNodeType } from "../../utils/types";
-  import { type DbEntityKind } from "../../stores/dbStore.svelte";
-  import { requestModal } from "../../stores/dbModal.svelte";
 
+  import { type DbEntityKind } from "../../../../shared/types";
+  import type { DialogueNodeType } from "../../utils/types";
+  import { requestModal } from "../../stores/dbModal.svelte";
   import DialogueDropDown from "./DialogueDropDown.svelte";
   import Cross from "../icons/Cross.svelte";
   import Plus from "../icons/Plus.svelte";
@@ -52,7 +52,7 @@
     }
   }
 
-  function autoResize(event: Event): void {
+  function handleTextAreaChange(event: Event): void {
     const textarea = event.target as HTMLTextAreaElement;
     if (textarea) {
       /**
@@ -62,6 +62,7 @@
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
+    data.text = textarea.value;
   }
 </script>
 
@@ -153,7 +154,12 @@
       </div>
     {/if}
     <div>
-      <textarea id="text" class="nodrag" placeholder="Enter the dialogue text." oninput={autoResize}
+      <textarea
+        id="text"
+        class="nodrag"
+        placeholder="Enter the dialogue text."
+        oninput={handleTextAreaChange}
+        value={data.text}
       ></textarea>
     </div>
   </form>

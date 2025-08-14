@@ -2,8 +2,9 @@
   import DatabaseList from "../list/DatabaseList.svelte";
 
   import "./views.css";
+  import type { Speaker } from "../../../../../shared/types";
 
-  import { useDb, addEntity, type Speaker } from "../../../stores/dbStore.svelte";
+  import { useDb, addEntity } from "../../../stores/dbStore.svelte";
   import { modal, fulfillModal } from "../../../stores/dbModal.svelte";
 
   const db = useDb();
@@ -11,7 +12,7 @@
   let newSpeakerName = $state("");
   const selectedSpeaker = $derived(db.speakers.find((p) => p.id === db.selectedId));
 
-  function addSpeaker() {
+  async function addSpeaker() {
     if (newSpeakerName === "") {
       return;
     }
@@ -23,6 +24,9 @@
     };
 
     addEntity(newSpeaker);
+    if (window.api?.createSpeaker) {
+      await window.api.createSpeaker(newSpeaker);
+    }
     newSpeakerName = "";
   }
 

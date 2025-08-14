@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
   import DialogueNode from "./components/node/Dialogue.svelte";
   import PortraitModal from "./components/database/DatabaseModal.svelte";
@@ -22,6 +23,7 @@
   } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
   import { modal } from "./stores/dbModal.svelte";
+  import { useDb, loadSpeakersFromDb } from "./stores/dbStore.svelte";
   import { setProjectDirectory } from "./stores/projectStore.svelte";
   import {
     BRANCH_NODE_INITIAL_WIDTH,
@@ -34,7 +36,9 @@
     Button,
     BranchContainerNodeType,
     BranchNodeType,
-    SkillCheckNodeType
+    SkillCheckNodeType,
+    StartNodeType,
+    ConnectedTypeData
   } from "./utils/types";
   import EndNode from "./components/node/EndNode.svelte";
 
@@ -44,8 +48,14 @@
     event: MouseEvent;
   };
 
+  const db = useDb();
+
   let nodes = $state.raw<Node[]>([]);
   let edges = $state.raw<Edge[]>([]);
+
+  onMount(() => {
+    loadSpeakersFromDb();
+  });
 
   const nodeTypes: NodeTypes = {
     dialogue: DialogueNode,
@@ -60,7 +70,20 @@
     dialogueEdge: DialogueEdge
   };
 
-  function handleConnect(connection: Connection): Edge {
+  function handleConnect(connection: Connection): void {
+    const sourceId = connection.source;
+    const targetId = connection.target;
+
+    const sourceNode = nodes.find((n) => n.id === sourceId);
+    if (sourceNode.type === "branchContainer") {
+      return;
+    }
+
+    const data = sourceNode.data as ConnectedTypeData;
+    data.next = targetId;
+  }
+
+  function handleBeforeConnect(connection: Connection): Edge {
     edges = edges.filter(
       (e) => e.source !== connection.source || e.sourceHandle !== connection.sourceHandle
     );
@@ -78,7 +101,17 @@
 
   function handleEdgeClick(event: EdgeClickEvent): void {
     const { edge } = event;
-    edges = edges.filter((e) => e.id !== edge.id);
+
+    const sourceId = edge.source;
+    const sourceNode = nodes.find((n) => n.id === sourceId);
+
+    if (sourceNode.type === "branchContainer") {
+      alert("A branch container should not trigger an edge click event.");
+      return;
+    }
+
+    const data = sourceNode.data as ConnectedTypeData;
+    data.edges = edges.filter((e) => e.id !== edge.id);
   }
 
   async function selectDirectory(): Promise<void> {
@@ -86,11 +119,11 @@
   }
 
   function addStart() {
-    const newNode = {
+    const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
       position: { x: 0, y: 0 },
-      data: {}
+      data: { next: "" }
     };
 
     nodes = [...nodes, newNode];
@@ -115,7 +148,7 @@
       id,
       type: "dialogue",
       position,
-      data: { text: "", showOptions: false }
+      data: { text: "", showOptions: false, next: null }
     };
 
     nodes = [...nodes, newNode];
@@ -127,7 +160,10 @@
       id,
       type: "branchContainer",
       position: { x: 0, y: 0 },
-      data: { addBranch: () => addBranch(id), addSkillCheck: () => addSkillCheck(id) },
+      data: {
+        addBranch: () => addBranch(id),
+        addSkillCheck: () => addSkillCheck(id)
+      },
       width: BRANCH_NODE_INITIAL_WIDTH,
       height: BRANCH_NODE_INITIAL_HEIGHT
     };
@@ -142,7 +178,7 @@
       extent: "parent",
       type: "branch",
       position: { x: 0, y: 0 },
-      data: { name: "" }
+      data: { name: "", next: "" }
     };
 
     nodes = [...nodes, newNode];
@@ -155,10 +191,73 @@
       extent: "parent",
       type: "skillCheck",
       position: { x: 0, y: 0 },
-      data: { skill: null, difficulty: 0 }
+      data: { skill: db.skillCategories[0].skills[0], difficulty: 0, next: "" }
     };
 
     nodes = [...nodes, newNode];
+  }
+
+  function exportJSON() {
+    const json = [];
+    const map: Map<string, Node> = new Map();
+    let start: Node = null;
+
+    for (const node of nodes) {
+      map.set(node.id, node);
+      if (node.type === "start") {
+        start = node;
+      }
+    }
+
+    if (start === null) {
+      alert("Could not find the start node for the dialogue.");
+      return;
+    }
+
+    const stack = [start];
+    while (stack.length !== 0) {
+      const top = stack.pop();
+
+      if (top === undefined) {
+        continue;
+      }
+
+      if (top.type === "branchContainer") {
+        const branchContainer = top as BranchContainerNodeType;
+        const neighbors = nodes.filter((n) => n.parentId === branchContainer.id);
+
+        const entry = {
+          id: branchContainer.id,
+          type: "branch",
+          next: []
+        };
+
+        for (const neighbor of neighbors) {
+          entry.next.push(neighbor.id);
+        }
+
+        json.push(entry);
+      } else if (top.type === "dialogue") {
+        const dialogue = top as DialogueNodeType;
+        json.push({
+          id: dialogue.id,
+          type: "text",
+          speaker: dialogue.data.speaker?.name ?? null,
+          portrait: dialogue.data.portrait?.virtualPath ?? null,
+          next: dialogue.data.next
+        });
+        stack.push(map.get(dialogue.data.next));
+      } else {
+        const data = top.data as ConnectedTypeData;
+        json.push({
+          id: top.id,
+          type: top.type
+        });
+        stack.push(map.get(data.next));
+      }
+    }
+
+    window.api.exportJson(json);
   }
 
   function clearGraph() {
@@ -174,7 +273,8 @@
       }
     },
     { text: "Clear", onClick: clearGraph },
-    { text: "Project", onClick: selectDirectory }
+    { text: "Project", onClick: selectDirectory },
+    { text: "Export JSON", onClick: exportJSON }
   ];
 
   const nodeButtons: Button[] = [
@@ -203,8 +303,10 @@
     bind:edges
     {nodeTypes}
     {edgeTypes}
-    onbeforeconnect={handleConnect}
+    onconnect={handleConnect}
+    onbeforeconnect={handleBeforeConnect}
     onedgeclick={handleEdgeClick}
+    fitView
   >
     <MiniMap />
     <Controls />

@@ -21,6 +21,11 @@
     data.skill = skills[selectedIndex];
   }
 
+  function handleDifficultyChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    data.difficulty = parseInt(target.value);
+  }
+
   function deleteThisNode() {
     deleteElements({ nodes: [{ id }] });
   }
@@ -56,7 +61,7 @@
       min="1"
       max="20"
       step="1"
-      bind:value={data.difficulty}
+      onchange={handleDifficultyChange}
     />
   </div>
 </div>

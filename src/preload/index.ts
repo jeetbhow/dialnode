@@ -1,13 +1,25 @@
-import { contextBridge, ipcRenderer } from 'electron';
-import { electronAPI } from '@electron-toolkit/preload';
+import { contextBridge, ipcRenderer } from "electron";
+import { electronAPI } from "@electron-toolkit/preload";
 
 // Custom APIs for renderer
 const api = {
   selectImage: async (projectDir: string) => {
-    return await ipcRenderer.invoke('select-image', projectDir);
+    return await ipcRenderer.invoke("select-image", projectDir);
   },
   selectDirectory: async () => {
-    return await ipcRenderer.invoke('select-directory');
+    return await ipcRenderer.invoke("select-directory");
+  },
+  exportJson: async (data: Record<string, unknown>[]) => {
+    return await ipcRenderer.invoke("export-json", data);
+  },
+  getAllSpeakers: async () => {
+    return await ipcRenderer.invoke("get-all-speakers");
+  },
+  createSpeaker: async (speaker: { id: string; name: string; kind: string }) => {
+    return await ipcRenderer.invoke("create-speaker", speaker);
+  },
+  deleteSpeaker: async (speakerId: string) => {
+    return await ipcRenderer.invoke("delete-speaker", speakerId);
   }
 };
 
@@ -16,8 +28,8 @@ const api = {
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI);
-    contextBridge.exposeInMainWorld('api', api);
+    contextBridge.exposeInMainWorld("electron", electronAPI);
+    contextBridge.exposeInMainWorld("api", api);
   } catch (error) {
     console.error(error);
   }

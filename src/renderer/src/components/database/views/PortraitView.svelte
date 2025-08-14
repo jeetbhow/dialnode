@@ -3,8 +3,9 @@
   import DatabaseList from "../list/DatabaseList.svelte";
 
   import "./views.css";
+  import type { Portrait } from "../../../../../shared/types";
 
-  import { addEntity, useDb, type Portrait } from "../../../stores/dbStore.svelte";
+  import { addEntity, useDb } from "../../../stores/dbStore.svelte";
   import { useProject } from "../../../stores/projectStore.svelte";
   import { fulfillModal, modal } from "../../../stores/dbModal.svelte";
 
