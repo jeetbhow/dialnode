@@ -5,7 +5,10 @@ import {
   deleteSpeaker,
   getAllPortraits,
   createPortrait,
-  deletePortrait
+  deletePortrait,
+  getAllSkillCategories,
+  createSkillCategory,
+  deleteSkillCategory
 } from "./db";
 
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
@@ -64,6 +67,20 @@ ipcMain.handle("create-portrait", async (_event, portrait) => {
 
 ipcMain.handle("delete-portrait", async (_event, portraitId) => {
   deletePortrait(portraitId);
+  return true;
+});
+
+ipcMain.handle("get-all-skill-categories", async () => {
+  return getAllSkillCategories();
+});
+
+ipcMain.handle("create-skill-category", async (_event, category) => {
+  createSkillCategory(category);
+  return true;
+});
+
+ipcMain.handle("delete-skill-category", async (_event, categoryId) => {
+  deleteSkillCategory(categoryId);
   return true;
 });
 

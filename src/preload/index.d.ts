@@ -11,6 +11,9 @@ type ImageMetaData = {
 };
 
 interface AppApi {
+  getAllSkillCategories: () => Promise<SkillCategory[]>;
+  createSkillCategory: (category: { id: string; name: string; kind: string }) => Promise<void>;
+  deleteSkillCategory: (categoryId: string) => Promise<void>;
   selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
   selectDirectory: () => Promise<string | null>;
   exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;

@@ -24,9 +24,6 @@
     };
 
     addEntity(newSpeaker);
-    if (window.api?.createSpeaker) {
-      await window.api.createSpeaker(newSpeaker);
-    }
     newSpeakerName = "";
   }
 

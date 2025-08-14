@@ -19,6 +19,13 @@ export async function loadPortraitsFromDb() {
   }
 }
 
+export async function loadSkillCategoriesFromDb() {
+  if (window.api?.getAllSkillCategories) {
+    const categories = await window.api.getAllSkillCategories();
+    db.skillCategories = (categories ?? []).map((c) => ({ ...c, kind: "skill-category" }));
+  }
+}
+
 export function addEntity(entity: DbEntity) {
   if (!entity) return;
 
@@ -29,6 +36,7 @@ export function addEntity(entity: DbEntity) {
       break;
     case "skill-category":
       db.skillCategories = [...db.skillCategories, entity];
+      window.api.createSkillCategory(entity);
       break;
     case "skill":
       entity.category.skills.push(entity);
@@ -44,7 +52,7 @@ export function selectEntity(entity: DbEntity) {
   db.selectedId = entity.id;
 }
 
-export async function deleteEntity(entity: DbEntity) {
+export function deleteEntity(entity: DbEntity) {
   if (!entity) return;
 
   switch (entity.kind) {
@@ -54,6 +62,7 @@ export async function deleteEntity(entity: DbEntity) {
       break;
     case "skill-category":
       db.skillCategories = db.skillCategories.filter((s) => s.id !== entity.id);
+      window.api.deleteSkillCategory(entity.id);
       break;
     case "skill":
       entity.category.skills = entity.category.skills.filter((s) => s.id !== entity.id);

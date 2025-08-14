@@ -1,4 +1,4 @@
-import type { DbEntity, DbEntityKind, Portrait, Skill, Speaker } from "./dbStore.svelte";
+import type { DbEntity, DbEntityKind, Portrait, Skill, Speaker } from "../../../shared/types";
 
 type PortraitModalStore = {
   open: boolean;
