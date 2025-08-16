@@ -62,7 +62,9 @@ export function selectEntity(entity: DbEntity): void {
 }
 
 export async function deleteEntity(entity: DbEntity): Promise<void> {
-  if (!entity) return;
+  if (!entity) {
+    return;
+  }
 
   switch (entity.kind) {
     case "portrait":
@@ -83,6 +85,10 @@ export async function deleteEntity(entity: DbEntity): Promise<void> {
       db.speakers = db.speakers.filter((s) => s.id !== entity.id);
       await window.api.deleteSpeaker(entity.id);
       break;
+  }
+
+  if (entity.id === db.selectedId) {
+    db.selectedId = "";
   }
 }
 
