@@ -159,12 +159,30 @@ ipcMain.handle("select-directory", async () => {
   return filePaths[0];
 });
 
+// Titlebar operations
+ipcMain.on("window-minimize", () => {
+  BrowserWindow.getFocusedWindow()?.minimize();
+});
+
+ipcMain.on("window-maximize", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    win.isMaximized() ? win.unmaximize() : win.maximize();
+  }
+});
+
+ipcMain.on("window-close", () => {
+  BrowserWindow.getFocusedWindow()?.close();
+});
+
 function createWindow(): void {
   // Create the browser window
   const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
+    width: 1200,
+    height: 900,
     show: false,
+    frame: false,
+    titleBarStyle: "hidden",
     autoHideMenuBar: true,
     ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {

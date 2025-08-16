@@ -47,6 +47,7 @@
     StartNodeType,
     ConnectedTypeData
   } from "./utils/types";
+  import Titlebar from "./components/titlebar/Titlebar.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -305,7 +306,8 @@
   ];
 </script>
 
-<div>
+<div class="app">
+  <Titlebar />
   <SvelteFlow
     bind:nodes
     bind:edges
@@ -338,7 +340,7 @@
     padding: 0;
   }
 
-  div {
+  .app {
     width: 100vw;
     height: 100vh;
   }

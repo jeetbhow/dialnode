@@ -12,6 +12,9 @@ type ImageMetaData = {
 };
 
 interface AppApi {
+  minimize: () => void;
+  maximize: () => void;
+  close: () => void;
   getAllSkills: () => Promise<Skill[]>;
   createSkill: (skill: Skill) => Promise<void>;
   deleteSkill: (skillId: string) => Promise<void>;

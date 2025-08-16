@@ -4,6 +4,9 @@ import { Portrait, Skill, SkillCategory, Speaker } from "../shared/types";
 
 // Custom APIs for renderer
 const api = {
+  minimize: () => ipcRenderer.send("window-minimize"),
+  maximize: () => ipcRenderer.send("window-maximize"),
+  close: () => ipcRenderer.send("window-close"),
   getAllSkills: async () => {
     return await ipcRenderer.invoke("get-all-skills");
   },

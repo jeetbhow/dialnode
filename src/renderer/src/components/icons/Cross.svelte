@@ -2,11 +2,12 @@
   type Props = {
     width?: number;
     height?: number;
+    color?: string;
   };
 
   const DEFAULT_SIZE = 30;
 
-  const { width, height }: Props = $props();
+  const { width, height, color }: Props = $props();
 </script>
 
 <svg
@@ -16,7 +17,7 @@
   viewBox="0 0 24 24"
   ><path
     fill="none"
-    stroke="currentColor"
+    stroke={color ?? "currentColor"}
     stroke-linecap="round"
     stroke-width="1.5"
     d="m8.464 15.535l7.072-7.07m-7.072 0l7.072 7.07"
