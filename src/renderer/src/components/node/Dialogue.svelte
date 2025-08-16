@@ -29,7 +29,7 @@
 
   async function requestData(type: DbEntityKind): Promise<void> {
     const response = await requestModal(id, type);
-    if (response === null || response.nodeId !== id) return;
+    if (response === null || response.request.nodeId !== id) return;
 
     switch (type) {
       case "portrait":

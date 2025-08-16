@@ -14,8 +14,8 @@
   --secondary-text-color: #2f2e2e;
   --small-text-color: #9c9c9c;
   --primary-text-color: #e4e7f4;
-  --primary-color: #5d6dfe;
-  --primary-hover-color: #3947c6;
+  --primary-color: #2b407b;
+  --primary-hover-color: #21325e;
   --secondary-color: #f4efef;
   --secondary-color-hover: #dbd6d6;
   --transparent-color: #dbd9d974;
@@ -36,6 +36,7 @@
 button {
   all: unset;
   cursor: pointer;
+  -webkit-app-region: no-drag;
 }
 
 .secondary-btn {

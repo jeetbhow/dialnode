@@ -2,36 +2,51 @@
   import Cross from "../icons/Cross.svelte";
   import Maximize from "../icons/Maximize.svelte";
   import Minimize from "../icons/Minimize.svelte";
+  import FileDropdownMenu from "./FileDropdownButton.svelte";
 
   const CROSS_SIZE = 24;
   const MAXIMIZE_ICON_SIZE = 16;
   const MINIMIZE_ICON_SIZE = 16;
 </script>
 
-<ul>
-  <button class="minimize" onclick={() => window.api.minimize()}>
-    <Minimize width={MINIMIZE_ICON_SIZE} height={MINIMIZE_ICON_SIZE} />
-  </button>
-  <button class="maximize" onclick={() => window.api.maximize()}>
-    <Maximize width={MAXIMIZE_ICON_SIZE} height={MAXIMIZE_ICON_SIZE} />
-  </button>
-  <button class="close" onclick={() => window.api.close()}>
-    <Cross width={CROSS_SIZE} height={CROSS_SIZE} />
-  </button>
-</ul>
+<div class="titlebar">
+  <div class="menu">
+    <FileDropdownMenu />
+  </div>
+
+  <div class="window-controls">
+    <button class="minimize" onclick={() => window.api.minimize()}>
+      <Minimize width={MINIMIZE_ICON_SIZE} height={MINIMIZE_ICON_SIZE} />
+    </button>
+    <button class="maximize" onclick={() => window.api.maximize()}>
+      <Maximize width={MAXIMIZE_ICON_SIZE} height={MAXIMIZE_ICON_SIZE} />
+    </button>
+    <button class="close" onclick={() => window.api.close()}>
+      <Cross width={CROSS_SIZE} height={CROSS_SIZE} />
+    </button>
+  </div>
+</div>
 
 <style>
-  ul {
-    all: unset;
+  .titlebar {
     display: flex;
-    justify-content: end;
+    justify-content: space-between;
+    background-color: #e7ecfb;
     -webkit-app-region: drag;
+  }
+
+  .titlebar > div {
+    display: flex;
+  }
+
+  .menu {
+    align-items: center;
+    margin-left: 1rem;
   }
 
   button {
     padding: 0.4rem 0.9rem;
     transition: background-color 100ms ease-in-out;
-    -webkit-app-region: no-drag;
   }
 
   .close:hover {
