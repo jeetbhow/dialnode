@@ -1,4 +1,5 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
+import type { Skill, SkillCategory, Speaker, Portrait } from "../shared/types";
 
 type ImageMetaData = {
   dataURL: string;
@@ -12,35 +13,19 @@ type ImageMetaData = {
 
 interface AppApi {
   getAllSkills: () => Promise<Skill[]>;
-  createSkill: (skill: {
-    id: string;
-    category_id: string;
-    name: string;
-    kind: string;
-  }) => Promise<void>;
+  createSkill: (skill: Skill) => Promise<void>;
   deleteSkill: (skillId: string) => Promise<void>;
   getAllSkillCategories: () => Promise<SkillCategory[]>;
-  createSkillCategory: (category: { id: string; name: string; kind: string }) => Promise<void>;
+  createSkillCategory: (category: SkillCategory) => Promise<void>;
   deleteSkillCategory: (categoryId: string) => Promise<void>;
   selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
   selectDirectory: () => Promise<string | null>;
   exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;
-  createSpeaker: (speaker: { id: string; name: string; kind: string }) => Promise<void>;
+  createSpeaker: (speaker: Speaker) => Promise<void>;
   deleteSpeaker: (speakerId: string) => Promise<void>;
   getAllSpeakers: () => Promise<Speaker[]>;
   getAllPortraits: () => Promise<Portrait[]>;
-  createPortrait: (portrait: {
-    id: string;
-    name: string;
-    dataURL: string;
-    width: number;
-    height: number;
-    path: string;
-    relPath: string;
-    virtualPath: string;
-    filename: string;
-    kind: string;
-  }) => Promise<void>;
+  createPortrait: (portrait: Portrait) => Promise<void>;
   deletePortrait: (portraitId: string) => Promise<void>;
 }
 

@@ -6,6 +6,7 @@ const db = new Database("db.sqlite");
 db.exec(`
     CREATE TABLE IF NOT EXISTS portraits (
         id TEXT PRIMARY KEY,
+        kind TEXT,
         name TEXT,
         dataURL TEXT,
         width INTEGER,
@@ -17,17 +18,20 @@ db.exec(`
     );
     CREATE TABLE IF NOT EXISTS speakers (
         id TEXT PRIMARY KEY,
+        kind TEXT,
         name TEXT
     );
-    CREATE TABLE IF NOT EXISTS skill_categories (
+    CREATE TABLE IF NOT EXISTS skillCategories (
         id TEXT PRIMARY KEY,
+        kind TEXT,
         name TEXT
     );
     CREATE TABLE IF NOT EXISTS skills (
         id TEXT PRIMARY KEY,
-        category_id TEXT,
+        kind TEXT,
+        categoryId TEXT,
         name TEXT,
-        FOREIGN KEY (category_id) REFERENCES skill_categories(id)
+        FOREIGN KEY (categoryId) REFERENCES skillCategories(id) ON DELETE CASCADE
     );
 `);
 
@@ -38,10 +42,11 @@ export function closeDb(): void {
 // --- Portraits CRUD ---
 export function createPortrait(portrait: Portrait): void {
   const stmt = db.prepare(
-    `INSERT INTO portraits (id, name, dataURL, width, height, path, relPath, virtualPath, filename) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO portraits (id, name, kind, dataURL, width, height, path, relPath, virtualPath, filename) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   stmt.run(
     portrait.id,
+    portrait.kind,
     portrait.name,
     portrait.dataURL,
     portrait.width,
@@ -53,29 +58,8 @@ export function createPortrait(portrait: Portrait): void {
   );
 }
 
-export function getPortrait(id: string): Portrait | undefined {
-  return db.prepare(`SELECT * FROM portraits WHERE id = ?`).get(id) as Portrait | undefined;
-}
-
 export function getAllPortraits(): Portrait[] {
   return db.prepare(`SELECT * FROM portraits`).all() as Portrait[];
-}
-
-export function updatePortrait(portrait: Portrait): void {
-  const stmt = db.prepare(
-    `UPDATE portraits SET name = ?, dataURL = ?, width = ?, height = ?, path = ?, relPath = ?, virtualPath = ?, filename = ? WHERE id = ?`
-  );
-  stmt.run(
-    portrait.name,
-    portrait.dataURL,
-    portrait.width,
-    portrait.height,
-    portrait.path,
-    portrait.relPath,
-    portrait.virtualPath,
-    portrait.filename,
-    portrait.id
-  );
 }
 
 export function deletePortrait(id: string): void {
@@ -84,19 +68,15 @@ export function deletePortrait(id: string): void {
 
 // --- Speakers CRUD ---
 export function createSpeaker(speaker: Speaker): void {
-  db.prepare(`INSERT INTO speakers (id, name) VALUES (?, ?)`).run(speaker.id, speaker.name);
-}
-
-export function getSpeaker(id: string): Speaker | undefined {
-  return db.prepare(`SELECT * FROM speakers WHERE id = ?`).get(id) as Speaker | undefined;
+  db.prepare(`INSERT INTO speakers (id, kind, name) VALUES (?, ?, ?)`).run(
+    speaker.id,
+    speaker.kind,
+    speaker.name
+  );
 }
 
 export function getAllSpeakers(): Speaker[] {
   return db.prepare(`SELECT * FROM speakers`).all() as Speaker[];
-}
-
-export function updateSpeaker(speaker: Speaker): void {
-  db.prepare(`UPDATE speakers SET name = ? WHERE id = ?`).run(speaker.name, speaker.id);
 }
 
 export function deleteSpeaker(id: string): void {
@@ -105,58 +85,33 @@ export function deleteSpeaker(id: string): void {
 
 // --- Skill Categories CRUD ---
 export function createSkillCategory(category: SkillCategory): void {
-  db.prepare(`INSERT INTO skill_categories (id, name) VALUES (?, ?)`).run(
+  db.prepare(`INSERT INTO skillCategories (id, kind, name) VALUES (?, ?, ?)`).run(
     category.id,
+    category.kind,
     category.name
   );
 }
 
-export function getSkillCategory(id: string): SkillCategory | undefined {
-  return db.prepare(`SELECT * FROM skill_categories WHERE id = ?`).get(id) as
-    | SkillCategory
-    | undefined;
-}
-
 export function getAllSkillCategories(): SkillCategory[] {
-  return db.prepare(`SELECT * FROM skill_categories`).all() as SkillCategory[];
-}
-
-export function updateSkillCategory(category: SkillCategory): void {
-  db.prepare(`UPDATE skill_categories SET name = ? WHERE id = ?`).run(category.name, category.id);
+  return db.prepare(`SELECT * FROM skillCategories`).all() as SkillCategory[];
 }
 
 export function deleteSkillCategory(id: string): void {
-  db.prepare(`DELETE FROM skill_categories WHERE id = ?`).run(id);
+  db.prepare(`DELETE FROM skillCategories WHERE id = ?`).run(id);
 }
 
 // --- Skills CRUD ---
-export function createSkill(skill: {
-  id: string;
-  category_id: string;
-  name: string;
-  kind: string;
-}): void {
-  db.prepare(`INSERT INTO skills (id, category_id, name) VALUES (?, ?, ?)`).run(
+export function createSkill(skill: Skill): void {
+  db.prepare(`INSERT INTO skills (id, kind, categoryId, name) VALUES (?, ?, ?, ?)`).run(
     skill.id,
-    skill.category_id,
+    skill.kind,
+    skill.categoryId,
     skill.name
   );
 }
 
-export function getSkill(id: string): Skill | undefined {
-  return db.prepare(`SELECT * FROM skills WHERE id = ?`).get(id) as Skill | undefined;
-}
-
 export function getAllSkills(): Skill[] {
   return db.prepare(`SELECT * FROM skills`).all() as Skill[];
-}
-
-export function updateSkill(skill: Skill): void {
-  db.prepare(`UPDATE skills SET category_id = ?, name = ? WHERE id = ?`).run(
-    skill.category.id,
-    skill.name,
-    skill.id
-  );
 }
 
 export function deleteSkill(id: string): void {

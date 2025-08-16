@@ -1,7 +1,7 @@
 {
   "name": "dialnode",
-  "version": "1.0.0",
-  "description": "An Electron application with Svelte and TypeScript",
+  "version": "0.8.1",
+  "description": "A graph-based dialogue editor for video game developers.",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",

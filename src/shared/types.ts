@@ -21,7 +21,7 @@ export type SkillType = "body" | "mind" | "psyche" | "sense";
 
 export type SkillCategory = {
   id: string;
-  kind: "skill-category";
+  kind: "skillCategory";
   name: string;
   skills: Skill[];
 };
@@ -29,9 +29,9 @@ export type SkillCategory = {
 export type Skill = {
   id: string;
   kind: "skill";
-  category: SkillCategory;
+  categoryId: string;
   name: string;
 };
 
-export type DbEntityKind = "portrait" | "speaker" | "skill-category" | "skill";
+export type DbEntityKind = "portrait" | "speaker" | "skillCategory" | "skill";
 export type DbEntity = Speaker | Portrait | SkillCategory | Skill;

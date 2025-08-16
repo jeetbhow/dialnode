@@ -1,12 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
+import { Portrait, Skill, SkillCategory, Speaker } from "../shared/types";
 
 // Custom APIs for renderer
 const api = {
   getAllSkills: async () => {
     return await ipcRenderer.invoke("get-all-skills");
   },
-  createSkill: async (skill: { id: string; category_id: string; name: string; kind: string }) => {
+  createSkill: async (skill: Skill) => {
     return await ipcRenderer.invoke("create-skill", skill);
   },
   deleteSkill: async (skillId: string) => {
@@ -15,7 +16,7 @@ const api = {
   getAllSkillCategories: async () => {
     return await ipcRenderer.invoke("get-all-skill-categories");
   },
-  createSkillCategory: async (category: { id: string; name: string; kind: string }) => {
+  createSkillCategory: async (category: SkillCategory) => {
     return await ipcRenderer.invoke("create-skill-category", category);
   },
   deleteSkillCategory: async (categoryId: string) => {
@@ -33,7 +34,7 @@ const api = {
   getAllSpeakers: async () => {
     return await ipcRenderer.invoke("get-all-speakers");
   },
-  createSpeaker: async (speaker: { id: string; name: string; kind: string }) => {
+  createSpeaker: async (speaker: Speaker) => {
     return await ipcRenderer.invoke("create-speaker", speaker);
   },
   deleteSpeaker: async (speakerId: string) => {
@@ -42,18 +43,7 @@ const api = {
   getAllPortraits: async () => {
     return await ipcRenderer.invoke("get-all-portraits");
   },
-  createPortrait: async (portrait: {
-    id: string;
-    name: string;
-    dataURL: string;
-    width: number;
-    height: number;
-    path: string;
-    relPath: string;
-    virtualPath: string;
-    filename: string;
-    kind: string;
-  }) => {
+  createPortrait: async (portrait: Portrait) => {
     return await ipcRenderer.invoke("create-portrait", portrait);
   },
   deletePortrait: async (portraitId: string) => {

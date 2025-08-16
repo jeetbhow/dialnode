@@ -1,41 +1,47 @@
 import type { DbEntity, DbEntityKind, Portrait, Skill, Speaker } from "../../../shared/types";
 
+type DbModalRequest = {
+  type: DbEntityKind;
+  nodeId: string;
+};
+
 type PortraitModalStore = {
   open: boolean;
-  requestType?: DbEntityKind;
-  nodeId?: string;
+  request: DbModalRequest | null;
 };
 
 type PortraitResult = {
-  nodeId: string;
+  request: DbModalRequest;
   value: Portrait;
 };
 
 type SpeakerResult = {
-  nodeId: string;
+  request: DbModalRequest;
   value: Speaker;
 };
 
 type SkillResult = {
-  nodeId: string;
+  request: DbModalRequest;
   value: Skill;
 };
 
-let _resolve: ((result: PortraitResult | SpeakerResult | SkillResult) => void) | null = null;
+type ModalRequestResult = PortraitResult | SpeakerResult | SkillResult | null;
+
+let _resolve: ((result: ModalRequestResult) => void) | null = null;
 
 export const modal: PortraitModalStore = $state({
   open: false,
-  requestType: null,
-  nodeId: null
+  request: null
 });
 
-export function requestModal(
-  forNodeId: string,
-  type: DbEntityKind
-): Promise<PortraitResult | SpeakerResult | SkillResult> {
+export function requestModal(nodeId: string, type: DbEntityKind): Promise<ModalRequestResult> {
+  if (_resolve) {
+    _resolve(null);
+    _resolve = null;
+  }
+
   modal.open = true;
-  modal.nodeId = forNodeId;
-  modal.requestType = type;
+  modal.request = { nodeId, type };
 
   return new Promise((resolve) => {
     _resolve = resolve;
@@ -43,25 +49,25 @@ export function requestModal(
 }
 
 export function fulfillModal(entity: DbEntity): void {
-  if (!_resolve) {
+  if (!_resolve || !modal.request) {
     return;
   }
 
   switch (entity.kind) {
     case "portrait":
-      _resolve({ nodeId: modal.nodeId, value: entity as Portrait });
+      _resolve({ request: modal.request, value: entity });
       break;
     case "speaker":
-      _resolve({ nodeId: modal.nodeId, value: entity as Speaker });
+      _resolve({ request: modal.request, value: entity });
       break;
     case "skill":
-      _resolve({ nodeId: modal.nodeId, value: entity as Skill });
+      _resolve({ request: modal.request, value: entity });
       break;
   }
 
+  _resolve = null;
   modal.open = false;
-  modal.nodeId = null;
-  modal.requestType = null;
+  modal.request = null;
 }
 
 export function cancelModal(): void {
@@ -69,7 +75,7 @@ export function cancelModal(): void {
     _resolve(null);
     _resolve = null;
   }
+
   modal.open = false;
-  modal.nodeId = null;
-  modal.requestType = null;
+  modal.request = null;
 }

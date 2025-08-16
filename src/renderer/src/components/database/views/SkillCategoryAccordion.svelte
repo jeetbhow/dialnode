@@ -45,7 +45,7 @@
     const newSkill: Skill = {
       id: crypto.randomUUID(),
       kind: "skill",
-      category,
+      categoryId: category.id,
       name: newSkillName
     };
     addEntity(newSkill);

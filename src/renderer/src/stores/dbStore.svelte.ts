@@ -15,59 +15,44 @@ const db = $state<Database>({
 });
 
 export async function loadSpeakersFromDb(): Promise<void> {
-  const speakers = await window.api.getAllSpeakers();
-  db.speakers = (speakers ?? []).map((s) => ({ ...s, kind: "speaker" }));
+  db.speakers = await window.api.getAllSpeakers();
 }
 
 export async function loadPortraitsFromDb(): Promise<void> {
-  const portraits = await window.api.getAllPortraits();
-  db.portraits = (portraits ?? []).map((p) => ({ ...p, kind: "portrait" }));
+  db.portraits = await window.api.getAllPortraits();
 }
 
 export async function loadSkillsFromDb(): Promise<void> {
   const categories = await window.api.getAllSkillCategories();
-  db.skillCategories = (categories ?? []).map((c) => ({
-    ...c,
-    kind: "skill-category",
-    skills: []
-  }));
+  db.skillCategories = categories.map((category) => ({ ...category, skills: [] }));
 
-  const skills = await window.api.getAllSkills();
-  (skills ?? []).forEach((skill) => {
-    skill.kind = "skill";
-    const category = db.skillCategories.find((c) => c.id === skill.category_id);
-    if (category) {
-      category.skills.push(skill);
-    }
-  });
+  const fetchedSkills = await window.api.getAllSkills();
+  for (const category of db.skillCategories) {
+    category.skills = fetchedSkills.filter((skill) => skill.categoryId === category.id);
+  }
 }
 
-export function addEntity(entity: DbEntity): void {
+export async function addEntity(entity: DbEntity): Promise<void> {
   if (!entity) return;
 
   switch (entity.kind) {
     case "portrait":
-      db.portraits = [...db.portraits, entity];
-      window.api.createPortrait(entity);
+      db.portraits.push(entity);
+      await window.api.createPortrait(entity);
       break;
-    case "skill-category":
-      db.skillCategories = [...db.skillCategories, entity];
-      window.api.createSkillCategory(entity);
+    case "skillCategory":
+      db.skillCategories.push(entity);
+      await window.api.createSkillCategory(entity);
       break;
     case "skill": {
-      entity.category.skills.push(entity);
-      const skillPayload = {
-        id: entity.id,
-        category_id: entity.category.id,
-        name: entity.name,
-        kind: "skill"
-      };
-      window.api.createSkill(skillPayload);
+      const category = db.skillCategories.find((category) => (category.id = entity.categoryId));
+      category.skills.push(entity);
+      await window.api.createSkill(entity);
       break;
     }
     case "speaker":
-      db.speakers = [...db.speakers, entity];
-      window.api.createSpeaker(entity);
+      db.speakers.push(entity);
+      await window.api.createSpeaker(entity);
       break;
   }
 }
@@ -76,25 +61,27 @@ export function selectEntity(entity: DbEntity): void {
   db.selectedId = entity.id;
 }
 
-export function deleteEntity(entity: DbEntity): void {
+export async function deleteEntity(entity: DbEntity): Promise<void> {
   if (!entity) return;
 
   switch (entity.kind) {
     case "portrait":
       db.portraits = db.portraits.filter((p) => p.id !== entity.id);
-      window.api.deletePortrait(entity.id);
+      await window.api.deletePortrait(entity.id);
       break;
-    case "skill-category":
+    case "skillCategory":
       db.skillCategories = db.skillCategories.filter((s) => s.id !== entity.id);
-      window.api.deleteSkillCategory(entity.id);
+      await window.api.deleteSkillCategory(entity.id);
       break;
-    case "skill":
-      entity.category.skills = entity.category.skills.filter((s) => s.id !== entity.id);
-      window.api.deleteSkill(entity.id);
+    case "skill": {
+      const category = db.skillCategories.find((category) => category.id === entity.categoryId);
+      category.skills = category.skills.filter((skill) => skill.id !== entity.id);
+      await window.api.deleteSkill(entity.id);
       break;
+    }
     case "speaker":
       db.speakers = db.speakers.filter((s) => s.id !== entity.id);
-      window.api.deleteSpeaker(entity.id);
+      await window.api.deleteSpeaker(entity.id);
       break;
   }
 }

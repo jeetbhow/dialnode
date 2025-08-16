@@ -7,7 +7,6 @@
   import type { SkillCategory } from "../../../../../shared/types";
 
   import { slide } from "svelte/transition";
-  import { modal } from "../../../stores/dbModal.svelte";
   import { useDb, addEntity } from "../../../stores/dbStore.svelte";
   import Cross from "../../icons/Cross.svelte";
 
@@ -33,7 +32,7 @@
 
     const newSkillCategory: SkillCategory = {
       id: crypto.randomUUID(),
-      kind: "skill-category",
+      kind: "skillCategory",
       name: newSkillCategoryName,
       skills: []
     };
@@ -71,8 +70,6 @@
     {/if}
   </div>
 </div>
-
-{#if modal.requestType === "skill"}{/if}
 
 <style>
   button {
