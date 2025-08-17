@@ -20,14 +20,14 @@
 
   function handleSubmit(event: Event) {
     event.preventDefault();
-    dialogues.rename(newName);
+    dialogues.renameSelected(newName);
     dialogues.editing = false;
   }
 </script>
 
 <div class="sidebar">
   <ul class="project-dialogues">
-    {#each dialogues.data as dialogue, i (i)}
+    {#each dialogues.data as dialogue, i (dialogue)}
       <li class:selected={dialogues.index === i}>
         {#if dialogues.index === i && dialogues.editing}
           <form onsubmit={handleSubmit}>
@@ -72,6 +72,7 @@
     box-sizing: border-box;
     width: 100%;
     font-size: 0.8rem;
+    white-space: pre;
     color: rgb(58, 61, 64);
   }
 

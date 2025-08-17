@@ -15,6 +15,9 @@
       <li>
         <button onclick={() => (dialogues.editing = true)}>Rename Dialogue</button>
       </li>
+      <li>
+        <button onclick={() => dialogues.removeSelected()}>Remove Dialogue</button>
+      </li>
     </ul>
   {/if}
 </div>
