@@ -1,9 +1,15 @@
-import type { Node } from "@xyflow/svelte";
+import type { Edge, Node } from "@xyflow/svelte";
 import type { Speaker, Portrait, Skill } from "../../../shared/types";
 
 export type Button = {
   text: string;
   onClick: () => void;
+};
+
+export type DialogueSelectEntry = {
+  name: string;
+  nodes: Node[];
+  edges: Edge[];
 };
 
 export interface ConnectedTypeData extends Record<string, unknown> {

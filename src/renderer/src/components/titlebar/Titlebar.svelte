@@ -31,7 +31,7 @@
   .titlebar {
     display: flex;
     justify-content: space-between;
-    background-color: #e7ecfb;
+    background-color: #f6f7fa;
     -webkit-app-region: drag;
   }
 

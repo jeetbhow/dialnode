@@ -1,7 +1,13 @@
 <script lang="ts">
   import { clickOutside } from "../../attachments/attachments";
+  import { setProjectDirectory } from "../../stores/projectStore.svelte";
 
   let open = $state(false);
+
+  async function handleClickNewProject(): Promise<void> {
+    const projectDir = await window.api.selectDirectory();
+    setProjectDirectory(projectDir);
+  }
 </script>
 
 <div class="dropdown">
@@ -9,10 +15,13 @@
   {#if open}
     <ul class="dropdown-menu">
       <li>
-        <button>New Project</button>
+        <button onclick={handleClickNewProject}>New Project</button>
       </li>
       <li>
-        <button>Open</button>
+        <button onclick={handleClickNewProject}>Open Project</button>
+      </li>
+      <li>
+        <button>New Dialogue</button>
       </li>
       <li>
         <button>Save</button>

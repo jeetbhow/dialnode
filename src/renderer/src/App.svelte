@@ -1,6 +1,22 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
+  import { SvelteMap } from "svelte/reactivity";
+
+  import {
+    SvelteFlow,
+    Background,
+    MiniMap,
+    Controls,
+    MarkerType,
+    type Node,
+    type Edge,
+    type EdgeTypes,
+    type NodeTypes,
+    type Connection,
+    Panel
+  } from "@xyflow/svelte";
+  import "@xyflow/svelte/dist/style.css";
+
   import DialogueNode from "./components/node/Dialogue.svelte";
   import PortraitModal from "./components/database/DatabaseModal.svelte";
   import DialogueEdge from "./components/node/DialogueEdge.svelte";
@@ -9,29 +25,18 @@
   import SkillCheck from "./components/node/SkillCheck.svelte";
   import StartNode from "./components/node/StartNode.svelte";
   import EndNode from "./components/node/EndNode.svelte";
-  import {
-    SvelteFlow,
-    Background,
-    Panel,
-    MiniMap,
-    Controls,
-    MarkerType,
-    type Node,
-    type Edge,
-    type EdgeTypes,
-    type NodeTypes,
-    type Connection
-  } from "@xyflow/svelte";
-  import { SvelteMap } from "svelte/reactivity";
-  import "@xyflow/svelte/dist/style.css";
+  import Titlebar from "./components/titlebar/Titlebar.svelte";
+  import DialogueSelect from "./components/dialogue-select/DialogueSelect.svelte";
+  import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
+
   import { modal } from "./stores/dbModal.svelte";
+  import { dialogues } from "./stores/dialogueStore.svelte";
   import {
     useDb,
     loadSpeakersFromDb,
     loadPortraitsFromDb,
     loadSkillsFromDb
   } from "./stores/dbStore.svelte";
-  import { setProjectDirectory } from "./stores/projectStore.svelte";
   import {
     BRANCH_NODE_INITIAL_WIDTH,
     BRANCH_NODE_INITIAL_HEIGHT,
@@ -47,7 +52,6 @@
     StartNodeType,
     ConnectedTypeData
   } from "./utils/types";
-  import Titlebar from "./components/titlebar/Titlebar.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -59,6 +63,15 @@
 
   let nodes = $state.raw<Node[]>([]);
   let edges = $state.raw<Edge[]>([]);
+
+  function selectDialogue(index: number) {
+    dialogues.save(nodes, edges);
+
+    dialogues.set(index);
+    const dialogue = dialogues.get(index);
+    nodes = dialogue.nodes;
+    edges = dialogue.edges;
+  }
 
   onMount(() => {
     loadSpeakersFromDb();
@@ -123,11 +136,8 @@
     data.edges = edges.filter((e) => e.id !== edge.id);
   }
 
-  async function selectDirectory(): Promise<void> {
-    setProjectDirectory(await window.api.selectDirectory());
-  }
-
   function addStart(): void {
+    // TODO: Move into another file.
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
@@ -139,6 +149,7 @@
   }
 
   function addEnd(): void {
+    // TODO: Move into another file.
     const newNode = {
       id: crypto.randomUUID(),
       type: "end",
@@ -149,7 +160,8 @@
     nodes = [...nodes, newNode];
   }
 
-  function addDialogue(): void {
+  function addDialogueNode(): void {
+    // TODO: Move into another file.
     const id = crypto.randomUUID();
     const position = { x: 0, y: 0 }; // TODO: Replacing fixed-positions with drag and drop later on.
 
@@ -164,6 +176,7 @@
   }
 
   function addBranchContainer(): void {
+    // TODO Move into another file.
     const id = crypto.randomUUID();
     const newNode: BranchContainerNodeType = {
       id,
@@ -181,6 +194,7 @@
   }
 
   function addBranch(parentId: string): void {
+    // TODO: Move into another file.
     const newNode: BranchNodeType = {
       id: crypto.randomUUID(),
       parentId,
@@ -194,6 +208,7 @@
   }
 
   function addSkillCheck(parentId: string): void {
+    // TODO: Move into another file.
     const newNode: SkillCheckNodeType = {
       id: crypto.randomUUID(),
       parentId,
@@ -269,23 +284,6 @@
     window.api.exportJson(json);
   }
 
-  function clearGraph(): void {
-    nodes = [];
-    edges = [];
-  }
-
-  const controlButtons: Button[] = [
-    {
-      text: "Database",
-      onClick: () => {
-        modal.open = true;
-      }
-    },
-    { text: "Clear", onClick: clearGraph },
-    { text: "Project", onClick: selectDirectory },
-    { text: "Export JSON", onClick: exportJSON }
-  ];
-
   const nodeButtons: Button[] = [
     {
       text: "+ Start",
@@ -293,7 +291,7 @@
     },
     {
       text: "+ Node",
-      onClick: addDialogue
+      onClick: addDialogueNode
     },
     {
       text: "+ Branch",
@@ -308,26 +306,27 @@
 
 <div class="app">
   <Titlebar />
-  <SvelteFlow
-    bind:nodes
-    bind:edges
-    {nodeTypes}
-    {edgeTypes}
-    onconnect={handleConnect}
-    onbeforeconnect={handleBeforeConnect}
-    onedgeclick={handleEdgeClick}
-    fitView
-  >
-    <MiniMap />
-    <Controls />
-    <Panel position="top-left">
-      <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
-    </Panel>
-    <Panel position="top-right">
-      <ButtonsContainer flexDirection="row" buttons={controlButtons} />
-    </Panel>
-    <Background />
-  </SvelteFlow>
+  <div class="main">
+    <DialogueSelect onSelect={selectDialogue} />
+    <SvelteFlow
+      bind:nodes
+      bind:edges
+      {nodeTypes}
+      {edgeTypes}
+      onconnect={handleConnect}
+      onbeforeconnect={handleBeforeConnect}
+      onedgeclick={handleEdgeClick}
+      fitView
+    >
+      <Panel position="top-left">
+        <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
+      </Panel>
+      <MiniMap />
+      <Controls />
+      <Background />
+    </SvelteFlow>
+  </div>
+
   {#if modal.open}
     <PortraitModal />
   {/if}
@@ -343,5 +342,11 @@
   .app {
     width: 100vw;
     height: 100vh;
+  }
+
+  .main {
+    display: flex;
+    width: 100%;
+    height: 100%;
   }
 </style>
