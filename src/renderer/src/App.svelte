@@ -38,7 +38,7 @@
   } from "./stores/dbStore.svelte";
   import { nodeButtons } from "./utils/buttons";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
-  import type { DialogueNodeType, BranchContainerNodeType, ConnectedTypeData } from "./utils/types";
+  import type { DialogueNodeType, ConnectedTypeData } from "./utils/types";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -136,7 +136,7 @@
       }
 
       if (top.type === "branchContainer") {
-        const branchContainer = top as BranchContainerNodeType;
+        const branchContainer = top;
         const neighbors = dialogues.nodes.filter((n) => n.parentId === branchContainer.id);
 
         const entry = {
@@ -178,23 +178,25 @@
   <Titlebar />
   <div class="main">
     <DialogueSelect />
-    <SvelteFlow
-      bind:nodes={dialogues.nodes}
-      bind:edges={dialogues.edges}
-      {nodeTypes}
-      {edgeTypes}
-      onconnect={handleConnect}
-      onbeforeconnect={handleBeforeConnect}
-      onedgeclick={handleEdgeClick}
-      fitView
-    >
-      <Panel position="top-left">
-        <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
-      </Panel>
-      <MiniMap />
-      <Controls />
-      <Background />
-    </SvelteFlow>
+    {#if dialogues.selectedIndex != null}
+      <SvelteFlow
+        bind:nodes={dialogues.nodes}
+        bind:edges={dialogues.edges}
+        {nodeTypes}
+        {edgeTypes}
+        onconnect={handleConnect}
+        onbeforeconnect={handleBeforeConnect}
+        onedgeclick={handleEdgeClick}
+        fitView
+      >
+        <Panel position="top-left">
+          <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
+        </Panel>
+        <MiniMap />
+        <Controls />
+        <Background />
+      </SvelteFlow>
+    {/if}
   </div>
 
   {#if modal.open}

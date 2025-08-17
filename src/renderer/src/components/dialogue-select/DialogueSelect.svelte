@@ -3,7 +3,7 @@
   import { dialogues } from "../../stores/dialogueStore.svelte";
 
   let inputRef: HTMLInputElement | null = $state(null);
-  let newName = $derived(dialogues.get(dialogues.index).name);
+  let newName = $derived(dialogues.get(dialogues.selectedIndex).name);
 
   $effect(() => {
     if (dialogues.editing) {
@@ -25,8 +25,8 @@
 <div class="sidebar">
   <ul class="project-dialogues">
     {#each dialogues.data as dialogue, i (dialogue)}
-      <li class:selected={dialogues.index === i}>
-        {#if dialogues.index === i && dialogues.editing}
+      <li class:selected={dialogues.selectedIndex === i}>
+        {#if dialogues.selectedIndex === i && dialogues.editing}
           <form onsubmit={handleSubmit}>
             <input
               type="text"
@@ -34,6 +34,7 @@
               bind:this={inputRef}
               onblur={() => (dialogues.editing = false)}
             />
+            selectedIndex
           </form>
         {:else}
           <button onclick={() => dialogues.selectDialogue(i)}>

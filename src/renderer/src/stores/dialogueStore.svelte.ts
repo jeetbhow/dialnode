@@ -18,16 +18,15 @@ class Dialogues {
   public edges = $state.raw<Edge[]>([]);
 
   private _data = $state<DialogueSelectEntry[]>([]);
-
-  private _index: number = $state(0);
+  private _selectedIndex: number | null = $state(null);
   private _editing: boolean = $state(false);
 
   get data(): DialogueSelectEntry[] {
     return this._data;
   }
 
-  get index(): number {
-    return this._index;
+  get selectedIndex(): number {
+    return this._selectedIndex;
   }
 
   get editing(): boolean {
@@ -38,8 +37,8 @@ class Dialogues {
     this._editing = value;
   }
 
-  set index(index: number) {
-    this._index = index;
+  set selectedIndex(index: number) {
+    this._selectedIndex = index;
     this._editing = false;
   }
 
@@ -48,15 +47,20 @@ class Dialogues {
   }
 
   public removeSelected(): void {
-    this._data = this.data.filter((_, i) => i !== this._index);
-    this.index = Math.max(0, --this.index);
-    const { nodes, edges } = dialogues.get(this.index);
+    if (this.selectedIndex === null) {
+      return;
+    }
+
+    this._data = this.data.filter((_, i) => i !== this._selectedIndex);
+    this.selectedIndex = this.selectedIndex !== 0 ? this.selectedIndex - 1 : null;
+
+    const { nodes, edges } = dialogues.get(this.selectedIndex);
     this.nodes = nodes;
     this.edges = edges;
   }
 
   public save(nodes: Node[], edges: Edge[]): void {
-    this._data[this._index] = { ...this._data[this._index], nodes, edges };
+    this._data[this._selectedIndex] = { ...this._data[this._selectedIndex], nodes, edges };
   }
 
   public get(index: number): DialogueSelectEntry {
@@ -64,12 +68,16 @@ class Dialogues {
   }
 
   public renameSelected(name: string) {
-    this._data[this._index].name = name;
+    if (this.selectedIndex === null) {
+      return;
+    }
+
+    this._data[this._selectedIndex].name = name;
   }
 
   public selectDialogue(index: number) {
     dialogues.save(this.nodes, this.edges);
-    dialogues.index = index;
+    dialogues.selectedIndex = index;
     const { nodes, edges } = dialogues.get(index);
     this.nodes = nodes;
     this.edges = edges;
