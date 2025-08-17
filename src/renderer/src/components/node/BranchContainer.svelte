@@ -6,20 +6,20 @@
   import "../../styles.css";
 
   import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
-  import type { BranchContainerNodeType } from "../../utils/types";
   import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../utils/utils";
   import { useDb } from "../../stores/dbStore.svelte";
+  import { dialogues } from "../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 24;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
 
   const db = useDb();
 
-  let { id, data, selected }: NodeProps<BranchContainerNodeType> = $props();
+  let { id, selected }: NodeProps = $props();
   const { deleteElements } = useSvelteFlow();
 
   function addBranch(): void {
-    data.addBranch("branch", id);
+    dialogues.addBranch(id);
   }
 
   function addSkillCheck(): void {
@@ -28,7 +28,7 @@
       alert("Skill checks require at least 1 skill in the database");
       return;
     }
-    data.addSkillCheck("skillCheck", id);
+    dialogues.addSkillCheck(id);
   }
 
   function handleDelete(): void {

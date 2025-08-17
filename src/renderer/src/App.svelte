@@ -32,34 +32,19 @@
   import { modal } from "./stores/dbModal.svelte";
   import { dialogues } from "./stores/dialogueStore.svelte";
   import {
-    useDb,
     loadSpeakersFromDb,
     loadPortraitsFromDb,
     loadSkillsFromDb
   } from "./stores/dbStore.svelte";
-  import {
-    BRANCH_NODE_INITIAL_WIDTH,
-    BRANCH_NODE_INITIAL_HEIGHT,
-    MARKER_END_HEIGHT,
-    MARKER_END_WIDTH
-  } from "./utils/utils";
-  import type {
-    DialogueNodeType,
-    Button,
-    BranchContainerNodeType,
-    BranchNodeType,
-    SkillCheckNodeType,
-    StartNodeType,
-    ConnectedTypeData
-  } from "./utils/types";
+  import { nodeButtons } from "./utils/buttons";
+  import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
+  import type { DialogueNodeType, BranchContainerNodeType, ConnectedTypeData } from "./utils/types";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
     edge: Edge;
     event: MouseEvent;
   };
-
-  const db = useDb();
 
   onMount(() => {
     loadSpeakersFromDb();
@@ -122,91 +107,6 @@
 
     const data = sourceNode.data as ConnectedTypeData;
     data.edges = dialogues.edges.filter((e) => e.id !== edge.id);
-  }
-
-  function addStart(): void {
-    // TODO: Move into another file.
-    const newNode: StartNodeType = {
-      id: crypto.randomUUID(),
-      type: "start",
-      position: { x: 0, y: 0 },
-      data: { next: "" }
-    };
-
-    dialogues.nodes = [...dialogues.nodes, newNode];
-  }
-
-  function addEnd(): void {
-    // TODO: Move into another file.
-    const newNode = {
-      id: crypto.randomUUID(),
-      type: "end",
-      position: { x: 0, y: 0 },
-      data: {}
-    };
-
-    dialogues.nodes = [...dialogues.nodes, newNode];
-  }
-
-  function addDialogueNode(): void {
-    // TODO: Move into another file.
-    const id = crypto.randomUUID();
-    const position = { x: 0, y: 0 }; // TODO: Replacing fixed-positions with drag and drop later on.
-
-    const newNode: DialogueNodeType = {
-      id,
-      type: "dialogue",
-      position,
-      data: { text: "", showOptions: false, next: null }
-    };
-
-    dialogues.nodes = [...dialogues.nodes, newNode];
-  }
-
-  function addBranchContainer(): void {
-    // TODO Move into another file.
-    const id = crypto.randomUUID();
-    const newNode: BranchContainerNodeType = {
-      id,
-      type: "branchContainer",
-      position: { x: 0, y: 0 },
-      data: {
-        addBranch: () => addBranch(id),
-        addSkillCheck: () => addSkillCheck(id)
-      },
-      width: BRANCH_NODE_INITIAL_WIDTH,
-      height: BRANCH_NODE_INITIAL_HEIGHT
-    };
-
-    dialogues.nodes = [...dialogues.nodes, newNode];
-  }
-
-  function addBranch(parentId: string): void {
-    // TODO: Move into another file.
-    const newNode: BranchNodeType = {
-      id: crypto.randomUUID(),
-      parentId,
-      extent: "parent",
-      type: "branch",
-      position: { x: 0, y: 0 },
-      data: { name: "", next: "" }
-    };
-
-    dialogues.nodes = [...dialogues.nodes, newNode];
-  }
-
-  function addSkillCheck(parentId: string): void {
-    // TODO: Move into another file.
-    const newNode: SkillCheckNodeType = {
-      id: crypto.randomUUID(),
-      parentId,
-      extent: "parent",
-      type: "skillCheck",
-      position: { x: 0, y: 0 },
-      data: { skill: db.skillCategories[0].skills[0], difficulty: 0, next: "" }
-    };
-
-    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function exportJSON(): void {
@@ -272,25 +172,6 @@
 
     window.api.exportJson(json);
   }
-
-  const nodeButtons: Button[] = [
-    {
-      text: "+ Start",
-      onClick: addStart
-    },
-    {
-      text: "+ Node",
-      onClick: addDialogueNode
-    },
-    {
-      text: "+ Branch",
-      onClick: addBranchContainer
-    },
-    {
-      text: "+ End",
-      onClick: addEnd
-    }
-  ];
 </script>
 
 <div class="app">
