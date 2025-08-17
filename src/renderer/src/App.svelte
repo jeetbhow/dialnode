@@ -66,8 +66,7 @@
 
   function selectDialogue(index: number) {
     dialogues.save(nodes, edges);
-
-    dialogues.set(index);
+    dialogues.index = index;
     const dialogue = dialogues.get(index);
     nodes = dialogue.nodes;
     edges = dialogue.edges;
@@ -222,6 +221,7 @@
   }
 
   function exportJSON(): void {
+    // TODO: Add this functionality to a button eventually.
     const json = [];
     const map: SvelteMap<string, Node> = new SvelteMap();
     let start: Node = null;

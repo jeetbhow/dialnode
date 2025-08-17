@@ -50,6 +50,7 @@
     padding: 0.4rem;
     margin: 0.3rem 0;
     border-radius: 0.5rem;
+    font-size: 0.8rem;
   }
 
   .dropdown > button:hover {
@@ -67,16 +68,10 @@
     padding: 0;
     background: rgb(239, 237, 237);
     border: 1px solid #ccc;
-    border-radius: 0.5rem;
+    border-radius: 0.3rem;
     min-width: 400px;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  .dropdown-menu li {
-    padding: 0.2rem 3rem;
-    margin: 0.4rem;
-    border-radius: 0.3rem;
   }
 
   .dropdown-menu li:hover {
@@ -84,6 +79,9 @@
   }
 
   .dropdown-menu li > button {
+    box-sizing: border-box;
+    padding: 0.2rem 3rem;
     width: 100%;
+    font-size: 0.8rem;
   }
 </style>

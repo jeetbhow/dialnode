@@ -2,7 +2,8 @@
   import Cross from "../icons/Cross.svelte";
   import Maximize from "../icons/Maximize.svelte";
   import Minimize from "../icons/Minimize.svelte";
-  import FileDropdownMenu from "./FileDropdownButton.svelte";
+  import EditDropDown from "./EditDropDown.svelte";
+  import FileDropdown from "./FileDropdown.svelte";
 
   const CROSS_SIZE = 24;
   const MAXIMIZE_ICON_SIZE = 16;
@@ -11,7 +12,8 @@
 
 <div class="titlebar">
   <div class="menu">
-    <FileDropdownMenu />
+    <FileDropdown />
+    <EditDropDown />
   </div>
 
   <div class="window-controls">

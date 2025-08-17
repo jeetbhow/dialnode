@@ -15,30 +15,44 @@ class Dialogues {
     }
   ]);
 
-  private _selected: number = $state(0);
+  private _index: number = $state(0);
+  private _editing: boolean = $state(false);
 
-  get data() {
+  get data(): DialogueSelectEntry[] {
     return this._data;
   }
 
-  get selected() {
-    return this._selected;
+  get index(): number {
+    return this._index;
   }
 
-  add(name: string) {
-    this._data.push({ name, nodes: [], edges: [] });
+  get editing(): boolean {
+    return this._editing;
   }
 
-  set(index: number) {
-    this._selected = index;
+  set editing(value: boolean) {
+    this._editing = value;
   }
 
-  save(nodes: Node[], edges: Edge[]) {
-    this._data[this._selected] = { ...this._data[this._selected], nodes, edges };
+  set index(index: number) {
+    this._index = index;
+    this._editing = false;
   }
 
-  get(index: number) {
+  public add(): void {
+    this._data.push({ name: "Untitled", nodes: [], edges: [] });
+  }
+
+  public save(nodes: Node[], edges: Edge[]): void {
+    this._data[this._index] = { ...this._data[this._index], nodes, edges };
+  }
+
+  public get(index: number): DialogueSelectEntry {
     return this._data[index];
+  }
+
+  public rename(name: string) {
+    this._data[this._index].name = name;
   }
 }
 

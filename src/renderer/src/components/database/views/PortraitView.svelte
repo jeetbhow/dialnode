@@ -83,7 +83,7 @@
     </div>
   </div>
 
-  {#if modal.requestType === "portrait"}
+  {#if modal.request.type === "portrait"}
     <button onclick={handleSelect} class="select-btn secondary-btn">Select Portrait</button>
   {/if}
 

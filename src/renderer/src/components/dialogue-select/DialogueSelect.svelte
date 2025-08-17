@@ -1,18 +1,48 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import { dialogues } from "../../stores/dialogueStore.svelte";
 
-  type Props = {
-    onSelect: (index: number) => void;
-  };
-
+  type Props = { onSelect: (index: number) => void };
   let { onSelect }: Props = $props();
+
+  let inputRef: HTMLInputElement | null = $state(null);
+  let newName = $derived(dialogues.get(dialogues.index).name);
+
+  $effect(() => {
+    if (dialogues.editing) {
+      (async () => {
+        await tick();
+        inputRef?.focus();
+        inputRef?.select();
+      })();
+    }
+  });
+
+  function handleSubmit(event: Event) {
+    event.preventDefault();
+    dialogues.rename(newName);
+    dialogues.editing = false;
+  }
 </script>
 
 <div class="sidebar">
   <ul class="project-dialogues">
     {#each dialogues.data as dialogue, i (i)}
-      <li class:selected={dialogues.selected === i}>
-        <button onclick={() => onSelect(i)}>{dialogue.name}</button>
+      <li class:selected={dialogues.index === i}>
+        {#if dialogues.index === i && dialogues.editing}
+          <form onsubmit={handleSubmit}>
+            <input
+              type="text"
+              bind:value={newName}
+              bind:this={inputRef}
+              onblur={() => (dialogues.editing = false)}
+            />
+          </form>
+        {:else}
+          <button onclick={() => onSelect(i)}>
+            {dialogue.name}
+          </button>
+        {/if}
       </li>
     {/each}
   </ul>
@@ -32,17 +62,31 @@
     padding: 0;
   }
 
-  .project-dialogues li {
-    margin: 0.3rem;
-    padding: 0.3rem;
-  }
-
   .project-dialogues li:hover {
     background-color: rgb(223, 223, 223);
   }
 
   .project-dialogues button {
+    padding: 0.4rem;
+    padding-left: 3rem;
+    box-sizing: border-box;
     width: 100%;
+    font-size: 0.8rem;
+    color: rgb(58, 61, 64);
+  }
+
+  .project-dialogues input {
+    box-sizing: border-box;
+    width: 100%;
+    outline: 2px solid var(--primary-color);
+    padding: 0.4rem 0;
+    padding-left: 3rem;
+    background: none;
+    font-size: 0.8rem;
+  }
+
+  .project-dialogues form {
+    margin: 0 0.2rem;
   }
 
   .selected {

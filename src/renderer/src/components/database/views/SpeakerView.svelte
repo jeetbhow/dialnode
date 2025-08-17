@@ -37,7 +37,7 @@
     <DatabaseList data={db.speakers} kind="speaker" />
   </div>
 
-  {#if modal.requestType === "speaker"}
+  {#if modal.request.type === "speaker"}
     <button onclick={handleSelect} class="select-btn secondary-btn">Select Speaker</button>
   {/if}
 
