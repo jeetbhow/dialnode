@@ -61,17 +61,6 @@
 
   const db = useDb();
 
-  let nodes = $state.raw<Node[]>([]);
-  let edges = $state.raw<Edge[]>([]);
-
-  function selectDialogue(index: number) {
-    dialogues.save(nodes, edges);
-    dialogues.index = index;
-    const dialogue = dialogues.get(index);
-    nodes = dialogue.nodes;
-    edges = dialogue.edges;
-  }
-
   onMount(() => {
     loadSpeakersFromDb();
     loadPortraitsFromDb();
@@ -95,7 +84,7 @@
     const sourceId = connection.source;
     const targetId = connection.target;
 
-    const sourceNode = nodes.find((n) => n.id === sourceId);
+    const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
     if (sourceNode.type === "branchContainer") {
       return;
     }
@@ -105,7 +94,7 @@
   }
 
   function handleBeforeConnect(connection: Connection): Edge {
-    edges = edges.filter(
+    dialogues.edges = dialogues.edges.filter(
       (e) => e.source !== connection.source || e.sourceHandle !== connection.sourceHandle
     );
     return {
@@ -124,7 +113,7 @@
     const { edge } = event;
 
     const sourceId = edge.source;
-    const sourceNode = nodes.find((n) => n.id === sourceId);
+    const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
 
     if (sourceNode.type === "branchContainer") {
       alert("A branch container should not trigger an edge click event.");
@@ -132,7 +121,7 @@
     }
 
     const data = sourceNode.data as ConnectedTypeData;
-    data.edges = edges.filter((e) => e.id !== edge.id);
+    data.edges = dialogues.edges.filter((e) => e.id !== edge.id);
   }
 
   function addStart(): void {
@@ -144,7 +133,7 @@
       data: { next: "" }
     };
 
-    nodes = [...nodes, newNode];
+    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function addEnd(): void {
@@ -156,7 +145,7 @@
       data: {}
     };
 
-    nodes = [...nodes, newNode];
+    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function addDialogueNode(): void {
@@ -171,7 +160,7 @@
       data: { text: "", showOptions: false, next: null }
     };
 
-    nodes = [...nodes, newNode];
+    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function addBranchContainer(): void {
@@ -189,7 +178,7 @@
       height: BRANCH_NODE_INITIAL_HEIGHT
     };
 
-    nodes = [...nodes, newNode];
+    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function addBranch(parentId: string): void {
@@ -203,7 +192,7 @@
       data: { name: "", next: "" }
     };
 
-    nodes = [...nodes, newNode];
+    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function addSkillCheck(parentId: string): void {
@@ -217,7 +206,7 @@
       data: { skill: db.skillCategories[0].skills[0], difficulty: 0, next: "" }
     };
 
-    nodes = [...nodes, newNode];
+    dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
   function exportJSON(): void {
@@ -226,7 +215,7 @@
     const map: SvelteMap<string, Node> = new SvelteMap();
     let start: Node = null;
 
-    for (const node of nodes) {
+    for (const node of dialogues.nodes) {
       map.set(node.id, node);
       if (node.type === "start") {
         start = node;
@@ -248,7 +237,7 @@
 
       if (top.type === "branchContainer") {
         const branchContainer = top as BranchContainerNodeType;
-        const neighbors = nodes.filter((n) => n.parentId === branchContainer.id);
+        const neighbors = dialogues.nodes.filter((n) => n.parentId === branchContainer.id);
 
         const entry = {
           id: branchContainer.id,
@@ -307,10 +296,10 @@
 <div class="app">
   <Titlebar />
   <div class="main">
-    <DialogueSelect onSelect={selectDialogue} />
+    <DialogueSelect />
     <SvelteFlow
-      bind:nodes
-      bind:edges
+      bind:nodes={dialogues.nodes}
+      bind:edges={dialogues.edges}
       {nodeTypes}
       {edgeTypes}
       onconnect={handleConnect}

@@ -2,18 +2,10 @@ import type { Node, Edge } from "@xyflow/svelte";
 import type { DialogueSelectEntry } from "../utils/types";
 
 class Dialogues {
-  private _data = $state<DialogueSelectEntry[]>([
-    {
-      name: "Dialogue 1",
-      nodes: [],
-      edges: []
-    },
-    {
-      name: "Dialogue 2",
-      nodes: [],
-      edges: []
-    }
-  ]);
+  public nodes = $state.raw<Node[]>([]);
+  public edges = $state.raw<Edge[]>([]);
+
+  private _data = $state<DialogueSelectEntry[]>([]);
 
   private _index: number = $state(0);
   private _editing: boolean = $state(false);
@@ -45,9 +37,10 @@ class Dialogues {
 
   public removeSelected(): void {
     this._data = this.data.filter((_, i) => i !== this._index);
-    // This looks weird but all it's doing is clamping the selected index so that
-    // it doesn't go out of bounds of the array.
-    this._index = Math.max(0, Math.min(this._index, this.data.length - 1));
+    this.index = Math.max(0, --this.index);
+    const { nodes, edges } = dialogues.get(this.index);
+    this.nodes = nodes;
+    this.edges = edges;
   }
 
   public save(nodes: Node[], edges: Edge[]): void {
@@ -60,6 +53,14 @@ class Dialogues {
 
   public renameSelected(name: string) {
     this._data[this._index].name = name;
+  }
+
+  public selectDialogue(index: number) {
+    dialogues.save(this.nodes, this.edges);
+    dialogues.index = index;
+    const { nodes, edges } = dialogues.get(index);
+    this.nodes = nodes;
+    this.edges = edges;
   }
 }
 

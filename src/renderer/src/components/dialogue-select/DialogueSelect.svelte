@@ -2,9 +2,6 @@
   import { tick } from "svelte";
   import { dialogues } from "../../stores/dialogueStore.svelte";
 
-  type Props = { onSelect: (index: number) => void };
-  let { onSelect }: Props = $props();
-
   let inputRef: HTMLInputElement | null = $state(null);
   let newName = $derived(dialogues.get(dialogues.index).name);
 
@@ -39,7 +36,7 @@
             />
           </form>
         {:else}
-          <button onclick={() => onSelect(i)}>
+          <button onclick={() => dialogues.selectDialogue(i)}>
             {dialogue.name}
           </button>
         {/if}
