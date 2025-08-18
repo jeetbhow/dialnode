@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { SvelteMap } from "svelte/reactivity";
 
   import {
     SvelteFlow,
@@ -8,7 +7,6 @@
     MiniMap,
     Controls,
     MarkerType,
-    type Node,
     type Edge,
     type EdgeTypes,
     type NodeTypes,
@@ -38,7 +36,7 @@
   } from "./stores/dbStore.svelte";
   import { nodeButtons } from "./utils/buttons";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
-  import type { TextNodeType, DialogueNodeData } from "../../shared/types";
+  import type { DialogueNodeData } from "../../shared/types";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -111,69 +109,69 @@
     data.edges = dialogues.edges.filter((e) => e.id !== edge.id);
   }
 
-  function exportJSON(): void {
-    // TODO: Add this functionality to a button eventually.
-    const json = [];
-    const map: SvelteMap<string, Node> = new SvelteMap();
-    let start: Node = null;
+  // function exportJSON(): void {
+  //   // TODO: Add this functionality to a button eventually.
+  //   const json = [];
+  //   const map: SvelteMap<string, Node> = new SvelteMap();
+  //   let start: Node = null;
 
-    for (const node of dialogues.nodes) {
-      map.set(node.id, node);
-      if (node.type === "start") {
-        start = node;
-      }
-    }
+  //   for (const node of dialogues.nodes) {
+  //     map.set(node.id, node);
+  //     if (node.type === "start") {
+  //       start = node;
+  //     }
+  //   }
 
-    if (start === null) {
-      alert("Could not find the start node for the dialogue.");
-      return;
-    }
+  //   if (start === null) {
+  //     alert("Could not find the start node for the dialogue.");
+  //     return;
+  //   }
 
-    const stack = [start];
-    while (stack.length !== 0) {
-      const top = stack.pop();
+  //   const stack = [start];
+  //   while (stack.length !== 0) {
+  //     const top = stack.pop();
 
-      if (top === undefined) {
-        continue;
-      }
+  //     if (top === undefined) {
+  //       continue;
+  //     }
 
-      if (top.type === "branchContainer") {
-        const branchContainer = top;
-        const neighbors = dialogues.nodes.filter((n) => n.parentId === branchContainer.id);
+  //     if (top.type === "branchContainer") {
+  //       const branchContainer = top;
+  //       const neighbors = dialogues.nodes.filter((n) => n.parentId === branchContainer.id);
 
-        const entry = {
-          id: branchContainer.id,
-          type: "branch",
-          next: []
-        };
+  //       const entry = {
+  //         id: branchContainer.id,
+  //         type: "branch",
+  //         next: []
+  //       };
 
-        for (const neighbor of neighbors) {
-          entry.next.push(neighbor.id);
-        }
+  //       for (const neighbor of neighbors) {
+  //         entry.next.push(neighbor.id);
+  //       }
 
-        json.push(entry);
-      } else if (top.type === "text") {
-        const dialogue = top as TextNodeType;
-        json.push({
-          id: dialogue.id,
-          type: "text",
-          speaker: dialogue.data.speaker?.name ?? null,
-          portrait: dialogue.data.portrait?.virtualPath ?? null,
-          next: dialogue.data.next
-        });
-        stack.push(map.get(dialogue.data.next));
-      } else {
-        const data = top.data as DialogueNodeData;
-        json.push({
-          id: top.id,
-          type: top.type
-        });
-        stack.push(map.get(data.next));
-      }
-    }
+  //       json.push(entry);
+  //     } else if (top.type === "text") {
+  //       const dialogue = top as TextNodeType;
+  //       json.push({
+  //         id: dialogue.id,
+  //         type: "text",
+  //         speaker: dialogue.data.speaker?.name ?? null,
+  //         portrait: dialogue.data.portrait?.virtualPath ?? null,
+  //         next: dialogue.data.next
+  //       });
+  //       stack.push(map.get(dialogue.data.next));
+  //     } else {
+  //       const data = top.data as DialogueNodeData;
+  //       json.push({
+  //         id: top.id,
+  //         type: top.type
+  //       });
+  //       stack.push(map.get(data.next));
+  //     }
+  //   }
 
-    window.api.exportJson(json);
-  }
+  //   window.api.exportJson(json);
+  // }
 </script>
 
 <div class="app">

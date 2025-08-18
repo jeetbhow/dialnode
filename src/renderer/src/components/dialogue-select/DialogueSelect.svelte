@@ -15,7 +15,7 @@
     }
   });
 
-  function handleSubmit(event: Event) {
+  function handleSubmit(event: Event): void {
     event.preventDefault();
     dialogues.renameSelected(newName);
     dialogues.editing = false;

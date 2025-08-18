@@ -45,7 +45,7 @@ class Dialogues {
     this._editing = false;
   }
 
-  public async loadFromDb() {
+  public async loadFromDb(): Promise<void> {
     const serializedDialogue = await window.api.getAllDialogues();
     const dialogues: Dialogue[] = serializedDialogue.map((sd) => ({
       ...sd,
@@ -58,7 +58,7 @@ class Dialogues {
     this._data = dialogues;
   }
 
-  public async saveToDb() {
+  public async saveToDb(): Promise<void> {
     await window.api.saveDialogues(this.serialize());
   }
 
@@ -93,7 +93,7 @@ class Dialogues {
     return this._data[index];
   }
 
-  public renameSelected(name: string) {
+  public renameSelected(name: string): void {
     if (this.selectedIndex === null) {
       return;
     }
@@ -101,7 +101,7 @@ class Dialogues {
     this._data[this._selectedIndex].name = name;
   }
 
-  public selectDialogue(index: number) {
+  public selectDialogue(index: number): void {
     dialogues.save();
     dialogues.selectedIndex = index;
     const { nodes, edges } = dialogues.get(index);

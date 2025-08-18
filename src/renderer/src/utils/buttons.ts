@@ -1,7 +1,7 @@
 import { dialogues } from "../stores/dialogueStore.svelte";
 import type { Button } from "../../../shared/types";
 
-function editDialogue() {
+function editDialogue(): void {
   dialogues.editing = true;
 }
 

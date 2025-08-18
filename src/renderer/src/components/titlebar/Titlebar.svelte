@@ -10,7 +10,7 @@
   const MAXIMIZE_ICON_SIZE = 16;
   const MINIMIZE_ICON_SIZE = 16;
 
-  function handleClose() {
+  function handleClose(): void {
     dialogues.saveToDb();
     window.api.close();
   }
