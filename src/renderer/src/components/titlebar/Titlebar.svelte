@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { dialogues } from "../../stores/dialogueStore.svelte";
   import Cross from "../icons/Cross.svelte";
   import Maximize from "../icons/Maximize.svelte";
   import Minimize from "../icons/Minimize.svelte";
@@ -8,6 +9,11 @@
   const CROSS_SIZE = 24;
   const MAXIMIZE_ICON_SIZE = 16;
   const MINIMIZE_ICON_SIZE = 16;
+
+  function handleClose() {
+    dialogues.saveToDb();
+    window.api.close();
+  }
 </script>
 
 <div class="titlebar">
@@ -23,7 +29,7 @@
     <button class="maximize" onclick={() => window.api.maximize()}>
       <Maximize width={MAXIMIZE_ICON_SIZE} height={MAXIMIZE_ICON_SIZE} />
     </button>
-    <button class="close" onclick={() => window.api.close()}>
+    <button class="close" onclick={handleClose}>
       <Cross width={CROSS_SIZE} height={CROSS_SIZE} />
     </button>
   </div>

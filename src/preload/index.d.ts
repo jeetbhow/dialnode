@@ -1,5 +1,5 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
-import type { Skill, SkillCategory, Speaker, Portrait } from "../shared/types";
+import type { Skill, SkillCategory, Speaker, Portrait, SerializedDialogue } from "../shared/types";
 
 type ImageMetaData = {
   dataURL: string;
@@ -15,6 +15,8 @@ interface AppApi {
   minimize: () => void;
   maximize: () => void;
   close: () => void;
+  saveDialogues: (dialogues: SerializedDialogue[]) => Promise<void>;
+  getAllDialogues: () => Promise<SerializedDialogue[]>;
   getAllSkills: () => Promise<Skill[]>;
   createSkill: (skill: Skill) => Promise<void>;
   deleteSkill: (skillId: string) => Promise<void>;

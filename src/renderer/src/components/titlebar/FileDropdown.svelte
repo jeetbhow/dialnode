@@ -1,5 +1,6 @@
 <script lang="ts">
   import { clickOutside } from "../../attachments/attachments";
+  import { dialogues } from "../../stores/dialogueStore.svelte";
   import { setProjectDirectory } from "../../stores/projectStore.svelte";
 
   let open = $state(false);
@@ -24,7 +25,7 @@
         <button>New Dialogue</button>
       </li>
       <li>
-        <button>Save</button>
+        <button onclick={() => dialogues.saveToDb()}>Save</button>
       </li>
       <li>
         <button>Save As...</button>

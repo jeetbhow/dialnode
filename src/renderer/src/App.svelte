@@ -50,6 +50,7 @@
     loadSpeakersFromDb();
     loadPortraitsFromDb();
     loadSkillsFromDb();
+    dialogues.loadFromDb();
   });
 
   const nodeTypes: NodeTypes = {
@@ -76,6 +77,7 @@
 
     const data = sourceNode.data as DialogueNodeData;
     data.next = targetId;
+    dialogues.save();
   }
 
   function handleBeforeConnect(connection: Connection): Edge {
@@ -187,9 +189,8 @@
         onconnect={handleConnect}
         onbeforeconnect={handleBeforeConnect}
         onedgeclick={handleEdgeClick}
-        fitView
       >
-        <Panel position="top-left">
+        <Panel position="top-center">
           <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
         </Panel>
         <MiniMap />

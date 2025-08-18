@@ -1,12 +1,18 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
-import { Portrait, Skill, SkillCategory, Speaker } from "../shared/types";
+import { Portrait, SerializedDialogue, Skill, SkillCategory, Speaker } from "../shared/types";
 
 // Custom APIs for renderer
 const api = {
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
   close: () => ipcRenderer.send("window-close"),
+  getAllDialogues: async () => {
+    return await ipcRenderer.invoke("get-all-dialogues");
+  },
+  saveDialogues: (dialogues: SerializedDialogue[]) => {
+    ipcRenderer.invoke("save-dialogues", dialogues);
+  },
   getAllSkills: async () => {
     return await ipcRenderer.invoke("get-all-skills");
   },

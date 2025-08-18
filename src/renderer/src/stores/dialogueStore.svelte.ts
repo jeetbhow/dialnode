@@ -10,7 +10,8 @@ import type {
   TextNodeType,
   BranchNodeType,
   SkillCheckNodeType,
-  DialogueNodeData
+  DialogueNodeData,
+  SerializedDialogue
 } from "../../../shared/types";
 
 const db = useDb();
@@ -44,8 +45,25 @@ class Dialogues {
     this._editing = false;
   }
 
+  public async loadFromDb() {
+    const serializedDialogue = await window.api.getAllDialogues();
+    const dialogues: Dialogue[] = serializedDialogue.map((sd) => ({
+      ...sd,
+      nodes: sd.nodes.map((node) => ({
+        ...node,
+        position: { x: node.positionX, y: node.positionX },
+        data: { next: node.next }
+      }))
+    }));
+    this._data = dialogues;
+  }
+
+  public async saveToDb() {
+    await window.api.saveDialogues(this.serialize());
+  }
+
   public add(): void {
-    this._data.push({ name: "Untitled", nodes: [], edges: [] });
+    this._data.push({ id: crypto.randomUUID(), name: "Untitled", nodes: [], edges: [] });
   }
 
   public removeSelected(): void {
@@ -56,13 +74,19 @@ class Dialogues {
     this._data = this.data.filter((_, i) => i !== this._selectedIndex);
     this.selectedIndex = this.selectedIndex !== 0 ? this.selectedIndex - 1 : null;
 
-    const { nodes, edges } = dialogues.get(this.selectedIndex);
-    this.nodes = nodes;
-    this.edges = edges;
+    if (this._selectedIndex !== null) {
+      const { nodes, edges } = dialogues.get(this.selectedIndex);
+      this.nodes = nodes;
+      this.edges = edges;
+    }
   }
 
-  public save(nodes: DialogueNode<DialogueNodeData>[], edges: Edge[]): void {
-    this._data[this._selectedIndex] = { ...this._data[this._selectedIndex], nodes, edges };
+  public save(): void {
+    this._data[this._selectedIndex] = {
+      ...this._data[this._selectedIndex],
+      nodes: this.nodes,
+      edges: this.edges
+    };
   }
 
   public get(index: number): Dialogue {
@@ -78,7 +102,7 @@ class Dialogues {
   }
 
   public selectDialogue(index: number) {
-    dialogues.save(this.nodes, this.edges);
+    dialogues.save();
     dialogues.selectedIndex = index;
     const { nodes, edges } = dialogues.get(index);
     this.nodes = nodes;
@@ -95,6 +119,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.save();
   }
 
   public addEndNode(): void {
@@ -106,6 +131,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.save();
   }
 
   public addTextNode(): void {
@@ -116,10 +142,11 @@ class Dialogues {
       id,
       type: "text",
       position,
-      data: { text: "", showOptions: false, next: null }
+      data: { text: "", next: null }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.save();
   }
 
   public addBranchContainerNode(): void {
@@ -134,6 +161,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.save();
   }
 
   public addBranchNode(parentId: string): void {
@@ -147,6 +175,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.save();
   }
 
   public addSkillCheckNode(parentId: string): void {
@@ -160,6 +189,34 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.save();
+  }
+
+  public serialize(): SerializedDialogue[] {
+    console.log(this.data);
+    return this.data.map((dialogue) => ({
+      id: dialogue.id,
+      name: dialogue.name,
+      nodes: dialogue.nodes.map((node) => ({
+        id: node.id,
+        dialogueId: dialogue.id,
+        type: node.type,
+        positionX: node.position.x,
+        positionY: node.position.y,
+        width: node.width ?? null,
+        height: node.height ?? null,
+        next: node.data?.next ?? null
+      })),
+      edges: dialogue.edges.map((edge) => ({
+        id: edge.id,
+        dialogueId: dialogue.id,
+        type: edge.type ?? null,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle ?? null,
+        targetHandle: edge.targetHandle ?? null
+      }))
+    }));
   }
 }
 

@@ -44,6 +44,7 @@ export type Button = {
 };
 
 export type Dialogue = {
+  id: string;
   name: string;
   nodes: DialogueNode<DialogueNodeData>[];
   edges: Edge[];
@@ -58,9 +59,38 @@ export type DialogueNodeType =
   | "branch"
   | "skillCheck";
 
+export type SerializedDialogue = {
+  id: string;
+  name: string;
+  nodes: SerializedDialogueNode[];
+  edges: SerializedDialogueEdge[];
+};
+
+export type SerializedDialogueNode = {
+  id: string;
+  dialogueId: string;
+  type: DialogueNodeType;
+  positionX: number;
+  positionY: number;
+  width: number;
+  height: number;
+  next: string;
+};
+
+export type SerializedDialogueEdge = {
+  id: string;
+  dialogueId: string;
+  type: string;
+  source: string;
+  target: string;
+  sourceHandle: string;
+  targetHandle: string;
+};
+
 export interface DialogueNode<T extends Object> extends Node<T> {
   id: string;
   type: DialogueNodeType;
+  position: { x: number; y: number };
   data: T & {
     next?: string;
   };
@@ -74,7 +104,6 @@ export interface TextNodeData extends DialogueNodeData {
   speaker?: Speaker;
   portrait?: Portrait;
   text: string;
-  showOptions: boolean;
   next?: string;
 }
 

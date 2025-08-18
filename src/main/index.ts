@@ -1,5 +1,6 @@
 import {
   closeDb,
+  saveDialogues,
   getAllSpeakers,
   createSpeaker,
   deleteSpeaker,
@@ -11,7 +12,8 @@ import {
   deleteSkillCategory,
   getAllSkills,
   createSkill,
-  deleteSkill
+  deleteSkill,
+  getAllDialogues
 } from "./db";
 
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
@@ -22,6 +24,7 @@ import { join, basename, extname, relative } from "path";
 import { readFileSync, writeFileSync } from "fs";
 
 import { imageSize } from "image-size";
+import { SerializedDialogue } from "../shared/types";
 
 function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
@@ -43,6 +46,14 @@ function getMimeType(filePath: string): string {
       return "application/octet-stream";
   }
 }
+
+ipcMain.handle("save-dialogues", async (_event, dialogues: SerializedDialogue[]) => {
+  return saveDialogues(dialogues);
+});
+
+ipcMain.handle("get-all-dialogues", async () => {
+  return getAllDialogues();
+});
 
 // --- DB IPC Handlers ---
 ipcMain.handle("get-all-speakers", async () => {

@@ -34,7 +34,6 @@
               bind:this={inputRef}
               onblur={() => (dialogues.editing = false)}
             />
-            selectedIndex
           </form>
         {:else}
           <button onclick={() => dialogues.selectDialogue(i)}>
