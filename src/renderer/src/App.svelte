@@ -17,14 +17,14 @@
   } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
 
-  import DialogueNode from "./components/node/Dialogue.svelte";
+  import TextNode from "./components/nodes/text/TextNode.svelte";
   import PortraitModal from "./components/database/DatabaseModal.svelte";
-  import DialogueEdge from "./components/node/DialogueEdge.svelte";
-  import BranchContainer from "./components/node/BranchContainer.svelte";
-  import Branch from "./components/node/Branch.svelte";
-  import SkillCheck from "./components/node/SkillCheck.svelte";
-  import StartNode from "./components/node/StartNode.svelte";
-  import EndNode from "./components/node/EndNode.svelte";
+  import DialogueNodeEdge from "./components/edges/DialogueNodeEdge.svelte";
+  import BranchContainerNode from "./components/nodes/branch/BranchContainerNode.svelte";
+  import BranchNode from "./components/nodes/branch/BranchNode.svelte";
+  import SkillCheckNode from "./components/nodes/branch/SkillCheckNode.svelte";
+  import StartNode from "./components/nodes/boundaries/StartNode.svelte";
+  import EndNode from "./components/nodes/boundaries/EndNode.svelte";
   import Titlebar from "./components/titlebar/Titlebar.svelte";
   import DialogueSelect from "./components/dialogue-select/DialogueSelect.svelte";
   import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
@@ -38,7 +38,7 @@
   } from "./stores/dbStore.svelte";
   import { nodeButtons } from "./utils/buttons";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
-  import type { DialogueNodeType, ConnectedTypeData } from "./utils/types";
+  import type { TextNodeType, DialogueNodeData } from "../../shared/types";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -53,16 +53,16 @@
   });
 
   const nodeTypes: NodeTypes = {
-    dialogue: DialogueNode,
-    branchContainer: BranchContainer,
-    branch: Branch,
-    skillCheck: SkillCheck,
+    text: TextNode,
+    branchContainer: BranchContainerNode,
+    branch: BranchNode,
+    skillCheck: SkillCheckNode,
     start: StartNode,
     end: EndNode
   };
 
   const edgeTypes: EdgeTypes = {
-    dialogueEdge: DialogueEdge
+    dialogueEdge: DialogueNodeEdge
   };
 
   function handleConnect(connection: Connection): void {
@@ -74,7 +74,7 @@
       return;
     }
 
-    const data = sourceNode.data as ConnectedTypeData;
+    const data = sourceNode.data as DialogueNodeData;
     data.next = targetId;
   }
 
@@ -105,7 +105,7 @@
       return;
     }
 
-    const data = sourceNode.data as ConnectedTypeData;
+    const data = sourceNode.data as DialogueNodeData;
     data.edges = dialogues.edges.filter((e) => e.id !== edge.id);
   }
 
@@ -150,8 +150,8 @@
         }
 
         json.push(entry);
-      } else if (top.type === "dialogue") {
-        const dialogue = top as DialogueNodeType;
+      } else if (top.type === "text") {
+        const dialogue = top as TextNodeType;
         json.push({
           id: dialogue.id,
           type: "text",
@@ -161,7 +161,7 @@
         });
         stack.push(map.get(dialogue.data.next));
       } else {
-        const data = top.data as ConnectedTypeData;
+        const data = top.data as DialogueNodeData;
         json.push({
           id: top.id,
           type: top.type

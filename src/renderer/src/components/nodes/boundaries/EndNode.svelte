@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Cross from "../icons/Cross.svelte";
+  import Cross from "../../icons/Cross.svelte";
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
 
   const ICON_SIZE = 24;
@@ -15,15 +15,15 @@
 </script>
 
 <Handle
-  type="source"
-  position={Position.Right}
-  style={`${DEFAULT_HANDLE_STYLE}; background-color: var(--source-handle-color);`}
+  type="target"
+  position={Position.Left}
+  style={`${DEFAULT_HANDLE_STYLE}; background-color: var(--target-handle-color);`}
 />
 <div {id} class="container">
+  <p>End</p>
   <button onclick={deleteThisNode}>
     <Cross width={ICON_SIZE} height={ICON_SIZE} />
   </button>
-  <p>Start</p>
 </div>
 
 <style>

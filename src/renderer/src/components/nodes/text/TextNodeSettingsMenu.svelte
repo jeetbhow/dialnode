@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
 
-  import "../../styles.css";
-
-  import ThreeDots from "../icons/ThreeDots.svelte";
+  import ThreeDots from "../../icons/ThreeDots.svelte";
 
   const ICON_SIZE = 24;
 

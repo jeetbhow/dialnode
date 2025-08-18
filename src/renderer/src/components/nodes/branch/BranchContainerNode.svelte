@@ -1,14 +1,12 @@
 <script lang="ts">
-  import Cross from "../icons/Cross.svelte";
-  import Plus from "../icons/Plus.svelte";
-  import Dice from "../icons/Dice.svelte";
-
-  import "../../styles.css";
+  import Cross from "../../icons/Cross.svelte";
+  import Plus from "../../icons/Plus.svelte";
+  import Dice from "../../icons/Dice.svelte";
 
   import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
-  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../utils/utils";
-  import { useDb } from "../../stores/dbStore.svelte";
-  import { dialogues } from "../../stores/dialogueStore.svelte";
+  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../utils/utils";
+  import { useDb } from "../../../stores/dbStore.svelte";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 24;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -19,7 +17,7 @@
   const { deleteElements } = useSvelteFlow();
 
   function addBranch(): void {
-    dialogues.addBranch(id);
+    dialogues.addBranchNode(id);
   }
 
   function addSkillCheck(): void {
@@ -28,7 +26,7 @@
       alert("Skill checks require at least 1 skill in the database");
       return;
     }
-    dialogues.addSkillCheck(id);
+    dialogues.addSkillCheckNode(id);
   }
 
   function handleDelete(): void {

@@ -1,3 +1,5 @@
+import { Node, Edge } from "@xyflow/svelte";
+
 export type Portrait = {
   id: string;
   kind: "portrait";
@@ -35,3 +37,60 @@ export type Skill = {
 
 export type DbEntityKind = "portrait" | "speaker" | "skillCategory" | "skill";
 export type DbEntity = Speaker | Portrait | SkillCategory | Skill;
+
+export type Button = {
+  text: string;
+  onClick: () => void;
+};
+
+export type Dialogue = {
+  name: string;
+  nodes: DialogueNode<DialogueNodeData>[];
+  edges: Edge[];
+};
+
+export type Object = Record<string, unknown>;
+export type DialogueNodeType =
+  | "start"
+  | "end"
+  | "text"
+  | "branchContainer"
+  | "branch"
+  | "skillCheck";
+
+export interface DialogueNode<T extends Object> extends Node<T> {
+  id: string;
+  type: DialogueNodeType;
+  data: T & {
+    next?: string;
+  };
+}
+
+export interface DialogueNodeData extends Record<string, unknown> {
+  next?: string;
+}
+
+export interface TextNodeData extends DialogueNodeData {
+  speaker?: Speaker;
+  portrait?: Portrait;
+  text: string;
+  showOptions: boolean;
+  next?: string;
+}
+
+export interface Branch extends DialogueNodeData {
+  name: string;
+  next?: string;
+}
+
+export interface SkillCheck extends DialogueNodeData {
+  skill: Skill;
+  difficulty: number;
+  next?: string;
+}
+
+export type EndNodeType = DialogueNode<TextNodeData>;
+export type StartNodeType = DialogueNode<DialogueNodeData>;
+export type TextNodeType = DialogueNode<TextNodeData>;
+export type BranchNodeType = DialogueNode<Branch>;
+export type SkillCheckNodeType = DialogueNode<SkillCheck>;

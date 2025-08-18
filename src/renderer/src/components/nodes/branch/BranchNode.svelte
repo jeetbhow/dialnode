@@ -1,8 +1,8 @@
 <script lang="ts">
-  import Cross from "../icons/Cross.svelte";
+  import Cross from "../../icons/Cross.svelte";
 
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
-  import type { BranchNodeType } from "../../utils/types";
+  import type { BranchNodeType } from "../../../../../shared/types";
 
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";

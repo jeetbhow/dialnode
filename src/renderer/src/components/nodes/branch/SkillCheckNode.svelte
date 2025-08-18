@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Cross from "../icons/Cross.svelte";
+  import Cross from "../../icons/Cross.svelte";
 
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
-  import { useDb } from "../../stores/dbStore.svelte";
-  import type { SkillCheckNodeType } from "../../utils/types";
+  import { useDb } from "../../../stores/dbStore.svelte";
+  import type { SkillCheckNodeType } from "../../../../../shared/types";
 
   const ICON_SIZE = 16;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";

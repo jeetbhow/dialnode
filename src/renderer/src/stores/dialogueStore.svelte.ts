@@ -1,27 +1,29 @@
-import type { Node, Edge } from "@xyflow/svelte";
+import type { Edge } from "@xyflow/svelte";
 
 import { useDb } from "./dbStore.svelte";
 import { BRANCH_NODE_INITIAL_WIDTH, BRANCH_NODE_INITIAL_HEIGHT } from "../utils/utils";
 
 import type {
-  DialogueSelectEntry,
+  Dialogue,
+  DialogueNode,
   StartNodeType,
-  DialogueNodeType,
+  TextNodeType,
   BranchNodeType,
-  SkillCheckNodeType
-} from "../utils/types";
+  SkillCheckNodeType,
+  DialogueNodeData
+} from "../../../shared/types";
 
 const db = useDb();
 
 class Dialogues {
-  public nodes = $state.raw<Node[]>([]);
+  public nodes = $state.raw<DialogueNode<DialogueNodeData>[]>([]);
   public edges = $state.raw<Edge[]>([]);
 
-  private _data = $state<DialogueSelectEntry[]>([]);
+  private _data = $state<Dialogue[]>([]);
   private _selectedIndex: number | null = $state(null);
   private _editing: boolean = $state(false);
 
-  get data(): DialogueSelectEntry[] {
+  get data(): Dialogue[] {
     return this._data;
   }
 
@@ -59,11 +61,11 @@ class Dialogues {
     this.edges = edges;
   }
 
-  public save(nodes: Node[], edges: Edge[]): void {
+  public save(nodes: DialogueNode<DialogueNodeData>[], edges: Edge[]): void {
     this._data[this._selectedIndex] = { ...this._data[this._selectedIndex], nodes, edges };
   }
 
-  public get(index: number): DialogueSelectEntry {
+  public get(index: number): Dialogue {
     return this._data[index];
   }
 
@@ -84,7 +86,7 @@ class Dialogues {
   }
 
   // TODO: Replace fixed-positions with drag and drop later on.
-  public addStart(): void {
+  public addStartNode(): void {
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
@@ -95,8 +97,8 @@ class Dialogues {
     dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
-  public addEnd(): void {
-    const newNode = {
+  public addEndNode(): void {
+    const newNode: DialogueNode<DialogueNodeData> = {
       id: crypto.randomUUID(),
       type: "end",
       position: { x: 0, y: 0 },
@@ -106,13 +108,13 @@ class Dialogues {
     dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
-  public addDialogueNode(): void {
+  public addTextNode(): void {
     const id = crypto.randomUUID();
     const position = { x: 0, y: 0 };
 
-    const newNode: DialogueNodeType = {
+    const newNode: TextNodeType = {
       id,
-      type: "dialogue",
+      type: "text",
       position,
       data: { text: "", showOptions: false, next: null }
     };
@@ -120,9 +122,9 @@ class Dialogues {
     dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
-  public addBranchContainer(): void {
+  public addBranchContainerNode(): void {
     const id = crypto.randomUUID();
-    const newNode: Node = {
+    const newNode: DialogueNode<DialogueNodeData> = {
       id,
       type: "branchContainer",
       position: { x: 0, y: 0 },
@@ -134,7 +136,7 @@ class Dialogues {
     dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
-  public addBranch(parentId: string): void {
+  public addBranchNode(parentId: string): void {
     const newNode: BranchNodeType = {
       id: crypto.randomUUID(),
       parentId,
@@ -147,7 +149,7 @@ class Dialogues {
     dialogues.nodes = [...dialogues.nodes, newNode];
   }
 
-  public addSkillCheck(parentId: string): void {
+  public addSkillCheckNode(parentId: string): void {
     const newNode: SkillCheckNodeType = {
       id: crypto.randomUUID(),
       parentId,

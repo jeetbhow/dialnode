@@ -1,15 +1,12 @@
 <script lang="ts">
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
 
-  import "../../styles.css";
-
-  import { type DbEntityKind } from "../../../../shared/types";
-  import type { DialogueNodeType } from "../../utils/types";
-  import { requestModal } from "../../stores/dbModal.svelte";
-  import DialogueDropDown from "./DialogueDropDown.svelte";
-  import Cross from "../icons/Cross.svelte";
-  import Plus from "../icons/Plus.svelte";
-  import Minus from "../icons/Minus.svelte";
+  import type { DbEntityKind, TextNodeType } from "../../../../../shared/types";
+  import { requestModal } from "../../../stores/dbModal.svelte";
+  import TextNodeSettingsMenu from "./TextNodeSettingsMenu.svelte";
+  import Cross from "../../icons/Cross.svelte";
+  import Plus from "../../icons/Plus.svelte";
+  import Minus from "../../icons/Minus.svelte";
 
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -20,7 +17,7 @@
     bottomSource: "bottom-source"
   };
 
-  let { id, data }: NodeProps<DialogueNodeType> = $props();
+  let { id, data }: NodeProps<TextNodeType> = $props();
   let isSpeakerFieldEnabled: boolean = $state(false);
   let isPortraitFieldEnabled: boolean = $state(false);
   let currActiveHandleId: string = $state();
@@ -100,7 +97,7 @@
 {/if}
 <div {id} class="container">
   <div class="header">
-    <DialogueDropDown
+    <TextNodeSettingsMenu
       bind:isSpeakerEnabled={isSpeakerFieldEnabled}
       bind:isPortraitEnabled={isPortraitFieldEnabled}
     />

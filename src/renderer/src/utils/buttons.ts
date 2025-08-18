@@ -1,5 +1,5 @@
 import { dialogues } from "../stores/dialogueStore.svelte";
-import type { Button } from "./types";
+import type { Button } from "../../../shared/types";
 
 function editDialogue() {
   dialogues.editing = true;
@@ -19,18 +19,18 @@ export const editButtons: Button[] = [
 export const nodeButtons: Button[] = [
   {
     text: "+ Start",
-    onClick: dialogues.addStart
+    onClick: dialogues.addStartNode
   },
   {
     text: "+ Node",
-    onClick: dialogues.addDialogueNode
+    onClick: dialogues.addTextNode
   },
   {
     text: "+ Branch",
-    onClick: dialogues.addBranchContainer
+    onClick: dialogues.addBranchContainerNode
   },
   {
     text: "+ End",
-    onClick: dialogues.addEnd
+    onClick: dialogues.addEndNode
   }
 ];
