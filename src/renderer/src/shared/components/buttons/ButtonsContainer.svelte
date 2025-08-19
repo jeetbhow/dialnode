@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Button } from "../../../../shared/types";
+import type { Button } from "../../../../../shared/types";
 
   import MainButton from "./MainButton.svelte";
 

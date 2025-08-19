@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Dice from "../../../../shared/components/icons/Dice.svelte";
   import Cross from "../../../../shared/components/icons/Cross.svelte";
   import Plus from "../../../../shared/components/icons/Plus.svelte";
 
