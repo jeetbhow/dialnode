@@ -1,0 +1,77 @@
+<script lang="ts">
+  import Cross from "../../../../shared/components/icons/Cross.svelte";
+  import Plus from "../../../../shared/components/icons/Plus.svelte";
+
+
+  import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
+  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../../utils/utils";
+  import { useDb } from "../../../../stores/dbStore.svelte";
+  import { dialogues } from "../../../../stores/dialogueStore.svelte";
+
+  const ICON_SIZE = 24;
+  const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
+
+  const db = useDb();
+
+  let { id, selected }: NodeProps = $props();
+  const { deleteElements } = useSvelteFlow();
+
+  function addBranch(): void {
+    dialogues.addBranchNode(id);
+  }
+
+  function addSkillCheck(): void {
+    const skills = db.skillCategories.flatMap((category) => category.skills);
+    if (skills.length === 0) {
+      alert("Skill checks require at least 1 skill in the database");
+      return;
+    }
+    dialogues.addSkillCheckNode(id);
+  }
+
+  function handleDelete(): void {
+    deleteElements({ nodes: [{ id }] });
+  }
+</script>
+
+<NodeResizer
+  autoScale={true}
+  isVisible={selected}
+  minWidth={BRANCH_NODE_INITIAL_WIDTH}
+  minHeight={BRANCH_NODE_INITIAL_HEIGHT}
+  style="margin: 0.5rem"
+/>
+<Handle
+  type="target"
+  position={Position.Left}
+  style="{DEFAULT_HANDLE_STYLE}; background-color: var(--target-handle-color);"
+/>
+<div {id} class="container">
+  <div class="control-btns">
+    <button aria-label="Add branch." onclick={addBranch}>
+      <Plus width={ICON_SIZE} height={ICON_SIZE} />
+    </button>
+    <button aria-label="Add skill check node" onclick={addSkillCheck}>
+      <Dice width={ICON_SIZE} height={ICON_SIZE} />
+    </button>
+  </div>
+  <button aria-label="Delete node" onclick={handleDelete}>
+    <Cross />
+  </button>
+</div>
+
+<style>
+  .container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+  }
+
+  .control-btns {
+    display: flex;
+    margin-top: 0.1rem;
+    gap: 0.3rem;
+  }
+</style>

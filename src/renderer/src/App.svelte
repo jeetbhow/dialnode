@@ -15,17 +15,19 @@
   } from "@xyflow/svelte";
   import "@xyflow/svelte/dist/style.css";
 
-  import TextNode from "./components/nodes/text/TextNode.svelte";
-  import PortraitModal from "./components/database/DatabaseModal.svelte";
-  import DialogueNodeEdge from "./components/edges/DialogueNodeEdge.svelte";
-  import BranchContainerNode from "./components/nodes/branch/BranchContainerNode.svelte";
-  import BranchNode from "./components/nodes/branch/BranchNode.svelte";
-  import SkillCheckNode from "./components/nodes/branch/SkillCheckNode.svelte";
-  import StartNode from "./components/nodes/boundaries/StartNode.svelte";
-  import EndNode from "./components/nodes/boundaries/EndNode.svelte";
-  import Titlebar from "./components/titlebar/Titlebar.svelte";
-  import DialogueSelect from "./components/dialogue-select/DialogueSelect.svelte";
-  import ButtonsContainer from "./components/buttons/ButtonsContainer.svelte";
+  import TextNode from "./main-window/components/nodes/text/TextNode.svelte";
+  import PortraitModal from "./main-window/components/database/DatabaseModal.svelte";
+  import DialogueNodeEdge from "./main-window/components/edges/DialogueNodeEdge.svelte";
+  import BranchContainerNode from "./main-window/components/nodes/branch/BranchContainerNode.svelte";
+  import BranchNode from "./main-window/components/nodes/branch/BranchNode.svelte";
+  import SkillCheckNode from "./main-window/components/nodes/branch/SkillCheckNode.svelte";
+  import StartNode from "./main-window/components/nodes/boundaries/StartNode.svelte";
+  import EndNode from "./main-window/components/nodes/boundaries/EndNode.svelte";
+  import Titlebar from "./shared/components/titlebar/Titlebar.svelte";
+  import DialogueSelect from "./main-window/components/dialogue-select/DialogueSelect.svelte";
+  import ButtonsContainer from "./shared/components/buttons/ButtonsContainer.svelte";
+
+  import "./styles.css"
 
   import { modal } from "./stores/dbModal.svelte";
   import { dialogues } from "./stores/dialogueStore.svelte";
