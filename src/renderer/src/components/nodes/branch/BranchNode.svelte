@@ -35,7 +35,7 @@
 <div {id} class="container">
   <div class="content">
     <header>
-      <p>Branch</p>
+      <h3>Branch</h3>
       <button aria-label="Delete branch" onclick={deleteBranch}>
         <Cross width={ICON_SIZE} height={ICON_SIZE} />
       </button>
@@ -53,8 +53,9 @@
   }
 
   label {
-    font-size: 0.8rem;
     display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
   }
 
   header {
@@ -62,9 +63,7 @@
     justify-content: space-between;
   }
 
-  header p {
-    font-size: 1rem;
-    font-weight: 600;
+  header h3 {
     margin: auto;
   }
 

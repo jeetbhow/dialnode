@@ -55,7 +55,7 @@
 <div {id} class="container">
   <div class="content">
     <header>
-      <p>Skill Check</p>
+      <h3>Skill Check</h3>
       <button onclick={deleteThisNode}>
         <Cross width={ICON_SIZE} height={ICON_SIZE} />
       </button>
@@ -98,11 +98,9 @@
   header {
     display: flex;
     justify-content: space-between;
-    font-size: 1rem;
-    font-weight: 600;
   }
 
-  header p {
+  header h3 {
     margin: auto;
   }
 
@@ -114,7 +112,6 @@
   .content > div {
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.8rem;
   }
 
   .content {
@@ -131,5 +128,7 @@
   label {
     display: block;
     min-width: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
   }
 </style>
