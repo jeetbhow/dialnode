@@ -50,9 +50,12 @@ class Dialogues {
     const dialogues: Dialogue[] = serializedDialogue.map((sd) => ({
       ...sd,
       nodes: sd.nodes.map((node) => ({
-        ...node,
-        position: { x: node.positionX, y: node.positionX },
-        data: { next: node.next }
+        id: node.id,
+        type: node.type,
+        width: node.width,
+        height: node.height,
+        position: { x: node.positionX, y: node.positionY },
+        data: JSON.parse(node.data)
       }))
     }));
     this._data = dialogues;
@@ -87,6 +90,8 @@ class Dialogues {
       nodes: this.nodes,
       edges: this.edges
     };
+
+    console.log(this._data);
   }
 
   public get(index: number): Dialogue {
@@ -193,7 +198,6 @@ class Dialogues {
   }
 
   public serialize(): SerializedDialogue[] {
-    console.log(this.data);
     return this.data.map((dialogue) => ({
       id: dialogue.id,
       name: dialogue.name,
@@ -205,7 +209,7 @@ class Dialogues {
         positionY: node.position.y,
         width: node.width ?? null,
         height: node.height ?? null,
-        next: node.data?.next ?? null
+        data: JSON.stringify(node.data)
       })),
       edges: dialogue.edges.map((edge) => ({
         id: edge.id,

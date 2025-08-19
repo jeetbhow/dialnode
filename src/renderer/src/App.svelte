@@ -36,7 +36,7 @@
   } from "./stores/dbStore.svelte";
   import { nodeButtons } from "./utils/buttons";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
-  import type { DialogueNodeData } from "../../shared/types";
+  import type { DialogueNode, DialogueNodeData } from "../../shared/types";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -44,11 +44,11 @@
     event: MouseEvent;
   };
 
-  onMount(() => {
-    loadSpeakersFromDb();
-    loadPortraitsFromDb();
-    loadSkillsFromDb();
-    dialogues.loadFromDb();
+  onMount(async () => {
+    await loadSpeakersFromDb();
+    await loadPortraitsFromDb();
+    await loadSkillsFromDb();
+    await dialogues.loadFromDb();
   });
 
   const nodeTypes: NodeTypes = {
@@ -63,6 +63,15 @@
   const edgeTypes: EdgeTypes = {
     dialogueEdge: DialogueNodeEdge
   };
+
+  function handleNodeDragStop(_: {
+    targetNode: DialogueNode<DialogueNodeData>;
+    nodes: DialogueNode<DialogueNodeData>[];
+    event: MouseEvent | TouchEvent;
+  }) {
+    // You can access the pointer event with event.event
+    dialogues.save();
+  }
 
   function handleConnect(connection: Connection): void {
     const sourceId = connection.source;
@@ -187,6 +196,7 @@
         onconnect={handleConnect}
         onbeforeconnect={handleBeforeConnect}
         onedgeclick={handleEdgeClick}
+        onnodedragstop={handleNodeDragStop}
       >
         <Panel position="top-center">
           <ButtonsContainer flexDirection="row" buttons={nodeButtons} />

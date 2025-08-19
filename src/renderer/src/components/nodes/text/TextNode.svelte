@@ -1,12 +1,14 @@
 <script lang="ts">
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
 
-  import type { DbEntityKind, TextNodeType } from "../../../../../shared/types";
-  import { requestModal } from "../../../stores/dbModal.svelte";
   import TextNodeSettingsMenu from "./TextNodeSettingsMenu.svelte";
   import Cross from "../../icons/Cross.svelte";
   import Plus from "../../icons/Plus.svelte";
   import Minus from "../../icons/Minus.svelte";
+
+  import type { DbEntityKind, TextNodeType } from "../../../../../shared/types";
+  import { requestModal } from "../../../stores/dbModal.svelte";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -18,9 +20,9 @@
   };
 
   let { id, data }: NodeProps<TextNodeType> = $props();
-  let isSpeakerFieldEnabled: boolean = $state(false);
-  let isPortraitFieldEnabled: boolean = $state(false);
-  let currActiveHandleId: string = $state();
+  let isSpeakerFieldEnabled: boolean = $state(data.speaker !== null);
+  let isPortraitFieldEnabled: boolean = $state(data.portrait !== null);
+  let currActiveHandleId: string = $state(null);
 
   const { updateNodeData, deleteElements } = useSvelteFlow();
 
@@ -36,6 +38,8 @@
         updateNodeData(id, { speaker: response.value });
         break;
     }
+
+    dialogues.save();
   }
 
   function removeData(type: DbEntityKind): void {
@@ -47,6 +51,8 @@
         updateNodeData(id, { speaker: null });
         break;
     }
+
+    dialogues.save();
   }
 
   function handleTextAreaChange(event: Event): void {
@@ -60,6 +66,8 @@
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
     data.text = textarea.value;
+
+    dialogues.save();
   }
 </script>
 

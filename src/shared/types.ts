@@ -72,9 +72,9 @@ export type SerializedDialogueNode = {
   type: DialogueNodeType;
   positionX: number;
   positionY: number;
-  width: number;
-  height: number;
-  next: string;
+  width?: number;
+  height?: number;
+  data: string;
 };
 
 export type SerializedDialogueEdge = {
@@ -91,13 +91,17 @@ export interface DialogueNode<T extends Object> extends Node<T> {
   id: string;
   type: DialogueNodeType;
   position: { x: number; y: number };
-  data: T & {
-    next?: string;
-  };
+  data: T & DialogueNodeData;
 }
 
 export interface DialogueNodeData extends Record<string, unknown> {
   next?: string;
+  speaker?: Speaker;
+  portrait?: Portrait;
+  text?: string;
+  name?: string;
+  skill?: Skill;
+  difficulty?: number;
 }
 
 export interface TextNodeData extends DialogueNodeData {

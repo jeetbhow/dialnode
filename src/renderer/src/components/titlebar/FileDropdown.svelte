@@ -9,6 +9,10 @@
     const projectDir = await window.api.selectDirectory();
     setProjectDirectory(projectDir);
   }
+
+  function handleSave() {
+    dialogues.saveToDb();
+  }
 </script>
 
 <div class="dropdown">
@@ -25,7 +29,7 @@
         <button>New Dialogue</button>
       </li>
       <li>
-        <button onclick={() => dialogues.saveToDb()}>Save</button>
+        <button onclick={handleSave}>Save</button>
       </li>
       <li>
         <button>Save As...</button>

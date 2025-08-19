@@ -26,7 +26,7 @@ db.exec(`
       positionY REAL,
       width REAL,
       height REAL,
-      next TEXT,
+      data TEXT,
       FOREIGN KEY (dialogueId) REFERENCES dialogues(id) ON DELETE CASCADE 
     );
     CREATE TABLE IF NOT EXISTS edges (
@@ -86,7 +86,7 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
 
   const insertNode = db.prepare(`
     INSERT INTO nodes (
-      id, dialogueId, "type", positionX, positionY, width, height, "next"
+      id, dialogueId, "type", positionX, positionY, width, height, "data"
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
@@ -104,16 +104,7 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
       insertDialogue.run(dId, dialogue.name);
 
       for (const n of dialogue.nodes) {
-        insertNode.run(
-          n.id,
-          dId,
-          n.type,
-          n.positionX,
-          n.positionY,
-          n.width,
-          n.height,
-          n.next ?? null
-        );
+        insertNode.run(n.id, dId, n.type, n.positionX, n.positionY, n.width, n.height, n.data);
       }
 
       for (const e of dialogue.edges) {
