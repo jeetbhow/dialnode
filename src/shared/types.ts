@@ -116,18 +116,19 @@ export interface TextNodeData extends DialogueNodeData {
 }
 
 export interface Branch extends DialogueNodeData {
-  name: string;
+  text: string;
   next?: string;
 }
 
 export interface SkillCheck extends DialogueNodeData {
+  text: string;
   skill: Skill;
   difficulty: number;
   next?: string;
 }
 
-export type EndNodeType = DialogueNode<TextNodeData>;
-export type StartNodeType = DialogueNode<DialogueNodeData>;
-export type TextNodeType = DialogueNode<TextNodeData>;
-export type BranchNodeType = DialogueNode<Branch>;
-export type SkillCheckNodeType = DialogueNode<SkillCheck>;
+export type EndNodeType = Node<TextNodeData>;
+export type StartNodeType = Node<DialogueNodeData>;
+export type TextNodeType = Node<TextNodeData>;
+export type BranchNodeType = Node<Branch>;
+export type SkillCheckNodeType = Node<SkillCheck>;

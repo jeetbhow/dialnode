@@ -6,7 +6,7 @@
   import type { SkillCheckNodeType } from "../../../../../shared/types";
   import { dialogues } from "../../../stores/dialogueStore.svelte";
 
-  const ICON_SIZE = 16;
+  const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
 
   const db = useDb();
@@ -32,6 +32,16 @@
     dialogues.saveSelectedDialogue();
   }
 
+  function handleTextChange(e: Event): void {
+    const target = e.target as HTMLInputElement;
+
+    dialogues.nodes = dialogues.nodes.map((n) =>
+      n.id === id ? { ...n, data: { ...n.data, text: target.value } } : n
+    );
+
+    dialogues.saveSelectedDialogue();
+  }
+
   function deleteThisNode(): void {
     deleteElements({ nodes: [{ id }] });
   }
@@ -43,33 +53,44 @@
   style="{DEFAULT_HANDLE_STYLE}; background-color: var(--source-handle-color);"
 />
 <div {id} class="container">
-  <header>
-    <p>Skill Check</p>
-    <button onclick={deleteThisNode}>
-      <Cross width={ICON_SIZE} height={ICON_SIZE} />
-    </button>
-  </header>
-  <div>
-    <label for="skills">Skill: </label>
-    <select id="skills" onchange={handleSkillChange}>
-      {#each skills as skill (skill.id)}
-        <option value={skill.name}>{skill.name}</option>
-      {/each}
-    </select>
-  </div>
+  <div class="content">
+    <header>
+      <p>Skill Check</p>
+      <button onclick={deleteThisNode}>
+        <Cross width={ICON_SIZE} height={ICON_SIZE} />
+      </button>
+    </header>
+    <div class="text">
+      <label for="text">Text:</label>
+      <input
+        id="text"
+        value={data.text}
+        placeholder="Enter skill check text."
+        onchange={handleTextChange}
+      />
+    </div>
+    <div class="skill">
+      <label for="skill">Skill: </label>
+      <select id="skill" onchange={handleSkillChange}>
+        {#each skills as skill (skill.id)}
+          <option value={skill.name}>{skill.name}</option>
+        {/each}
+      </select>
+    </div>
 
-  <div>
-    <label for="difficulty">Difficulty: </label>
-    <input
-      id="difficulty"
-      class="nodrag"
-      type="number"
-      min="1"
-      max="20"
-      step="1"
-      value={data.difficulty}
-      onchange={handleDifficultyChange}
-    />
+    <div class="difficulty">
+      <label for="difficulty">Difficulty: </label>
+      <input
+        id="difficulty"
+        class="nodrag"
+        type="number"
+        min="1"
+        max="20"
+        step="1"
+        value={data.difficulty}
+        onchange={handleDifficultyChange}
+      />
+    </div>
   </div>
 </div>
 
@@ -77,7 +98,12 @@
   header {
     display: flex;
     justify-content: space-between;
-    font-size: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  header p {
+    margin: auto;
   }
 
   select {
@@ -86,13 +112,19 @@
   }
 
   .container {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
   }
 
-  .container > div {
-    display: flex;
+  .content > div {
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin: 0.3rem;
   }
 
   input {
@@ -100,6 +132,7 @@
   }
 
   label {
+    display: block;
     min-width: 50px;
   }
 </style>
