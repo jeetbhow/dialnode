@@ -3,6 +3,7 @@
 
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
   import type { BranchNodeType } from "../../../../../shared/types";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -16,7 +17,14 @@
 
   function handleChange(e: Event): void {
     const target = e.target as HTMLInputElement;
-    data.name = target.value;
+    const newName = target.value;
+
+    console.log(newName);
+
+    dialogues.nodes = dialogues.nodes.map((n) =>
+      n.id === id ? { ...n, data: { ...n.data, name: newName } } : n
+    );
+    dialogues.saveSelectedDialogue();
   }
 </script>
 
@@ -31,7 +39,7 @@
     <button aria-label="Delete branch" onclick={deleteBranch}>
       <Cross width={ICON_SIZE} height={ICON_SIZE} />
     </button>
-    <input name="branch-name" placeholder="Branch name" onchange={handleChange} />
+    <input name="branch-name" value={data.name} placeholder="Branch name" onchange={handleChange} />
   </div>
 </div>
 

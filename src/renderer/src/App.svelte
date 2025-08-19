@@ -70,7 +70,7 @@
     event: MouseEvent | TouchEvent;
   }) {
     // You can access the pointer event with event.event
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   function handleConnect(connection: Connection): void {
@@ -84,7 +84,7 @@
 
     const data = sourceNode.data as DialogueNodeData;
     data.next = targetId;
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   function handleBeforeConnect(connection: Connection): Edge {

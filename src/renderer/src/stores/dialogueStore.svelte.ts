@@ -28,7 +28,7 @@ class Dialogues {
     return this._data;
   }
 
-  get selectedIndex(): number {
+  get selectedIndex(): number | null {
     return this._selectedIndex;
   }
 
@@ -51,10 +51,12 @@ class Dialogues {
       ...sd,
       nodes: sd.nodes.map((node) => ({
         id: node.id,
+        parentId: node.parentId ?? undefined,
+        extent: node.extent ?? undefined,
         type: node.type,
-        width: node.width,
-        height: node.height,
-        position: { x: node.positionX, y: node.positionY },
+        width: node.width ?? undefined,
+        height: node.height ?? undefined,
+        position: { x: node.positionX ?? 0, y: node.positionY ?? 0 },
         data: JSON.parse(node.data)
       }))
     }));
@@ -62,6 +64,7 @@ class Dialogues {
   }
 
   public async saveToDb(): Promise<void> {
+    this.saveSelectedDialogue();
     await window.api.saveDialogues(this.serialize());
   }
 
@@ -84,14 +87,16 @@ class Dialogues {
     }
   }
 
-  public save(): void {
+  public saveSelectedDialogue(): void {
+    if (this._selectedIndex === null) {
+      return;
+    }
+
     this._data[this._selectedIndex] = {
       ...this._data[this._selectedIndex],
       nodes: this.nodes,
       edges: this.edges
     };
-
-    console.log(this._data);
   }
 
   public get(index: number): Dialogue {
@@ -99,15 +104,11 @@ class Dialogues {
   }
 
   public renameSelected(name: string): void {
-    if (this.selectedIndex === null) {
-      return;
-    }
-
     this._data[this._selectedIndex].name = name;
   }
 
   public selectDialogue(index: number): void {
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
     dialogues.selectedIndex = index;
     const { nodes, edges } = dialogues.get(index);
     this.nodes = nodes;
@@ -124,7 +125,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   public addEndNode(): void {
@@ -136,7 +137,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   public addTextNode(): void {
@@ -151,7 +152,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   public addBranchContainerNode(): void {
@@ -166,7 +167,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   public addBranchNode(parentId: string): void {
@@ -180,21 +181,23 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   public addSkillCheckNode(parentId: string): void {
+    const skill = db.skillCategories?.[0]?.skills?.[0] ?? null;
+
     const newNode: SkillCheckNodeType = {
       id: crypto.randomUUID(),
       parentId,
       extent: "parent",
       type: "skillCheck",
       position: { x: 0, y: 0 },
-      data: { skill: db.skillCategories[0].skills[0], difficulty: 0, next: "" }
+      data: { skill, difficulty: 0, next: "" }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   public serialize(): SerializedDialogue[] {
@@ -203,12 +206,14 @@ class Dialogues {
       name: dialogue.name,
       nodes: dialogue.nodes.map((node) => ({
         id: node.id,
+        parentId: node?.parentId,
+        extent: node?.extent,
         dialogueId: dialogue.id,
         type: node.type,
         positionX: node.position.x,
         positionY: node.position.y,
-        width: node.width ?? null,
-        height: node.height ?? null,
+        width: node?.width,
+        height: node?.height,
         data: JSON.stringify(node.data)
       })),
       edges: dialogue.edges.map((edge) => ({

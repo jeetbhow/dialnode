@@ -20,6 +20,8 @@ db.exec(`
     );
     CREATE TABLE IF NOT EXISTS nodes (
       id TEXT PRIMARY KEY,
+      parentId TEXT,
+      extent TEXT,
       dialogueId TEXT,
       type TEXT,
       positionX REAL,
@@ -86,8 +88,8 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
 
   const insertNode = db.prepare(`
     INSERT INTO nodes (
-      id, dialogueId, "type", positionX, positionY, width, height, "data"
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      id, parentId, extent, dialogueId, "type", positionX, positionY, width, height, "data"
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertEdge = db.prepare(`
@@ -104,7 +106,18 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
       insertDialogue.run(dId, dialogue.name);
 
       for (const n of dialogue.nodes) {
-        insertNode.run(n.id, dId, n.type, n.positionX, n.positionY, n.width, n.height, n.data);
+        insertNode.run(
+          n.id,
+          n.parentId ?? null,
+          n.extent ?? null,
+          dId,
+          n.type,
+          n.positionX,
+          n.positionY,
+          n.width ?? null,
+          n.height ?? null,
+          n.data ?? null
+        );
       }
 
       for (const e of dialogue.edges) {

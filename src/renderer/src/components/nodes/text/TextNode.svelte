@@ -20,8 +20,8 @@
   };
 
   let { id, data }: NodeProps<TextNodeType> = $props();
-  let isSpeakerFieldEnabled: boolean = $state(data.speaker !== null);
-  let isPortraitFieldEnabled: boolean = $state(data.portrait !== null);
+  let isSpeakerFieldEnabled: boolean = $state(data?.speaker ? true : false);
+  let isPortraitFieldEnabled: boolean = $state(data?.portrait ? true : false);
   let currActiveHandleId: string = $state(null);
 
   const { updateNodeData, deleteElements } = useSvelteFlow();
@@ -39,7 +39,7 @@
         break;
     }
 
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   function removeData(type: DbEntityKind): void {
@@ -52,7 +52,7 @@
         break;
     }
 
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 
   function handleTextAreaChange(event: Event): void {
@@ -67,7 +67,7 @@
     }
     data.text = textarea.value;
 
-    dialogues.save();
+    dialogues.saveSelectedDialogue();
   }
 </script>
 

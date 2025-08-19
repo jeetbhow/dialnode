@@ -68,7 +68,9 @@ export type SerializedDialogue = {
 
 export type SerializedDialogueNode = {
   id: string;
+  parentId?: string;
   dialogueId: string;
+  extent?: "parent";
   type: DialogueNodeType;
   positionX: number;
   positionY: number;
@@ -89,6 +91,8 @@ export type SerializedDialogueEdge = {
 
 export interface DialogueNode<T extends Object> extends Node<T> {
   id: string;
+  parentId?: string;
+  extent?: "parent";
   type: DialogueNodeType;
   position: { x: number; y: number };
   data: T & DialogueNodeData;
