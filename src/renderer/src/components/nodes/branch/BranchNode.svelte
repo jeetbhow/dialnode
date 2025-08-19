@@ -5,7 +5,7 @@
   import type { BranchNodeType } from "../../../../../shared/types";
   import { dialogues } from "../../../stores/dialogueStore.svelte";
 
-  const ICON_SIZE = 18;
+  const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
 
   let { id, data }: NodeProps<BranchNodeType> = $props();
@@ -33,19 +33,39 @@
   style="{DEFAULT_HANDLE_STYLE}; background-color: var(--source-handle-color);"
 />
 <div {id} class="container">
-  <label for="branch-name">Branch</label>
-  <div>
-    <button aria-label="Delete branch" onclick={deleteBranch}>
-      <Cross width={ICON_SIZE} height={ICON_SIZE} />
-    </button>
-    <input name="branch-name" value={data.name} placeholder="Branch name" onchange={handleChange} />
+  <div class="content">
+    <header>
+      <p>Branch</p>
+      <button aria-label="Delete branch" onclick={deleteBranch}>
+        <Cross width={ICON_SIZE} height={ICON_SIZE} />
+      </button>
+    </header>
+    <div>
+      <label for="text">Text:</label>
+      <input id="text" value={data.name} placeholder="Branch name" onchange={handleChange} />
+    </div>
   </div>
 </div>
 
 <style>
+  .content {
+    margin: 0.3rem;
+  }
+
   label {
-    font-size: 0.6rem;
+    font-size: 0.8rem;
     display: block;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  header p {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: auto;
   }
 
   input {
@@ -56,9 +76,5 @@
     border: 1px solid #ccc;
     background-color: #f9f9f9;
     font-family: "Iosevka-Regular", monospace;
-  }
-
-  .container > div {
-    display: flex;
   }
 </style>

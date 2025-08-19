@@ -111,13 +111,10 @@
     padding: 0.5rem;
   }
 
-  .container {
-    font-size: 0.8rem;
-  }
-
   .content > div {
     align-items: center;
     gap: 0.5rem;
+    font-size: 0.8rem;
   }
 
   .content {

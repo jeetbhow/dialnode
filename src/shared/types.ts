@@ -103,7 +103,6 @@ export interface DialogueNodeData extends Record<string, unknown> {
   speaker?: Speaker;
   portrait?: Portrait;
   text?: string;
-  name?: string;
   skill?: Skill;
   difficulty?: number;
 }
