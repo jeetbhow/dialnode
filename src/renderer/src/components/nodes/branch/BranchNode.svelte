@@ -19,11 +19,10 @@
     const target = e.target as HTMLInputElement;
     const newName = target.value;
 
-    console.log(newName);
-
     dialogues.nodes = dialogues.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, name: newName } } : n
     );
+
     dialogues.saveSelectedDialogue();
   }
 </script>

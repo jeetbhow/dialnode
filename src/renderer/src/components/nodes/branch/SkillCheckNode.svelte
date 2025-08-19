@@ -4,6 +4,7 @@
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
   import { useDb } from "../../../stores/dbStore.svelte";
   import type { SkillCheckNodeType } from "../../../../../shared/types";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 16;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -23,7 +24,12 @@
 
   function handleDifficultyChange(e: Event): void {
     const target = e.target as HTMLInputElement;
-    data.difficulty = parseInt(target.value);
+
+    dialogues.nodes = dialogues.nodes.map((n) =>
+      n.id === id ? { ...n, data: { ...n.data, difficulty: parseInt(target.value) } } : n
+    );
+
+    dialogues.saveSelectedDialogue();
   }
 
   function deleteThisNode(): void {
@@ -61,6 +67,7 @@
       min="1"
       max="20"
       step="1"
+      value={data.difficulty}
       onchange={handleDifficultyChange}
     />
   </div>

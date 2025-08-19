@@ -1,5 +1,6 @@
 <script lang="ts">
   import { clickOutside } from "../../attachments/attachments";
+  import { modal } from "../../stores/dbModal.svelte";
   import { dialogues } from "../../stores/dialogueStore.svelte";
 
   let open = $state(false);
@@ -17,6 +18,9 @@
       </li>
       <li>
         <button onclick={() => dialogues.removeSelected()}>Remove Dialogue</button>
+      </li>
+      <li>
+        <button onclick={() => (modal.open = true)}>Open Database</button>
       </li>
     </ul>
   {/if}

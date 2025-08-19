@@ -5,7 +5,7 @@ type DbModalRequest = {
   nodeId: string;
 };
 
-type PortraitModalStore = {
+type DbModal = {
   open: boolean;
   request: DbModalRequest | null;
 };
@@ -29,7 +29,7 @@ type ModalRequestResult = PortraitResult | SpeakerResult | SkillResult | null;
 
 let _resolve: ((result: ModalRequestResult) => void) | null = null;
 
-export const modal: PortraitModalStore = $state({
+export const modal: DbModal = $state({
   open: false,
   request: null
 });

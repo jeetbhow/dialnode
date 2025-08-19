@@ -61,6 +61,7 @@ class Dialogues {
       }))
     }));
     this._data = dialogues;
+    console.log(this._data);
   }
 
   public async saveToDb(): Promise<void> {

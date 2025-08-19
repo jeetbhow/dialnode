@@ -11,7 +11,7 @@
   import SkillView from "./views/SkillView.svelte";
 
   const project = useProject();
-  const initialSelectedTab: DbEntityKind = modal.request.type ?? "portrait";
+  const initialSelectedTab: DbEntityKind = modal.request?.type ?? "portrait";
 
   let currSelectedTab: DbEntityKind = $state(initialSelectedTab);
 </script>
