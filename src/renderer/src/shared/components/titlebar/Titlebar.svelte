@@ -10,6 +10,12 @@
   const MAXIMIZE_ICON_SIZE = 16;
   const MINIMIZE_ICON_SIZE = 16;
 
+  type Props = {
+    view: string;
+  };
+
+  let { view }: Props = $props();
+
   function handleClose(): void {
     dialogues.saveToDb();
     window.api.close();
@@ -18,8 +24,10 @@
 
 <div class="titlebar">
   <div class="menu">
-    <FileDropdown />
-    <EditDropDown />
+    {#if view === "main"}
+      <FileDropdown />
+      <EditDropDown />
+    {/if}
   </div>
 
   <div class="window-controls">

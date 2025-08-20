@@ -1,5 +1,5 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
-import type { Skill, SkillCategory, Speaker, Portrait, SerializedDialogue } from "../shared/types";
+import type { Skill, SkillCategory, Speaker, Portrait, SerializedDialogue, ElectronSelectDirectoryOptions, ExtraSelectDirectoryOptions } from "../shared/types";
 
 type ImageMetaData = {
   dataURL: string;
@@ -15,23 +15,26 @@ interface AppApi {
   minimize: () => void;
   maximize: () => void;
   close: () => void;
+
   saveDialogues: (dialogues: SerializedDialogue[]) => Promise<void>;
   getAllDialogues: () => Promise<SerializedDialogue[]>;
+
   getAllSkills: () => Promise<Skill[]>;
   createSkill: (skill: Skill) => Promise<void>;
   deleteSkill: (skillId: string) => Promise<void>;
   getAllSkillCategories: () => Promise<SkillCategory[]>;
   createSkillCategory: (category: SkillCategory) => Promise<void>;
   deleteSkillCategory: (categoryId: string) => Promise<void>;
-  selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
-  selectDirectory: () => Promise<string | null>;
-  exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;
   createSpeaker: (speaker: Speaker) => Promise<void>;
   deleteSpeaker: (speakerId: string) => Promise<void>;
   getAllSpeakers: () => Promise<Speaker[]>;
   getAllPortraits: () => Promise<Portrait[]>;
   createPortrait: (portrait: Portrait) => Promise<void>;
   deletePortrait: (portraitId: string) => Promise<void>;
+
+  selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
+  selectDirectory: (options: ElectronSelectDirectoryOptions, extraOptions?: ExtraSelectDirectoryOptions) => Promise<string | null>;
+  exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;
 }
 
 declare global {

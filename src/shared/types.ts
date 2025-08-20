@@ -1,4 +1,15 @@
 import { Node, Edge } from "@xyflow/svelte";
+import { FileFilter } from "electron";
+
+export type Repository = {
+  id: string;
+  name: string;
+  location: string;
+  godotProjectLocation?: string;
+  createdOn: string;
+  appVersion: string;
+  formatVersion: string;
+};
 
 export type Portrait = {
   id: string;
@@ -94,7 +105,7 @@ export interface DialogueNode<T extends Object> extends Node<T> {
   parentId?: string;
   extent?: "parent";
   type: DialogueNodeType;
-  position: { x: number; y: number };
+  position: { x: number; y: number; };
   data: T & DialogueNodeData;
 }
 
@@ -126,8 +137,20 @@ export interface SkillCheck extends DialogueNodeData {
   next?: string;
 }
 
-export type EndNodeType = Node<TextNodeData>;
-export type StartNodeType = Node<DialogueNodeData>;
-export type TextNodeType = Node<TextNodeData>;
-export type BranchNodeType = Node<Branch>;
-export type SkillCheckNodeType = Node<SkillCheck>;
+export type EndNodeType = DialogueNode<TextNodeData>;
+export type StartNodeType = DialogueNode<DialogueNodeData>;
+export type TextNodeType = DialogueNode<TextNodeData>;
+export type BranchNodeType = DialogueNode<Branch>;
+export type SkillCheckNodeType = DialogueNode<SkillCheck>;
+
+export type ElectronSelectDirectoryOptions = {
+  title?: string;
+  buttonLabel?: string;
+  defaultPath?: string;
+  properties?: Array<'createDirectory' | 'promptToCreate'>;
+  filters?: FileFilter[];
+};
+
+export type ExtraSelectDirectoryOptions = {
+  godot?: boolean;
+};

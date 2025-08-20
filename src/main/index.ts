@@ -21,10 +21,11 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 
 import { join, basename, extname, relative } from "path";
-import { readFileSync, writeFileSync } from "fs";
+import { readFileSync } from "fs";
+import { stat } from "fs/promises";
 
 import { imageSize } from "image-size";
-import { SerializedDialogue } from "../shared/types";
+import { SerializedDialogue, ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions } from "../shared/types";
 
 function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
@@ -112,29 +113,6 @@ ipcMain.handle("delete-skill", async (_event, skillId) => {
   return true;
 });
 
-// Handle save request from renderer
-ipcMain.handle("export-json", async (event, data, defaultFileName = "data.json") => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-
-  if (!win) {
-    return false;
-  }
-
-  const { canceled, filePath } = await dialog.showSaveDialog(win, {
-    title: "Save JSON",
-    defaultPath: defaultFileName,
-    filters: [{ name: "JSON Files", extensions: ["json"] }],
-    properties: ["showOverwriteConfirmation"]
-  });
-
-  if (canceled || !filePath) return false;
-
-  const jsonString = JSON.stringify(data, null, 2);
-  writeFileSync(filePath, jsonString);
-
-  return true;
-});
-
 ipcMain.handle("select-image", async (_event, projectDir: string) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ["openFile"],
@@ -161,12 +139,30 @@ ipcMain.handle("select-image", async (_event, projectDir: string) => {
   };
 });
 
-ipcMain.handle("select-directory", async () => {
+ipcMain.handle("select-directory", async (
+  _event,
+  options: ElectronSelectDirectoryOptions,
+  extraOptions?: ExtraSelectDirectoryOptions
+) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
-    properties: ["openDirectory"]
+    ...options,
+    properties: ["openDirectory", ...(options.properties ?? [])]
   });
 
   if (canceled || !filePaths.length) return null;
+
+  if (extraOptions?.godot === true) {
+    try {
+      const godotProjectFile = join(filePaths[0], "project.godot");
+      const stats = await stat(godotProjectFile);
+      if (!stats.isFile()) {
+        throw new Error("Failed to find project.godot file.");
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   return filePaths[0];
 });
 
@@ -187,7 +183,6 @@ ipcMain.on("window-close", () => {
 });
 
 function createWindow(): void {
-  // Create the browser window
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
@@ -211,8 +206,6 @@ function createWindow(): void {
     return { action: "deny" };
   });
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
@@ -220,16 +213,40 @@ function createWindow(): void {
   }
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+function createRepositoryWindow() {
+  const mainWindow = new BrowserWindow({
+    width: 800,
+    height: 700,
+    show: false,
+    frame: false,
+    titleBarStyle: "hidden",
+    autoHideMenuBar: true,
+    ...(process.platform === "linux" ? { icon } : {}),
+    webPreferences: {
+      preload: join(__dirname, "../preload/index.js"),
+      sandbox: false
+    }
+  });
+
+  mainWindow.on("ready-to-show", () => {
+    mainWindow.show();
+  });
+
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    shell.openExternal(details.url);
+    return { action: "deny" };
+  });
+
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    mainWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}?view=project`);
+  } else {
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"), { query: { view: "project" } });
+  }
+}
+
 app.whenReady().then(() => {
-  // Set app user model id for windows
   electronApp.setAppUserModelId("com.electron");
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on("browser-window-created", (_, window) => {
     optimizer.watchWindowShortcuts(window);
   });
@@ -237,18 +254,13 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on("ping", () => console.log("pong"));
 
-  createWindow();
+  createRepositoryWindow();
 
   app.on("activate", function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) createRepositoryWindow();
   });
 });
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();

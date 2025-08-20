@@ -15,9 +15,9 @@
   --small-text-color: #9c9c9c;
   --primary-text-color: #e4e7f4;
   --primary-color: #2b407b;
-  --primary-hover-color: #21325e;
-  --secondary-color: #f4efef;
-  --secondary-color-hover: #dbd6d6;
+  --primary-hover-color: #0c1b3e;
+  --secondary-color: #d0cdcd;
+  --secondary-color-hover: #aaaaaa;
   --transparent-color: #dbd9d974;
   --node-bg-color: #ffffff;
   --node-box-shadow: 0 4px 8px #00000033;
@@ -50,7 +50,7 @@ button {
 }
 
 .secondary-btn:hover {
-  background-color: #dbd6d6;
+  background-color: var(--secondary-color-hover);
 }
 
 .primary-btn {

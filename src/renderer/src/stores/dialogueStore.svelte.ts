@@ -61,7 +61,6 @@ class Dialogues {
       }))
     }));
     this._data = dialogues;
-    console.log(this._data);
   }
 
   public async saveToDb(): Promise<void> {
@@ -178,7 +177,7 @@ class Dialogues {
       extent: "parent",
       type: "branch",
       position: { x: 0, y: 0 },
-      data: { name: "", next: "" }
+      data: { text: "", name: "", next: "" }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
@@ -194,7 +193,7 @@ class Dialogues {
       extent: "parent",
       type: "skillCheck",
       position: { x: 0, y: 0 },
-      data: { skill, difficulty: 0, next: "" }
+      data: { text: "", skill, difficulty: 0, next: "" }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
