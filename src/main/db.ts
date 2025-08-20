@@ -86,6 +86,10 @@ export function closeDb(): void {
   if (db !== null) db.close();
 }
 
+export function connectDb(path: string): void {
+  db = new sqlite(path);
+}
+
 export function saveDialogues(dialogues: SerializedDialogue[]): void {
   if (db === null) {
     throw new Error(ERROR_MSG);

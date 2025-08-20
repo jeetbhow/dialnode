@@ -15,16 +15,17 @@ import {
   deleteSkill,
   getAllDialogues,
   createDb,
-  dbExists
+  dbExists,
+  connectDb
 } from "./db";
 
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 
-import { join, basename, extname, relative } from "path";
+import { join, dirname, basename, extname, relative } from "path";
 import { readFileSync } from "fs";
-import { stat, mkdir, writeFile, rm } from "fs/promises";
+import { stat, mkdir, writeFile, rm, readFile } from "fs/promises";
 
 import { imageSize } from "image-size";
 import { SerializedDialogue, ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions, type Repository } from "../shared/types";
@@ -141,12 +142,38 @@ ipcMain.handle("select-image", async (_event, projectDir: string) => {
   };
 });
 
+ipcMain.handle("open-repository", async (_event): Promise<Repository | null> => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: "Open Repository",
+    buttonLabel: "Select Folder",
+    filters: [{ name: "Dialnode (.dial)", extensions: ["dial"] }],
+    properties: ["openFile"]
+  });
+
+  if (canceled || !filePaths) {
+    return null;
+  }
+
+  // TODO Add error handling for this later.
+  const manifestRaw = await readFile(filePaths[0], "utf-8");
+  const repository: Repository = JSON.parse(manifestRaw);
+  const dbPath = join(repository.location, repository.name, "db.sqlite");
+
+  connectDb(dbPath);
+
+  const repositoryWindow = BrowserWindow.getFocusedWindow();
+  repositoryWindow?.close();
+  createMainWindow();
+
+  return repository;
+});
+
 ipcMain.handle("create-repository", async (_event, repository: Repository) => {
   const repositoryPath = join(repository.location, repository.name);
   try {
     await mkdir(repositoryPath);
     createDb(repositoryPath);
-    await writeFile(join(repositoryPath, "manifest.json"), JSON.stringify(repository));
+    await writeFile(join(repositoryPath, "manifest.dial"), JSON.stringify(repository));
 
     const repositoryWindow = BrowserWindow.getFocusedWindow();
     repositoryWindow?.close();

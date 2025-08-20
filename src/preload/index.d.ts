@@ -35,6 +35,7 @@ interface AppApi {
   selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
   selectDirectory: (options: ElectronSelectDirectoryOptions, extraOptions?: ExtraSelectDirectoryOptions) => Promise<string | null>;
   createRepository: (repository: Repository) => Promise<void>;
+  openRepository: () => Promise<Repository>;
   exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;
 }
 

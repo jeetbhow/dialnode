@@ -38,6 +38,7 @@ const api = {
   selectImage: async (projectDir: string) => await ipcRenderer.invoke("select-image", projectDir),
   selectDirectory: async (options: ElectronSelectDirectoryOptions, extraOptions?: ExtraSelectDirectoryOptions) => await ipcRenderer.invoke("select-directory", options, extraOptions),
   createRepository: async (repository: Repository) => await ipcRenderer.invoke("create-repository", repository),
+  openRepository: async () => await ipcRenderer.invoke("open-repository"),
   exportJson: async (data: Record<string, unknown>[]) => await ipcRenderer.invoke("export-json", data),
 };
 

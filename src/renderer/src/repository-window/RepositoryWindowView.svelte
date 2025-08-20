@@ -22,7 +22,7 @@
   async function handleClickRepositoryLocation() {
     const result = await window.api.selectDirectory({
       title: "Custom Repository",
-      buttonLabel: "Select Repository Location",
+      buttonLabel: "Select Folder",
       properties: ["createDirectory", "promptToCreate"]
     });
 
@@ -30,14 +30,17 @@
   }
 
   async function handleClickGodotProjectDirectory() {
+    const options = {
+      title: "Godot Project Location",
+      buttonLabel: "Select Folder"
+    };
+
+    const extraOptions = {
+      godot: true
+    };
+
     try {
-      const result = await window.api.selectDirectory(
-        {
-          title: "Godot Project Location",
-          buttonLabel: "Select Godot Project Location"
-        },
-        { godot: true }
-      );
+      const result = await window.api.selectDirectory(options, extraOptions);
       godotProjectLocation = result ?? godotProjectLocation;
     } catch (error) {
       alert("Failed to locate the project.godot file at the root of the directory.");
@@ -55,6 +58,16 @@
     useCustomLocation = false;
     godotProjectLocation = null;
     customRepositoryLocation = null;
+  }
+
+  async function handleClickOpen() {
+    try {
+      const repository = await window.api.openRepository();
+      setRepository(repository);
+      console.log(repository);
+    } catch (error) {
+      alert("Failed to create repository");
+    }
   }
 
   async function handleClickCreate() {
@@ -167,7 +180,7 @@
               <h5>Open a repository</h5>
               <p>Open an already existing local Dialnode repository.</p>
             </div>
-            <button class="secondary-btn">Open</button>
+            <button class="secondary-btn" onclick={handleClickOpen}>Open</button>
           </div>
         </div>
       </div>
