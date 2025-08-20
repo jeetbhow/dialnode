@@ -7,10 +7,10 @@
   import type { DbEntityKind } from "../../../../../shared/types";
 
   import { modal, cancelModal } from "../../../stores/dbModal.svelte";
-  import { useProject } from "../../../stores/projectStore.svelte";
+  import { useRepository } from "../../../stores/repositoryStore.svelte";
   import SkillView from "./views/SkillView.svelte";
 
-  const project = useProject();
+  const repository = useRepository();
   const initialSelectedTab: DbEntityKind = modal.request?.type ?? "portrait";
 
   let currSelectedTab: DbEntityKind = $state(initialSelectedTab);
@@ -24,7 +24,7 @@
         <Cross />
       </button>
     </header>
-    <p class="project-dir">Project: {project.dir}</p>
+    <p class="project-dir">Project: {repository.godotProjectLocation}</p>
     {#if currSelectedTab === "portrait"}
       <PortraitView />
     {:else if currSelectedTab === "speaker"}

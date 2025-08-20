@@ -5,17 +5,18 @@
   import { APP_VERSION, FORMAT_VERSION } from "../shared/utils/appVariables";
   import BackArrow from "../shared/components/icons/BackArrow.svelte";
   import type { Repository } from "../../../shared/types";
+  import { setRepository } from "../stores/repositoryStore.svelte";
 
   const BACK_ARROW_SIZE = 18;
   const DEFAULT_REPOSITORY_NAME = ".dialnode";
 
   let view = $state<"main" | "create-project">("main");
   let name = $state(DEFAULT_REPOSITORY_NAME);
-  let customRepositoryLocation = $state("");
-  let godotProjectLocation = $state("");
+  let customRepositoryLocation = $state<string | null>(null);
+  let godotProjectLocation = $state<string | null>(null);
   let useCustomLocation = $state(false);
   let createButtonEnabled = $derived(
-    godotProjectLocation !== "" || customRepositoryLocation !== ""
+    godotProjectLocation !== null || customRepositoryLocation !== null
   );
 
   async function handleClickRepositoryLocation() {
@@ -44,38 +45,34 @@
   }
 
   function handleCustomLocationCheck() {
-    godotProjectLocation = "";
-    customRepositoryLocation = "";
+    godotProjectLocation = null;
+    customRepositoryLocation = null;
   }
 
   function handleClickBack() {
     view = "main";
     name = DEFAULT_REPOSITORY_NAME;
     useCustomLocation = false;
-    godotProjectLocation = "";
-    customRepositoryLocation = "";
+    godotProjectLocation = null;
+    customRepositoryLocation = null;
   }
 
-  function handleClickCreate() {
-    if (godotProjectLocation !== "") {
-      const repositoryData: Repository = {
-        id: crypto.randomUUID(),
-        name: name,
-        location: godotProjectLocation,
-        godotProjectLocation,
-        createdOn: new Date().toLocaleString(),
-        appVersion: APP_VERSION,
-        formatVersion: FORMAT_VERSION
-      };
-    } else {
-      const repositoryData: Repository = {
-        id: crypto.randomUUID(),
-        name: name,
-        location: godotProjectLocation,
-        createdOn: new Date().toLocaleString(),
-        appVersion: APP_VERSION,
-        formatVersion: FORMAT_VERSION
-      };
+  async function handleClickCreate() {
+    const repository: Repository = {
+      id: crypto.randomUUID(),
+      name: name,
+      location: godotProjectLocation,
+      godotProjectLocation: godotProjectLocation,
+      createdOn: new Date().toLocaleString(),
+      appVersion: APP_VERSION,
+      formatVersion: FORMAT_VERSION
+    };
+
+    try {
+      await window.api.createRepository(repository);
+      setRepository(repository);
+    } catch (error) {
+      alert("Failed to create repository.");
     }
   }
 </script>
@@ -97,7 +94,7 @@
           <div class="view-item">
             <div class="project-location">
               <h5>Name</h5>
-              {#if customRepositoryLocation === ""}
+              {#if customRepositoryLocation === null}
                 <p>Set a custom name for the repository.</p>
               {:else}
                 <p>{customRepositoryLocation}</p>
@@ -108,7 +105,7 @@
           <div class="view-item {useCustomLocation ? 'disabled' : ''}">
             <div class="godot-project-directory">
               <h5>Godot Project Location</h5>
-              {#if godotProjectLocation === ""}
+              {#if godotProjectLocation === null}
                 <p>
                   Will also be the location of your repository unless you're using a custom one.
                 </p>
@@ -132,7 +129,7 @@
                 />
                 <h5>Custom Location</h5>
               </header>
-              {#if customRepositoryLocation === ""}
+              {#if customRepositoryLocation === null}
                 <p>In case you don't have a Godot project. Some features will be inaccessible.</p>
               {:else}
                 <p>{customRepositoryLocation}</p>

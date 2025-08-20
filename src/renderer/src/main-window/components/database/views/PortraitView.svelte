@@ -6,7 +6,7 @@
   import type { Portrait } from "../../../../../../shared/types";
 
   import { useDb, addEntity } from "../../../../stores/dbStore.svelte";
-  import { useProject } from "../../../../stores/projectStore.svelte";
+  import { useRepository } from "../../../../stores/repositoryStore.svelte";
   import { modal, fulfillModal } from "../../../../stores/dbModal.svelte";
 
   type ImageMetaData = {
@@ -23,14 +23,14 @@
   const PORTRAIT_SIZE = 100;
 
   let db = useDb();
-  const project = useProject();
+  const repository = useRepository();
 
   let imageMetaData = $state<ImageMetaData>(null);
   let newPortraitName = $state("");
   const selectedPortrait = $derived(db.portraits.find((p) => p.id === db.selectedId));
 
   async function setImageMetaData(): Promise<void> {
-    imageMetaData = await window.api.selectImage(project.dir);
+    imageMetaData = await window.api.selectImage(repository.godotProjectLocation);
   }
 
   function addPortrait(): void {
@@ -38,13 +38,13 @@
       return;
     }
 
-    if (!project.dir) {
-      alert("You must set a project directory before you can add a portrait.");
+    if (!repository.godotProjectLocation) {
+      alert("You must set a godot project directory before you can add a portrait.");
       return;
     }
 
-    if (!imageMetaData.path.startsWith(project.dir)) {
-      alert("The image is not contained in the project directory.");
+    if (!imageMetaData.path.startsWith(repository.godotProjectLocation)) {
+      alert("The image is not contained in the godot project directory.");
       return;
     }
 

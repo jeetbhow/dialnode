@@ -16,8 +16,10 @@
   <Titlebar {view} />
   {#if view === "project"}
     <RepositoryWindowView />
-  {:else}
+  {:else if view === "main"}
     <MainWindowView />
+  {:else}
+    {console.error(`Invalid view passed from the main process: ${view}`)}
   {/if}
 </div>
 

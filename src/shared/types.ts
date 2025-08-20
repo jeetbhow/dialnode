@@ -5,7 +5,7 @@ export type Repository = {
   id: string;
   name: string;
   location: string;
-  godotProjectLocation?: string;
+  godotProjectLocation: string | null;
   createdOn: string;
   appVersion: string;
   formatVersion: string;

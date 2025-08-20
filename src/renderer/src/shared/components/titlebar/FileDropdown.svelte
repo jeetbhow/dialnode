@@ -1,14 +1,8 @@
 <script lang="ts">
   import { clickOutside } from "../../attachments/attachments";
   import { dialogues } from "../../../stores/dialogueStore.svelte";
-  import { setProjectDirectory } from "../../../stores/projectStore.svelte";
 
   let open = $state(false);
-
-  async function handleClickNewProject(): Promise<void> {
-    const projectDir = await window.api.selectDirectory();
-    setProjectDirectory(projectDir);
-  }
 
   function handleSave() {
     dialogues.saveToDb();
@@ -19,12 +13,6 @@
   <button onclick={() => (open = !open)} {@attach clickOutside(() => (open = false))}>File</button>
   {#if open}
     <ul class="dropdown-menu">
-      <li>
-        <button onclick={handleClickNewProject}>New Project</button>
-      </li>
-      <li>
-        <button onclick={handleClickNewProject}>Open Project</button>
-      </li>
       <li>
         <button>New Dialogue</button>
       </li>

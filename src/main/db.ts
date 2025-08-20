@@ -1,4 +1,6 @@
-import Database from "better-sqlite3";
+import sqlite from "better-sqlite3";
+import { join } from "path";
+
 import type {
   Portrait,
   Speaker,
@@ -9,11 +11,18 @@ import type {
   SerializedDialogueEdge
 } from "../shared/types";
 
-const db = new Database("db.sqlite");
+const ERROR_MSG = "Database does not exist.";
 
-db.pragma("foreign_keys = ON");
+let db: sqlite.Database | null = null;
 
-db.exec(`
+export function dbExists(): boolean {
+  return db !== null;
+}
+
+export function createDb(path: string): void {
+  db = new sqlite(join(path, "db.sqlite"));
+  db.pragma("foreign_keys = ON");
+  db.exec(`
     CREATE TABLE IF NOT EXISTS dialogues (
       id TEXT PRIMARY KEY,
       name TEXT
@@ -71,14 +80,17 @@ db.exec(`
         FOREIGN KEY (categoryId) REFERENCES skillCategories(id) ON DELETE CASCADE
     );
 `);
-
-export function closeDb(): void {
-  db.close();
 }
 
-// Assumes better-sqlite3-style API: db.prepare(...), db.transaction(...), db.pragma(...)
+export function closeDb(): void {
+  if (db !== null) db.close();
+}
 
 export function saveDialogues(dialogues: SerializedDialogue[]): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   const deleteAllDialogues = db.prepare(`DELETE FROM dialogues`);
 
   const insertDialogue = db.prepare(`
@@ -149,6 +161,10 @@ export function getAllDialogues(): Array<{
   nodes: SerializedDialogueNode[];
   edges: SerializedDialogueEdge[];
 }> {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   const dialogues = db.prepare(`SELECT id, name FROM dialogues`).all() as SerializedDialogue[];
   const getNodes = db.prepare(`SELECT * FROM nodes WHERE dialogueId = ?`);
   const getEdges = db.prepare(`SELECT * FROM edges WHERE dialogueId = ?`);
@@ -162,6 +178,10 @@ export function getAllDialogues(): Array<{
 
 // --- Portraits CRUD ---
 export function createPortrait(portrait: Portrait): void {
+  if (db === null) {
+    return;
+  }
+
   const stmt = db.prepare(`INSERT INTO portraits (
       id,
       name,
@@ -188,15 +208,26 @@ export function createPortrait(portrait: Portrait): void {
 }
 
 export function getAllPortraits(): Portrait[] {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
   return db.prepare(`SELECT * FROM portraits`).all() as Portrait[];
 }
 
 export function deletePortrait(id: string): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`DELETE FROM portraits WHERE id = ?`).run(id);
 }
 
 // --- Speakers CRUD ---
 export function createSpeaker(speaker: Speaker): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`INSERT INTO speakers (id, kind, name) VALUES (?, ?, ?)`).run(
     speaker.id,
     speaker.kind,
@@ -205,15 +236,27 @@ export function createSpeaker(speaker: Speaker): void {
 }
 
 export function getAllSpeakers(): Speaker[] {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   return db.prepare(`SELECT * FROM speakers`).all() as Speaker[];
 }
 
 export function deleteSpeaker(id: string): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`DELETE FROM speakers WHERE id = ?`).run(id);
 }
 
 // --- Skill Categories CRUD ---
 export function createSkillCategory(category: SkillCategory): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`INSERT INTO skillCategories (id, kind, name) VALUES (?, ?, ?)`).run(
     category.id,
     category.kind,
@@ -222,15 +265,27 @@ export function createSkillCategory(category: SkillCategory): void {
 }
 
 export function getAllSkillCategories(): SkillCategory[] {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   return db.prepare(`SELECT * FROM skillCategories`).all() as SkillCategory[];
 }
 
 export function deleteSkillCategory(id: string): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`DELETE FROM skillCategories WHERE id = ?`).run(id);
 }
 
 // --- Skills CRUD ---
 export function createSkill(skill: Skill): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`INSERT INTO skills (id, kind, categoryId, name) VALUES (?, ?, ?, ?)`).run(
     skill.id,
     skill.kind,
@@ -240,9 +295,17 @@ export function createSkill(skill: Skill): void {
 }
 
 export function getAllSkills(): Skill[] {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   return db.prepare(`SELECT * FROM skills`).all() as Skill[];
 }
 
 export function deleteSkill(id: string): void {
+  if (db === null) {
+    throw new Error(ERROR_MSG);
+  }
+
   db.prepare(`DELETE FROM skills WHERE id = ?`).run(id);
 }

@@ -1,6 +1,15 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
-import { Portrait, SerializedDialogue, Skill, SkillCategory, Speaker, type ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions } from "../shared/types";
+import {
+  Portrait,
+  SerializedDialogue,
+  Skill,
+  SkillCategory,
+  Speaker,
+  type ElectronSelectDirectoryOptions,
+  type ExtraSelectDirectoryOptions,
+  type Repository
+} from "../shared/types";
 
 // Custom APIs for renderer
 const api = {
@@ -28,6 +37,7 @@ const api = {
   // File
   selectImage: async (projectDir: string) => await ipcRenderer.invoke("select-image", projectDir),
   selectDirectory: async (options: ElectronSelectDirectoryOptions, extraOptions?: ExtraSelectDirectoryOptions) => await ipcRenderer.invoke("select-directory", options, extraOptions),
+  createRepository: async (repository: Repository) => await ipcRenderer.invoke("create-repository", repository),
   exportJson: async (data: Record<string, unknown>[]) => await ipcRenderer.invoke("export-json", data),
 };
 

@@ -13,7 +13,9 @@ import {
   getAllSkills,
   createSkill,
   deleteSkill,
-  getAllDialogues
+  getAllDialogues,
+  createDb,
+  dbExists
 } from "./db";
 
 import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
@@ -22,10 +24,10 @@ import icon from "../../resources/icon.png?asset";
 
 import { join, basename, extname, relative } from "path";
 import { readFileSync } from "fs";
-import { stat } from "fs/promises";
+import { stat, mkdir } from "fs/promises";
 
 import { imageSize } from "image-size";
-import { SerializedDialogue, ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions } from "../shared/types";
+import { SerializedDialogue, ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions, type Repository } from "../shared/types";
 
 function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
@@ -139,6 +141,19 @@ ipcMain.handle("select-image", async (_event, projectDir: string) => {
   };
 });
 
+ipcMain.handle("create-repository", async (_event, repository: Repository) => {
+  const path = join(repository.location, repository.name);
+  try {
+    await mkdir(path);
+    createDb(path);
+    const repositoryWindow = BrowserWindow.getFocusedWindow();
+    repositoryWindow?.close();
+    createMainWindow();
+  } catch (error) {
+    throw new Error("Failed to create the repository.");
+  }
+});
+
 ipcMain.handle("select-directory", async (
   _event,
   options: ElectronSelectDirectoryOptions,
@@ -182,7 +197,7 @@ ipcMain.on("window-close", () => {
   BrowserWindow.getFocusedWindow()?.close();
 });
 
-function createWindow(): void {
+function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
@@ -207,14 +222,14 @@ function createWindow(): void {
   });
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+    mainWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}?view=main`);
   } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    mainWindow.loadFile(join(__dirname, "../renderer/index.html"), { query: { view: "main" } });
   }
 }
 
 function createRepositoryWindow() {
-  const mainWindow = new BrowserWindow({
+  const repositoryWindow = new BrowserWindow({
     width: 800,
     height: 700,
     show: false,
@@ -228,19 +243,19 @@ function createRepositoryWindow() {
     }
   });
 
-  mainWindow.on("ready-to-show", () => {
-    mainWindow.show();
+  repositoryWindow.on("ready-to-show", () => {
+    repositoryWindow.show();
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  repositoryWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
     return { action: "deny" };
   });
 
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-    mainWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}?view=project`);
+    repositoryWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}?view=project`);
   } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"), { query: { view: "project" } });
+    repositoryWindow.loadFile(join(__dirname, "../renderer/index.html"), { query: { view: "project" } });
   }
 }
 
@@ -268,5 +283,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  closeDb();
+  if (dbExists()) {
+    closeDb();
+  }
 });

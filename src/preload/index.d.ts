@@ -1,5 +1,5 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
-import type { Skill, SkillCategory, Speaker, Portrait, SerializedDialogue, ElectronSelectDirectoryOptions, ExtraSelectDirectoryOptions } from "../shared/types";
+import type { Skill, SkillCategory, Speaker, Portrait, SerializedDialogue, ElectronSelectDirectoryOptions, ExtraSelectDirectoryOptions, Repository } from "../shared/types";
 
 type ImageMetaData = {
   dataURL: string;
@@ -34,6 +34,7 @@ interface AppApi {
 
   selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
   selectDirectory: (options: ElectronSelectDirectoryOptions, extraOptions?: ExtraSelectDirectoryOptions) => Promise<string | null>;
+  createRepository: (repository: Repository) => Promise<void>;
   exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;
 }
 
