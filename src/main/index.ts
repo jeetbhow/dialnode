@@ -24,7 +24,7 @@ import icon from "../../resources/icon.png?asset";
 
 import { join, basename, extname, relative } from "path";
 import { readFileSync } from "fs";
-import { stat, mkdir } from "fs/promises";
+import { stat, mkdir, writeFile, rm } from "fs/promises";
 
 import { imageSize } from "image-size";
 import { SerializedDialogue, ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions, type Repository } from "../shared/types";
@@ -142,14 +142,18 @@ ipcMain.handle("select-image", async (_event, projectDir: string) => {
 });
 
 ipcMain.handle("create-repository", async (_event, repository: Repository) => {
-  const path = join(repository.location, repository.name);
+  const repositoryPath = join(repository.location, repository.name);
   try {
-    await mkdir(path);
-    createDb(path);
+    await mkdir(repositoryPath);
+    createDb(repositoryPath);
+    await writeFile(join(repositoryPath, "manifest.json"), JSON.stringify(repository));
+
     const repositoryWindow = BrowserWindow.getFocusedWindow();
     repositoryWindow?.close();
+
     createMainWindow();
   } catch (error) {
+    await rm(repositoryPath, { force: true });
     throw new Error("Failed to create the repository.");
   }
 });

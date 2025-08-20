@@ -138,8 +138,10 @@
             <button
               class="secondary-btn"
               onclick={handleClickRepositoryLocation}
-              disabled={!useCustomLocation}>Browse</button
+              disabled={!useCustomLocation}
             >
+              Browse
+            </button>
           </div>
         </div>
         <button
