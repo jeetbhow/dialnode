@@ -1,26 +1,36 @@
 <script lang="ts">
-  import { clickOutside } from "../../attachments/attachments";
-  import { modal } from "../../../stores/dbModal.svelte";
-  import { dialogues } from "../../../stores/dialogueStore.svelte";
+  import { clickOutside } from "../shared/attachments/attachments";
+  import { dialogues } from "../stores/dialogueStore.svelte";
 
   let open = $state(false);
+
+  function handleClickSave() {
+    dialogues.saveToDb();
+  }
+
+  function handleClickManageRepositories() {
+    window.api.createRepositoryWindow();
+  }
 </script>
 
 <div class="dropdown">
-  <button onclick={() => (open = !open)} {@attach clickOutside(() => (open = false))}>Edit</button>
+  <button onclick={() => (open = !open)} {@attach clickOutside(() => (open = false))}>File</button>
   {#if open}
     <ul class="dropdown-menu">
       <li>
-        <button onclick={() => dialogues.add()}>Add Dialogue</button>
+        <button onclick={handleClickManageRepositories}>Manage Repositories</button>
       </li>
       <li>
-        <button onclick={() => (dialogues.editing = true)}>Rename Dialogue</button>
+        <button onclick={handleClickSave}>Save</button>
       </li>
       <li>
-        <button onclick={() => dialogues.removeSelected()}>Remove Dialogue</button>
+        <button>Save As...</button>
       </li>
       <li>
-        <button onclick={() => (modal.open = true)}>Open Database</button>
+        <button>Export</button>
+      </li>
+      <li>
+        <button>Exit</button>
       </li>
     </ul>
   {/if}

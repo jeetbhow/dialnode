@@ -15,6 +15,7 @@ interface AppApi {
   minimize: () => void;
   maximize: () => void;
   close: () => void;
+  createRepositoryWindow: () => void;
 
   waitForRepo: () => Promise<Repository>;
 

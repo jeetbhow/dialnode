@@ -68,10 +68,12 @@
   }
 
   async function handleClickCreate() {
+    const location = godotProjectLocation ?? customRepositoryLocation;
+
     const repository: Repository = {
       id: crypto.randomUUID(),
       name: name,
-      location: godotProjectLocation,
+      location,
       godotProjectLocation: godotProjectLocation,
       createdOn: new Date().toLocaleString(),
       appVersion: APP_VERSION,

@@ -178,8 +178,10 @@ ipcMain.handle("open-repository", async (_event): Promise<void> => {
 
   connectDb(dbPath);
 
-  const repositoryWindow = BrowserWindow.getFocusedWindow();
-  repositoryWindow?.close();
+  const windows = BrowserWindow.getAllWindows();
+  for (const window of windows) {
+    window.close();
+  }
   createMainWindow(repository);
 });
 
@@ -190,8 +192,10 @@ ipcMain.handle("create-repository", async (_event, repository: Repository) => {
     createDb(repositoryPath);
     await writeFile(join(repositoryPath, "manifest.dial"), JSON.stringify(repository));
 
-    const repositoryWindow = BrowserWindow.getFocusedWindow();
-    repositoryWindow?.close();
+    const windows = BrowserWindow.getAllWindows();
+    for (const window of windows) {
+      window.close();
+    }
 
     createMainWindow(repository);
   } catch (error) {
@@ -225,6 +229,10 @@ ipcMain.handle("select-directory", async (
   }
 
   return filePaths[0];
+});
+
+ipcMain.on("open-repository-window", async () => {
+  createRepositoryWindow();
 });
 
 function createMainWindow(repository: Repository): void {
@@ -264,8 +272,8 @@ function createMainWindow(repository: Repository): void {
 
 function createRepositoryWindow() {
   const repositoryWindow = new BrowserWindow({
-    width: 800,
-    height: 700,
+    width: 750,
+    height: 750,
     show: false,
     frame: false,
     titleBarStyle: "hidden",

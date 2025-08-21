@@ -23,6 +23,9 @@ const api = {
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
   close: () => ipcRenderer.send("window-close"),
+  createRepositoryWindow: (): void => {
+    ipcRenderer.send("open-repository-window");
+  },
 
   waitForRepo: (): Promise<Repository> => {
     if (latestRepo) {

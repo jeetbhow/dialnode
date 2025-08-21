@@ -1,32 +1,26 @@
 <script lang="ts">
-  import { clickOutside } from "../../attachments/attachments";
-  import { dialogues } from "../../../stores/dialogueStore.svelte";
+  import { clickOutside } from "../shared/attachments/attachments";
+  import { modal } from "../stores/dbModal.svelte";
+  import { dialogues } from "../stores/dialogueStore.svelte";
 
   let open = $state(false);
-
-  function handleSave() {
-    dialogues.saveToDb();
-  }
 </script>
 
 <div class="dropdown">
-  <button onclick={() => (open = !open)} {@attach clickOutside(() => (open = false))}>File</button>
+  <button onclick={() => (open = !open)} {@attach clickOutside(() => (open = false))}>Edit</button>
   {#if open}
     <ul class="dropdown-menu">
       <li>
-        <button>New Dialogue</button>
+        <button onclick={() => dialogues.add()}>Add Dialogue</button>
       </li>
       <li>
-        <button onclick={handleSave}>Save</button>
+        <button onclick={() => (dialogues.editing = true)}>Rename Dialogue</button>
       </li>
       <li>
-        <button>Save As...</button>
+        <button onclick={() => dialogues.removeSelected()}>Remove Dialogue</button>
       </li>
       <li>
-        <button>Export</button>
-      </li>
-      <li>
-        <button>Exit</button>
+        <button onclick={() => (modal.open = true)}>Open Database</button>
       </li>
     </ul>
   {/if}
