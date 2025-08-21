@@ -1,10 +1,6 @@
 import type { Repository } from "../../../shared/types";
 
-const repository = $state<Repository>(null);
-
-export function setRepository(repository: Repository) {
-  repository = repository;
-}
+let repository = $state<Repository>(null);
 
 export function setGodotProjectLocation(location: string): void {
   repository.godotProjectLocation = location;
@@ -12,4 +8,8 @@ export function setGodotProjectLocation(location: string): void {
 
 export function useRepository(): Repository {
   return repository;
+}
+
+export async function fetchRepository() {
+  repository = await window.api.waitForRepo();
 }

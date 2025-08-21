@@ -23,7 +23,7 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from "electron";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 
-import { join, dirname, basename, extname, relative } from "path";
+import { join, basename, extname, relative } from "path";
 import { readFileSync } from "fs";
 import { stat, mkdir, writeFile, rm, readFile } from "fs/promises";
 
@@ -50,6 +50,23 @@ function getMimeType(filePath: string): string {
       return "application/octet-stream";
   }
 }
+
+// Titlebar operations
+ipcMain.on("window-minimize", () => {
+  BrowserWindow.getFocusedWindow()?.minimize();
+});
+
+ipcMain.on("window-maximize", () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (win) {
+    win.isMaximized() ? win.unmaximize() : win.maximize();
+  }
+});
+
+ipcMain.on("window-close", () => {
+  BrowserWindow.getFocusedWindow()?.close();
+});
+
 
 ipcMain.handle("save-dialogues", async (_event, dialogues: SerializedDialogue[]) => {
   return saveDialogues(dialogues);
@@ -142,7 +159,7 @@ ipcMain.handle("select-image", async (_event, projectDir: string) => {
   };
 });
 
-ipcMain.handle("open-repository", async (_event): Promise<Repository | null> => {
+ipcMain.handle("open-repository", async (_event): Promise<void> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: "Open Repository",
     buttonLabel: "Select Folder",
@@ -151,7 +168,7 @@ ipcMain.handle("open-repository", async (_event): Promise<Repository | null> => 
   });
 
   if (canceled || !filePaths) {
-    return null;
+    return;
   }
 
   // TODO Add error handling for this later.
@@ -163,9 +180,7 @@ ipcMain.handle("open-repository", async (_event): Promise<Repository | null> => 
 
   const repositoryWindow = BrowserWindow.getFocusedWindow();
   repositoryWindow?.close();
-  createMainWindow();
-
-  return repository;
+  createMainWindow(repository);
 });
 
 ipcMain.handle("create-repository", async (_event, repository: Repository) => {
@@ -178,7 +193,7 @@ ipcMain.handle("create-repository", async (_event, repository: Repository) => {
     const repositoryWindow = BrowserWindow.getFocusedWindow();
     repositoryWindow?.close();
 
-    createMainWindow();
+    createMainWindow(repository);
   } catch (error) {
     await rm(repositoryPath, { force: true });
     throw new Error("Failed to create the repository.");
@@ -212,23 +227,7 @@ ipcMain.handle("select-directory", async (
   return filePaths[0];
 });
 
-// Titlebar operations
-ipcMain.on("window-minimize", () => {
-  BrowserWindow.getFocusedWindow()?.minimize();
-});
-
-ipcMain.on("window-maximize", () => {
-  const win = BrowserWindow.getFocusedWindow();
-  if (win) {
-    win.isMaximized() ? win.unmaximize() : win.maximize();
-  }
-});
-
-ipcMain.on("window-close", () => {
-  BrowserWindow.getFocusedWindow()?.close();
-});
-
-function createMainWindow(): void {
+function createMainWindow(repository: Repository): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 900,
@@ -257,6 +256,10 @@ function createMainWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"), { query: { view: "main" } });
   }
+
+  mainWindow.webContents.on("did-finish-load", () => {
+    mainWindow.webContents.send("repository-opened", repository);
+  });
 }
 
 function createRepositoryWindow() {

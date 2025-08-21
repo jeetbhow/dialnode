@@ -16,6 +16,8 @@ interface AppApi {
   maximize: () => void;
   close: () => void;
 
+  waitForRepo: () => Promise<Repository>;
+
   saveDialogues: (dialogues: SerializedDialogue[]) => Promise<void>;
   getAllDialogues: () => Promise<SerializedDialogue[]>;
 
@@ -35,7 +37,7 @@ interface AppApi {
   selectImage: (projectDir: string) => Promise<ImageMetaData | null>;
   selectDirectory: (options: ElectronSelectDirectoryOptions, extraOptions?: ExtraSelectDirectoryOptions) => Promise<string | null>;
   createRepository: (repository: Repository) => Promise<void>;
-  openRepository: () => Promise<Repository>;
+  openRepository: () => Promise<void>;
   exportJson: (data: Record<string, unknown>[]) => Promise<boolean>;
 }
 

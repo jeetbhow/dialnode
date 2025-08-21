@@ -37,6 +37,7 @@
   import type { DialogueNode, DialogueNodeData } from "../../../shared/types";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "../utils/utils";
   import { nodeButtons } from "../utils/buttons";
+  import { fetchRepository } from "../stores/repositoryStore.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -58,6 +59,7 @@
   };
 
   onMount(async () => {
+    await fetchRepository();
     await loadSpeakersFromDb();
     await loadPortraitsFromDb();
     await loadSkillsFromDb();

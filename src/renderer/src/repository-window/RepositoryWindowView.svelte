@@ -5,7 +5,6 @@
   import { APP_VERSION, FORMAT_VERSION } from "../shared/utils/appVariables";
   import BackArrow from "../shared/components/icons/BackArrow.svelte";
   import type { Repository } from "../../../shared/types";
-  import { setRepository } from "../stores/repositoryStore.svelte";
 
   const BACK_ARROW_SIZE = 18;
   const DEFAULT_REPOSITORY_NAME = ".dialnode";
@@ -62,9 +61,7 @@
 
   async function handleClickOpen() {
     try {
-      const repository = await window.api.openRepository();
-      setRepository(repository);
-      console.log(repository);
+      await window.api.openRepository();
     } catch (error) {
       alert("Failed to create repository");
     }
@@ -83,7 +80,6 @@
 
     try {
       await window.api.createRepository(repository);
-      setRepository(repository);
     } catch (error) {
       alert("Failed to create repository.");
     }

@@ -14,17 +14,17 @@
 
 <div>
   <button
-    disabled={modal.request?.type !== "portrait"}
+    disabled={modal.request && modal.request.type !== "portrait"}
     class:selected={selected === "portrait"}
     onclick={() => handleSelect("portrait")}>Portrait</button
   >
   <button
-    disabled={modal.request.type !== "speaker"}
+    disabled={modal.request && modal.request.type !== "speaker"}
     class:selected={selected === "speaker"}
     onclick={() => handleSelect("speaker")}>Speaker</button
   >
   <button
-    disabled={modal.request?.type === "skill"}
+    disabled={modal.request && modal.request.type !== "skill"}
     class:selected={selected === "skill"}
     onclick={() => handleSelect("skill")}>Skill</button
   >

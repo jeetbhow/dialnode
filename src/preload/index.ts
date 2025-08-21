@@ -11,12 +11,29 @@ import {
   type Repository
 } from "../shared/types";
 
+let latestRepo: Repository | null = null;
+
+ipcRenderer.on("repository-opened", (_evt, repo: Repository) => {
+  latestRepo = repo;
+});
+
 // Custom APIs for renderer
 const api = {
   // Window
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
   close: () => ipcRenderer.send("window-close"),
+
+  waitForRepo: (): Promise<Repository> => {
+    if (latestRepo) {
+      return Promise.resolve(latestRepo);
+    } else {
+      return new Promise(resolve => ipcRenderer.once(
+        "repository-opened",
+        (_e, repo: Repository) => resolve(repo))
+      );
+    }
+  },
 
   // DB
   getAllDialogues: async () => await ipcRenderer.invoke("get-all-dialogues"),
