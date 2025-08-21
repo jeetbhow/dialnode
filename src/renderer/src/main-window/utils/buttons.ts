@@ -1,7 +1,6 @@
 import { dialogues } from "../stores/dialogueStore.svelte";
-import type { Button } from "../../../shared/types";
 
-export const nodeButtons: Button[] = [
+export const nodeButtons = [
   {
     text: "+ Start",
     onClick: dialogues.addStartNode

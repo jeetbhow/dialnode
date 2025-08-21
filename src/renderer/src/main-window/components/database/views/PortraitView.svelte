@@ -5,9 +5,9 @@
   import "./views.css";
   import type { Portrait } from "../../../../../../shared/types";
 
-  import { useDb, addEntity } from "../../../../stores/dbStore.svelte";
-  import { useRepository } from "../../../../stores/repositoryStore.svelte";
-  import { modal, fulfillModal } from "../../../../stores/dbModal.svelte";
+  import { useDb, addEntity } from "../../../stores/dbStore.svelte";
+  import { useRepository } from "../../../stores/repositoryStore.svelte";
+  import { modal, fulfillModal } from "../../../stores/dbModal.svelte";
 
   type ImageMetaData = {
     dataURL: string;

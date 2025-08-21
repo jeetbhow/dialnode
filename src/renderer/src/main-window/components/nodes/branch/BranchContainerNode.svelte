@@ -3,11 +3,10 @@
   import Cross from "../../../../shared/components/icons/Cross.svelte";
   import Plus from "../../../../shared/components/icons/Plus.svelte";
 
-
   import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
-  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../../utils/utils";
-  import { useDb } from "../../../../stores/dbStore.svelte";
-  import { dialogues } from "../../../../stores/dialogueStore.svelte";
+  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../utils/utils";
+  import { useDb } from "../../../stores/dbStore.svelte";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 24;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";

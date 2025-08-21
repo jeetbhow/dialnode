@@ -1,4 +1,4 @@
-import { Node, Edge } from "@xyflow/svelte";
+import { Node, Edge, type CoordinateExtent } from "@xyflow/svelte";
 import { FileFilter } from "electron";
 
 export type Repository = {
@@ -57,7 +57,7 @@ export type Button = {
 export type Dialogue = {
   id: string;
   name: string;
-  nodes: DialogueNode<DialogueNodeData>[];
+  nodes: DialogueNode<any>[];
   edges: Edge[];
 };
 
@@ -103,45 +103,47 @@ export type SerializedDialogueEdge = {
 export interface DialogueNode<T extends Object> extends Node<T> {
   id: string;
   parentId?: string;
-  extent?: "parent";
+  extent?: "parent",
   type: DialogueNodeType;
   position: { x: number; y: number; };
-  data: T & DialogueNodeData;
+  data: T;
 }
 
-export interface DialogueNodeData extends Record<string, unknown> {
-  next?: string;
-  speaker?: Speaker;
-  portrait?: Portrait;
-  text?: string;
-  skill?: Skill;
-  difficulty?: number;
+export interface StartNodeData extends Record<string, unknown> {
+  next: string;
 }
 
-export interface TextNodeData extends DialogueNodeData {
+export interface TextNodeData extends Record<string, unknown> {
   speaker?: Speaker;
   portrait?: Portrait;
   text: string;
-  next?: string;
+  next: string | null;
 }
 
-export interface Branch extends DialogueNodeData {
+export interface BranchContainerNodeData extends Record<string, unknown> {
+  next: string[];
+}
+
+export interface BranchNodeData extends Record<string, unknown> {
   text: string;
-  next?: string;
+  next: string | null;
 }
 
-export interface SkillCheck extends DialogueNodeData {
+export interface SkillCheckNodeData extends Record<string, unknown> {
   text: string;
   skill: Skill;
   difficulty: number;
-  next?: string;
+  next: string | null;
 }
 
-export type EndNodeType = DialogueNode<TextNodeData>;
-export type StartNodeType = DialogueNode<DialogueNodeData>;
+export interface EndNodeData extends Record<string, unknown> { }
+
+export type EndNodeType = DialogueNode<EndNodeData>;
+export type StartNodeType = DialogueNode<StartNodeData>;
 export type TextNodeType = DialogueNode<TextNodeData>;
-export type BranchNodeType = DialogueNode<Branch>;
-export type SkillCheckNodeType = DialogueNode<SkillCheck>;
+export type BranchContainerNodeType = DialogueNode<BranchContainerNodeData>;
+export type BranchNodeType = DialogueNode<BranchNodeData>;
+export type SkillCheckNodeType = DialogueNode<SkillCheckNodeData>;
 
 export type ElectronSelectDirectoryOptions = {
   title?: string;

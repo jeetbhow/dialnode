@@ -4,8 +4,8 @@
   import "./views.css";
   import type { Speaker } from "../../../../../../shared/types";
 
-  import { useDb, addEntity } from "../../../../stores/dbStore.svelte";
-  import { modal, fulfillModal } from "../../../../stores/dbModal.svelte";
+  import { useDb, addEntity } from "../../../stores/dbStore.svelte";
+  import { modal, fulfillModal } from "../../../stores/dbModal.svelte";
 
   const db = useDb();
 

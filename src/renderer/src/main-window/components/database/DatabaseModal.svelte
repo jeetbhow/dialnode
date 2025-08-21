@@ -6,8 +6,8 @@
 
   import type { DbEntityKind } from "../../../../../shared/types";
 
-  import { modal, cancelModal } from "../../../stores/dbModal.svelte";
-  import { useRepository } from "../../../stores/repositoryStore.svelte";
+  import { modal, cancelModal } from "../../stores/dbModal.svelte";
+  import { useRepository } from "../../stores/repositoryStore.svelte";
   import SkillView from "./views/SkillView.svelte";
 
   const repository = useRepository();

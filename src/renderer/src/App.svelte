@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Titlebar from "./titlebar/Titlebar.svelte";
+  import Titlebar from "./titlebar/components/Titlebar.svelte";
   import MainWindowView from "./main-window/MainWindowView.svelte";
   import RepositoryWindowView from "./repository-window/RepositoryWindowView.svelte";
 

@@ -7,8 +7,8 @@
   import Minus from "../../../../shared/components/icons/Minus.svelte";
 
   import type { DbEntityKind, TextNodeType } from "../../../../../../shared/types";
-  import { requestModal } from "../../../../stores/dbModal.svelte";
-  import { dialogues } from "../../../../stores/dialogueStore.svelte";
+  import { requestModal } from "../../../stores/dbModal.svelte";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -39,7 +39,7 @@
         break;
     }
 
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   function removeData(type: DbEntityKind): void {
@@ -52,7 +52,7 @@
         break;
     }
 
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   function handleTextAreaChange(event: Event): void {
@@ -67,7 +67,7 @@
     }
     data.text = textarea.value;
 
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 </script>
 

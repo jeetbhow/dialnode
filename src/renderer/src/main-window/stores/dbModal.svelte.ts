@@ -1,4 +1,4 @@
-import type { DbEntity, DbEntityKind, Portrait, Skill, Speaker } from "../../../shared/types";
+import type { DbEntity, DbEntityKind, Portrait, Skill, Speaker } from "../../../../shared/types";
 
 type DbModalRequest = {
   type: DbEntityKind;

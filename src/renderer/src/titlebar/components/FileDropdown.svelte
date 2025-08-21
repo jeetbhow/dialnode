@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { clickOutside } from "../shared/attachments/attachments";
-  import { dialogues } from "../stores/dialogueStore.svelte";
+  import { clickOutside } from "../../shared/attachments/attachments";
+  import { dialogues } from "../../main-window/stores/dialogueStore.svelte";
+  import { filterNodeProps } from "../../main-window/utils/utils";
 
   let open = $state(false);
 
@@ -10,6 +11,10 @@
 
   function handleClickManageRepositories() {
     window.api.createRepositoryWindow();
+  }
+
+  function handleClickExport() {
+    const filteredNodes = filterNodeProps(dialogues.nodes);
   }
 </script>
 
@@ -24,10 +29,7 @@
         <button onclick={handleClickSave}>Save</button>
       </li>
       <li>
-        <button>Save As...</button>
-      </li>
-      <li>
-        <button>Export</button>
+        <button onclick={handleClickExport}>Export</button>
       </li>
       <li>
         <button>Exit</button>

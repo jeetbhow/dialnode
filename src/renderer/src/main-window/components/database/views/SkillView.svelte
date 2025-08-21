@@ -7,7 +7,7 @@
   import type { SkillCategory } from "../../../../../../shared/types";
 
   import { slide } from "svelte/transition";
-  import { useDb, addEntity } from "../../../../stores/dbStore.svelte";
+  import { useDb, addEntity } from "../../../stores/dbStore.svelte";
   import Cross from "../../../../shared/components/icons/Cross.svelte";
 
   const ICON_SIZE = 24;

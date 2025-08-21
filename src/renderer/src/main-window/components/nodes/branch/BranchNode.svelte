@@ -1,9 +1,9 @@
 <script lang="ts">
-import Cross from "../../../../shared/components/icons/Cross.svelte";
+  import Cross from "../../../../shared/components/icons/Cross.svelte";
 
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
   import type { BranchNodeType } from "../../../../../../shared/types";
-  import { dialogues } from "../../../../stores/dialogueStore.svelte";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -23,7 +23,7 @@ import Cross from "../../../../shared/components/icons/Cross.svelte";
       n.id === id ? { ...n, data: { ...n.data, name: newName } } : n
     );
 
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 </script>
 

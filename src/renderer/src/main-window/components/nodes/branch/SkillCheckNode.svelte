@@ -2,9 +2,9 @@
   import Cross from "../../../../shared/components/icons/Cross.svelte";
 
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
-  import { useDb } from "../../../../stores/dbStore.svelte";
+  import { useDb } from "../../../stores/dbStore.svelte";
   import type { SkillCheckNodeType } from "../../../../../../shared/types";
-  import { dialogues } from "../../../../stores/dialogueStore.svelte";
+  import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -29,7 +29,7 @@
       n.id === id ? { ...n, data: { ...n.data, difficulty: parseInt(target.value) } } : n
     );
 
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   function handleTextChange(e: Event): void {
@@ -39,7 +39,7 @@
       n.id === id ? { ...n, data: { ...n.data, text: target.value } } : n
     );
 
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   function deleteThisNode(): void {

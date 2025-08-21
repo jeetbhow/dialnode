@@ -1,4 +1,4 @@
-import type { Portrait, Speaker, SkillCategory, DbEntity } from "../../../shared/types";
+import type { Portrait, Speaker, SkillCategory, DbEntity } from "../../../../shared/types";
 
 type Database = {
   portraits: Portrait[];

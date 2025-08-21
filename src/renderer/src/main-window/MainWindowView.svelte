@@ -26,18 +26,23 @@
   import ButtonsContainer from "../shared/components/buttons/ButtonsContainer.svelte";
   import DatabaseModal from "./components/database/DatabaseModal.svelte";
 
-  import { modal } from "../stores/dbModal.svelte";
-  import { dialogues } from "../stores/dialogueStore.svelte";
+  import { modal } from "./stores/dbModal.svelte";
+  import { dialogues } from "./stores/dialogueStore.svelte";
   import {
     loadPortraitsFromDb,
     loadSkillsFromDb,
     loadSpeakersFromDb
-  } from "../stores/dbStore.svelte";
+  } from "./stores/dbStore.svelte";
 
-  import type { DialogueNode, DialogueNodeData } from "../../../shared/types";
-  import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "../utils/utils";
-  import { nodeButtons } from "../utils/buttons";
-  import { fetchRepository } from "../stores/repositoryStore.svelte";
+  import type {
+    BranchContainerNodeType,
+    DialogueNode,
+    StartNodeType,
+    TextNodeType
+  } from "../../../shared/types";
+  import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
+  import { nodeButtons } from "./utils/buttons";
+  import { fetchRepository } from "./stores/repositoryStore.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -67,12 +72,11 @@
   });
 
   function handleNodeDragStop(_: {
-    targetNode: DialogueNode<DialogueNodeData>;
-    nodes: DialogueNode<DialogueNodeData>[];
+    targetNode: DialogueNode<any>;
+    nodes: DialogueNode<any>[];
     event: MouseEvent | TouchEvent;
   }) {
-    // You can access the pointer event with event.event
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   function handleConnect(connection: Connection): void {
@@ -80,16 +84,29 @@
     const targetId = connection.target;
 
     const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
-    if (sourceNode.type === "branchContainer") {
-      return;
+
+    switch (sourceNode.type) {
+      case "branch":
+      case "skillCheck":
+        const branchContainer = dialogues.nodes.find(
+          (n) => n.id === sourceNode.parentId
+        ) as BranchContainerNodeType;
+        branchContainer.data.next.push(targetId);
+        break;
+      case "end":
+      case "branchContainer":
+        console.error("Source connection on end or branch container node is invalid state.");
+        break;
+      default:
+        const n = sourceNode as TextNodeType | StartNodeType;
+        n.data.next = targetId;
     }
 
-    const data = sourceNode.data as DialogueNodeData;
-    data.next = targetId;
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   function handleBeforeConnect(connection: Connection): Edge {
+    // Prevent connections to self.
     dialogues.edges = dialogues.edges.filter(
       (e) => e.source !== connection.source || e.sourceHandle !== connection.sourceHandle
     );
@@ -116,8 +133,8 @@
       return;
     }
 
-    const data = sourceNode.data as DialogueNodeData;
-    data.edges = dialogues.edges.filter((e) => e.id !== edge.id);
+    dialogues.edges = dialogues.edges.filter((e) => e.id !== edge.id);
+    dialogues.save();
   }
 </script>
 

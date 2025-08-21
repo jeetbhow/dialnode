@@ -8,7 +8,7 @@
   import Plus from "../../../../shared/components/icons/Plus.svelte";
 
   import type { SkillCategory, Skill } from "../../../../../../shared/types";
-  import { addEntity, deleteEntity } from "../../../../stores/dbStore.svelte";
+  import { addEntity, deleteEntity } from "../../../stores/dbStore.svelte";
 
   type Props = {
     category: SkillCategory;

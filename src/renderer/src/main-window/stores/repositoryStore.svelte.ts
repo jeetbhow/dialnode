@@ -1,4 +1,4 @@
-import type { Repository } from "../../../shared/types";
+import type { Repository } from "../../../../shared/types";
 
 let repository = $state<Repository>(null);
 

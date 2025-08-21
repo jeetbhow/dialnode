@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { clickOutside } from "../shared/attachments/attachments";
-  import { modal } from "../stores/dbModal.svelte";
-  import { dialogues } from "../stores/dialogueStore.svelte";
+  import { clickOutside } from "../../shared/attachments/attachments";
+  import { modal } from "../../main-window/stores/dbModal.svelte";
+  import { dialogues } from "../../main-window/stores/dialogueStore.svelte";
 
   let open = $state(false);
 </script>

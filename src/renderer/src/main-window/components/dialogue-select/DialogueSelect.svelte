@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from "svelte";
-  import { dialogues } from "../../../stores/dialogueStore.svelte";
+  import { dialogues } from "../../stores/dialogueStore.svelte";
 
   let inputRef: HTMLInputElement | null = $state(null);
   let newName = $derived(dialogues.get(dialogues.selectedIndex).name);

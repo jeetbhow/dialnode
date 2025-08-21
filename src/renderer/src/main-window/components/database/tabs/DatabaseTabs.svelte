@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { modal } from "../../../../stores/dbModal.svelte";
+  import { modal } from "../../../stores/dbModal.svelte";
 
   type Props = {
     selected: string;

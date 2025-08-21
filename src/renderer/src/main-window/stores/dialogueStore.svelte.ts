@@ -10,14 +10,15 @@ import type {
   TextNodeType,
   BranchNodeType,
   SkillCheckNodeType,
-  DialogueNodeData,
-  SerializedDialogue
-} from "../../../shared/types";
+  SerializedDialogue,
+  EndNodeType,
+  BranchContainerNodeType
+} from "../../../../shared/types";
 
 const db = useDb();
 
 class Dialogues {
-  public nodes = $state.raw<DialogueNode<DialogueNodeData>[]>([]);
+  public nodes = $state.raw<DialogueNode<any>[]>([]);
   public edges = $state.raw<Edge[]>([]);
 
   private _data = $state<Dialogue[]>([]);
@@ -64,7 +65,7 @@ class Dialogues {
   }
 
   public async saveToDb(): Promise<void> {
-    this.saveSelectedDialogue();
+    this.save();
     await window.api.saveDialogues(this.serialize());
   }
 
@@ -87,7 +88,7 @@ class Dialogues {
     }
   }
 
-  public saveSelectedDialogue(): void {
+  public save(): void {
     if (this._selectedIndex === null) {
       return;
     }
@@ -108,7 +109,7 @@ class Dialogues {
   }
 
   public selectDialogue(index: number): void {
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
     dialogues.selectedIndex = index;
     const { nodes, edges } = dialogues.get(index);
     this.nodes = nodes;
@@ -116,20 +117,21 @@ class Dialogues {
   }
 
   // TODO: Replace fixed-positions with drag and drop later on.
+  // TODO: Replace empty strings with nulls for next.
   public addStartNode(): void {
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
       position: { x: 0, y: 0 },
-      data: { next: "" }
+      data: { next: null }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   public addEndNode(): void {
-    const newNode: DialogueNode<DialogueNodeData> = {
+    const newNode: EndNodeType = {
       id: crypto.randomUUID(),
       type: "end",
       position: { x: 0, y: 0 },
@@ -137,7 +139,7 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   public addTextNode(): void {
@@ -152,22 +154,22 @@ class Dialogues {
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   public addBranchContainerNode(): void {
     const id = crypto.randomUUID();
-    const newNode: DialogueNode<DialogueNodeData> = {
+    const newNode: BranchContainerNodeType = {
       id,
       type: "branchContainer",
       position: { x: 0, y: 0 },
-      data: {},
+      data: { next: [] },
       width: BRANCH_NODE_INITIAL_WIDTH,
       height: BRANCH_NODE_INITIAL_HEIGHT
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   public addBranchNode(parentId: string): void {
@@ -177,11 +179,11 @@ class Dialogues {
       extent: "parent",
       type: "branch",
       position: { x: 0, y: 0 },
-      data: { text: "", name: "", next: "" }
+      data: { text: "", name: "", next: null }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   public addSkillCheckNode(parentId: string): void {
@@ -193,11 +195,11 @@ class Dialogues {
       extent: "parent",
       type: "skillCheck",
       position: { x: 0, y: 0 },
-      data: { text: "", skill, difficulty: 0, next: "" }
+      data: { text: "", skill, difficulty: 0, next: null }
     };
 
     dialogues.nodes = [...dialogues.nodes, newNode];
-    dialogues.saveSelectedDialogue();
+    dialogues.save();
   }
 
   public serialize(): SerializedDialogue[] {
