@@ -28,7 +28,13 @@ import { readFileSync } from "fs";
 import { stat, mkdir, writeFile, rm, readFile } from "fs/promises";
 
 import { imageSize } from "image-size";
-import { SerializedDialogue, ElectronSelectDirectoryOptions, type ExtraSelectDirectoryOptions, type Repository } from "../shared/types";
+import type {
+  DialogueJSON,
+  SerializedDialogue,
+  ElectronSelectDirectoryOptions,
+  ExtraSelectDirectoryOptions,
+  Repository
+} from "../shared/types";
 
 function getMimeType(filePath: string): string {
   const ext = extname(filePath).toLowerCase();
@@ -66,7 +72,6 @@ ipcMain.on("window-maximize", () => {
 ipcMain.on("window-close", () => {
   BrowserWindow.getFocusedWindow()?.close();
 });
-
 
 ipcMain.handle("save-dialogues", async (_event, dialogues: SerializedDialogue[]) => {
   return saveDialogues(dialogues);
@@ -132,6 +137,28 @@ ipcMain.handle("delete-skill", async (_event, skillId) => {
   deleteSkill(skillId);
   return true;
 });
+
+ipcMain.handle(
+  "export-json",
+  async (event, data: DialogueJSON[], defaultFileName: string = "data.json"): Promise<void> => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+
+    if (!win) {
+      throw Error("Failed to find window.");
+    }
+
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: "Save JSON",
+      defaultPath: defaultFileName,
+      filters: [{ name: "JSON Files", extensions: ["json"] }],
+      properties: ["showOverwriteConfirmation"]
+    });
+
+    if (canceled || !filePath) return Promise.reject();
+
+    return writeFile(filePath, JSON.stringify(data, null, 2));
+  }
+);
 
 ipcMain.handle("select-image", async (_event, projectDir: string) => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -204,32 +231,35 @@ ipcMain.handle("create-repository", async (_event, repository: Repository) => {
   }
 });
 
-ipcMain.handle("select-directory", async (
-  _event,
-  options: ElectronSelectDirectoryOptions,
-  extraOptions?: ExtraSelectDirectoryOptions
-) => {
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-    ...options,
-    properties: ["openDirectory", ...(options.properties ?? [])]
-  });
+ipcMain.handle(
+  "select-directory",
+  async (
+    _event,
+    options: ElectronSelectDirectoryOptions,
+    extraOptions?: ExtraSelectDirectoryOptions
+  ) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      ...options,
+      properties: ["openDirectory", ...(options.properties ?? [])]
+    });
 
-  if (canceled || !filePaths.length) return null;
+    if (canceled || !filePaths.length) return null;
 
-  if (extraOptions?.godot === true) {
-    try {
-      const godotProjectFile = join(filePaths[0], "project.godot");
-      const stats = await stat(godotProjectFile);
-      if (!stats.isFile()) {
-        throw new Error("Failed to find project.godot file.");
+    if (extraOptions?.godot === true) {
+      try {
+        const godotProjectFile = join(filePaths[0], "project.godot");
+        const stats = await stat(godotProjectFile);
+        if (!stats.isFile()) {
+          throw new Error("Failed to find project.godot file.");
+        }
+      } catch (error) {
+        throw error;
       }
-    } catch (error) {
-      throw error;
     }
-  }
 
-  return filePaths[0];
-});
+    return filePaths[0];
+  }
+);
 
 ipcMain.on("open-repository-window", async () => {
   createRepositoryWindow();
@@ -297,7 +327,9 @@ function createRepositoryWindow() {
   if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
     repositoryWindow.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}?view=project`);
   } else {
-    repositoryWindow.loadFile(join(__dirname, "../renderer/index.html"), { query: { view: "project" } });
+    repositoryWindow.loadFile(join(__dirname, "../renderer/index.html"), {
+      query: { view: "project" }
+    });
   }
 }
 

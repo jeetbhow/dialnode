@@ -117,7 +117,6 @@ class Dialogues {
   }
 
   // TODO: Replace fixed-positions with drag and drop later on.
-  // TODO: Replace empty strings with nulls for next.
   public addStartNode(): void {
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
@@ -163,7 +162,7 @@ class Dialogues {
       id,
       type: "branchContainer",
       position: { x: 0, y: 0 },
-      data: { next: [] },
+      data: { branches: [] },
       width: BRANCH_NODE_INITIAL_WIDTH,
       height: BRANCH_NODE_INITIAL_HEIGHT
     };
@@ -172,9 +171,10 @@ class Dialogues {
     dialogues.save();
   }
 
-  public addBranchNode(parentId: string): void {
+  public addBranchNode(parentId: string): string {
+    const id = crypto.randomUUID();
     const newNode: BranchNodeType = {
-      id: crypto.randomUUID(),
+      id,
       parentId,
       extent: "parent",
       type: "branch",
@@ -184,13 +184,15 @@ class Dialogues {
 
     dialogues.nodes = [...dialogues.nodes, newNode];
     dialogues.save();
+    return id;
   }
 
-  public addSkillCheckNode(parentId: string): void {
+  public addSkillCheckNode(parentId: string): string {
+    const id = crypto.randomUUID();
     const skill = db.skillCategories?.[0]?.skills?.[0] ?? null;
 
     const newNode: SkillCheckNodeType = {
-      id: crypto.randomUUID(),
+      id,
       parentId,
       extent: "parent",
       type: "skillCheck",
@@ -200,6 +202,7 @@ class Dialogues {
 
     dialogues.nodes = [...dialogues.nodes, newNode];
     dialogues.save();
+    return id;
   }
 
   public serialize(): SerializedDialogue[] {

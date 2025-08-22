@@ -2,27 +2,35 @@
   import Cross from "../../../../shared/components/icons/Cross.svelte";
 
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
-  import type { BranchNodeType } from "../../../../../../shared/types";
+  import type { BranchContainerNodeType, BranchNodeType } from "../../../../../../shared/types";
   import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
 
-  let { id, data }: NodeProps<BranchNodeType> = $props();
+  let { id, parentId, data }: NodeProps<BranchNodeType> = $props();
   const { deleteElements } = useSvelteFlow();
-
-  function deleteBranch(): void {
-    deleteElements({ nodes: [{ id }] });
-  }
 
   function handleChange(e: Event): void {
     const target = e.target as HTMLInputElement;
-    const newName = target.value;
+    const newValue = target.value;
 
     dialogues.nodes = dialogues.nodes.map((n) =>
-      n.id === id ? { ...n, data: { ...n.data, name: newName } } : n
+      n.id === id ? { ...n, data: { ...n.data, text: newValue } } : n
     );
 
+    dialogues.save();
+  }
+
+  function deleteBranch(): void {
+    const branchContainer = dialogues.nodes.find(
+      (n) => n.id === parentId
+    ) as BranchContainerNodeType;
+
+    const branches = branchContainer.data.branches;
+    branchContainer.data.branches = branches.filter((b) => b !== id);
+
+    deleteElements({ nodes: [{ id }] });
     dialogues.save();
   }
 </script>

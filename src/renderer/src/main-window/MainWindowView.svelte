@@ -34,12 +34,7 @@
     loadSpeakersFromDb
   } from "./stores/dbStore.svelte";
 
-  import type {
-    BranchContainerNodeType,
-    DialogueNode,
-    StartNodeType,
-    TextNodeType
-  } from "../../../shared/types";
+  import type { ConnectableNodeType, DialogueNode } from "../../../shared/types";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
   import { nodeButtons } from "./utils/buttons";
   import { fetchRepository } from "./stores/repositoryStore.svelte";
@@ -84,23 +79,12 @@
     const targetId = connection.target;
 
     const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
-
-    switch (sourceNode.type) {
-      case "branch":
-      case "skillCheck":
-        const branchContainer = dialogues.nodes.find(
-          (n) => n.id === sourceNode.parentId
-        ) as BranchContainerNodeType;
-        branchContainer.data.next.push(targetId);
-        break;
-      case "end":
-      case "branchContainer":
-        console.error("Source connection on end or branch container node is invalid state.");
-        break;
-      default:
-        const n = sourceNode as TextNodeType | StartNodeType;
-        n.data.next = targetId;
+    if (sourceNode.type === "end" || sourceNode.type === "branchContainer") {
+      throw Error("Invalid state: source connection on end or branch container node.");
     }
+
+    const connectable = sourceNode as ConnectableNodeType;
+    connectable.data.next = targetId;
 
     dialogues.save();
   }
@@ -128,10 +112,12 @@
     const sourceId = edge.source;
     const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
 
-    if (sourceNode.type === "branchContainer") {
-      alert("A branch container should not trigger an edge click event.");
-      return;
+    if (sourceNode.type === "branchContainer" || sourceNode.type === "end") {
+      throw new Error("Invalid state: source conection on branchContainer");
     }
+
+    const connectable = sourceNode as ConnectableNodeType;
+    connectable.data.next = null;
 
     dialogues.edges = dialogues.edges.filter((e) => e.id !== edge.id);
     dialogues.save();

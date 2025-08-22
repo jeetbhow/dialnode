@@ -1,4 +1,4 @@
-import { Node, Edge, type CoordinateExtent } from "@xyflow/svelte";
+import { Node, Edge } from "@xyflow/svelte";
 import { FileFilter } from "electron";
 
 export type Repository = {
@@ -100,20 +100,25 @@ export type SerializedDialogueEdge = {
   targetHandle: string;
 };
 
+export type DialogueJSON = {
+  id: string;
+  type: DialogueNodeType;
+};
+
 export interface DialogueNode<T extends Object> extends Node<T> {
   id: string;
   parentId?: string;
-  extent?: "parent",
+  extent?: "parent";
   type: DialogueNodeType;
-  position: { x: number; y: number; };
+  position: { x: number; y: number };
   data: T;
 }
 
-export interface StartNodeData extends Record<string, unknown> {
-  next: string;
+export interface Connectable extends Record<string, unknown> {
+  next: string | null;
 }
 
-export interface TextNodeData extends Record<string, unknown> {
+export interface TextNodeData extends Connectable {
   speaker?: Speaker;
   portrait?: Portrait;
   text: string;
@@ -121,25 +126,26 @@ export interface TextNodeData extends Record<string, unknown> {
 }
 
 export interface BranchContainerNodeData extends Record<string, unknown> {
-  next: string[];
+  branches: string[];
 }
 
-export interface BranchNodeData extends Record<string, unknown> {
+export interface BranchNodeData extends Connectable {
   text: string;
   next: string | null;
 }
 
-export interface SkillCheckNodeData extends Record<string, unknown> {
+export interface SkillCheckNodeData extends Connectable {
   text: string;
   skill: Skill;
   difficulty: number;
   next: string | null;
 }
 
-export interface EndNodeData extends Record<string, unknown> { }
+export interface EndNodeData extends Record<string, unknown> {}
 
+export type ConnectableNodeType = DialogueNode<Connectable>;
+export type StartNodeType = ConnectableNodeType;
 export type EndNodeType = DialogueNode<EndNodeData>;
-export type StartNodeType = DialogueNode<StartNodeData>;
 export type TextNodeType = DialogueNode<TextNodeData>;
 export type BranchContainerNodeType = DialogueNode<BranchContainerNodeData>;
 export type BranchNodeType = DialogueNode<BranchNodeData>;
@@ -149,7 +155,7 @@ export type ElectronSelectDirectoryOptions = {
   title?: string;
   buttonLabel?: string;
   defaultPath?: string;
-  properties?: Array<'createDirectory' | 'promptToCreate'>;
+  properties?: Array<"createDirectory" | "promptToCreate">;
   filters?: FileFilter[];
 };
 

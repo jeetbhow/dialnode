@@ -3,7 +3,7 @@
 
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
   import { useDb } from "../../../stores/dbStore.svelte";
-  import type { SkillCheckNodeType } from "../../../../../../shared/types";
+  import type { BranchContainerNodeType, SkillCheckNodeType } from "../../../../../../shared/types";
   import { dialogues } from "../../../stores/dialogueStore.svelte";
 
   const ICON_SIZE = 26;
@@ -12,7 +12,7 @@
   const db = useDb();
   const { deleteElements } = useSvelteFlow();
 
-  let { id, data }: NodeProps<SkillCheckNodeType> = $props();
+  let { id, data, parentId }: NodeProps<SkillCheckNodeType> = $props();
   let skills = $derived(db.skillCategories.flatMap((category) => category.skills) ?? []);
   let selectedIndex = $state(0);
 
@@ -43,7 +43,15 @@
   }
 
   function deleteThisNode(): void {
+    const branchContainer = dialogues.nodes.find(
+      (n) => n.id === parentId
+    ) as BranchContainerNodeType;
+
+    const branches = branchContainer.data.branches;
+    branchContainer.data.branches = branches.filter((b) => b !== id);
+
     deleteElements({ nodes: [{ id }] });
+    dialogues.save();
   }
 </script>
 

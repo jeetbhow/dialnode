@@ -1,32 +1,39 @@
 <script lang="ts">
+  import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
+
   import Dice from "../../../../shared/components/icons/Dice.svelte";
   import Cross from "../../../../shared/components/icons/Cross.svelte";
   import Plus from "../../../../shared/components/icons/Plus.svelte";
 
-  import { Handle, NodeResizer, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
-  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../utils/utils";
   import { useDb } from "../../../stores/dbStore.svelte";
   import { dialogues } from "../../../stores/dialogueStore.svelte";
+
+  import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../utils/utils";
+  import type { BranchContainerNodeType } from "./../../../../../../shared/types";
 
   const ICON_SIZE = 24;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
 
   const db = useDb();
 
-  let { id, selected }: NodeProps = $props();
+  let { id, data, selected }: NodeProps<BranchContainerNodeType> = $props();
   const { deleteElements } = useSvelteFlow();
 
   function addBranch(): void {
-    dialogues.addBranchNode(id);
+    const branchId = dialogues.addBranchNode(id);
+    data.branches.push(branchId);
   }
 
   function addSkillCheck(): void {
     const skills = db.skillCategories.flatMap((category) => category.skills);
+
     if (skills.length === 0) {
       alert("Skill checks require at least 1 skill in the database");
       return;
     }
-    dialogues.addSkillCheckNode(id);
+
+    const skillCheckId = dialogues.addSkillCheckNode(id);
+    data.branches.push(skillCheckId);
   }
 
   function handleDelete(): void {
