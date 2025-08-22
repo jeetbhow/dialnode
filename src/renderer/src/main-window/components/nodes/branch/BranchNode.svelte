@@ -15,7 +15,7 @@
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
 
-    dialogues.nodes = dialogues.nodes.map((n) =>
+    dialogues.selectedNodes = dialogues.selectedNodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, text: newValue } } : n
     );
 
@@ -23,7 +23,7 @@
   }
 
   function deleteBranch(): void {
-    const branchContainer = dialogues.nodes.find(
+    const branchContainer = dialogues.selectedNodes.find(
       (n) => n.id === parentId
     ) as BranchContainerNodeType;
 

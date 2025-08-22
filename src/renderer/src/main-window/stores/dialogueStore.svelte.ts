@@ -18,8 +18,8 @@ import type {
 const db = useDb();
 
 class Dialogues {
-  public nodes = $state.raw<DialogueNode<any>[]>([]);
-  public edges = $state.raw<Edge[]>([]);
+  public selectedNodes = $state.raw<DialogueNode<any>[]>([]);
+  public selectedEdges = $state.raw<Edge[]>([]);
 
   private _data = $state<Dialogue[]>([]);
   private _selectedIndex: number | null = $state(null);
@@ -83,8 +83,8 @@ class Dialogues {
 
     if (this._selectedIndex !== null) {
       const { nodes, edges } = dialogues.get(this.selectedIndex);
-      this.nodes = nodes;
-      this.edges = edges;
+      this.selectedNodes = nodes;
+      this.selectedEdges = edges;
     }
   }
 
@@ -95,8 +95,8 @@ class Dialogues {
 
     this._data[this._selectedIndex] = {
       ...this._data[this._selectedIndex],
-      nodes: this.nodes,
-      edges: this.edges
+      nodes: this.selectedNodes,
+      edges: this.selectedEdges
     };
   }
 
@@ -112,8 +112,8 @@ class Dialogues {
     dialogues.save();
     dialogues.selectedIndex = index;
     const { nodes, edges } = dialogues.get(index);
-    this.nodes = nodes;
-    this.edges = edges;
+    this.selectedNodes = nodes;
+    this.selectedEdges = edges;
   }
 
   // TODO: Replace fixed-positions with drag and drop later on.
@@ -125,7 +125,7 @@ class Dialogues {
       data: { next: null }
     };
 
-    dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.selectedNodes = [...dialogues.selectedNodes, newNode];
     dialogues.save();
   }
 
@@ -137,7 +137,7 @@ class Dialogues {
       data: {}
     };
 
-    dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.selectedNodes = [...dialogues.selectedNodes, newNode];
     dialogues.save();
   }
 
@@ -152,7 +152,7 @@ class Dialogues {
       data: { text: "", next: null }
     };
 
-    dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.selectedNodes = [...dialogues.selectedNodes, newNode];
     dialogues.save();
   }
 
@@ -167,7 +167,7 @@ class Dialogues {
       height: BRANCH_NODE_INITIAL_HEIGHT
     };
 
-    dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.selectedNodes = [...dialogues.selectedNodes, newNode];
     dialogues.save();
   }
 
@@ -182,7 +182,7 @@ class Dialogues {
       data: { text: "", name: "", next: null }
     };
 
-    dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.selectedNodes = [...dialogues.selectedNodes, newNode];
     dialogues.save();
     return id;
   }
@@ -200,7 +200,7 @@ class Dialogues {
       data: { text: "", skill, difficulty: 0, next: null }
     };
 
-    dialogues.nodes = [...dialogues.nodes, newNode];
+    dialogues.selectedNodes = [...dialogues.selectedNodes, newNode];
     dialogues.save();
     return id;
   }

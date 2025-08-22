@@ -25,7 +25,7 @@
   function handleDifficultyChange(e: Event): void {
     const target = e.target as HTMLInputElement;
 
-    dialogues.nodes = dialogues.nodes.map((n) =>
+    dialogues.selectedNodes = dialogues.selectedNodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, difficulty: parseInt(target.value) } } : n
     );
 
@@ -35,7 +35,7 @@
   function handleTextChange(e: Event): void {
     const target = e.target as HTMLInputElement;
 
-    dialogues.nodes = dialogues.nodes.map((n) =>
+    dialogues.selectedNodes = dialogues.selectedNodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, text: target.value } } : n
     );
 
@@ -43,7 +43,7 @@
   }
 
   function deleteThisNode(): void {
-    const branchContainer = dialogues.nodes.find(
+    const branchContainer = dialogues.selectedNodes.find(
       (n) => n.id === parentId
     ) as BranchContainerNodeType;
 

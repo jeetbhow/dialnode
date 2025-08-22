@@ -14,7 +14,7 @@
   }
 
   async function handleClickExport() {
-    const filteredNodes = filterNodeProps(dialogues.nodes);
+    const filteredNodes = filterNodeProps(dialogues.selectedNodes);
     await window.api.exportJson(filteredNodes);
   }
 </script>

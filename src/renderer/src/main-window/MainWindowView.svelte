@@ -78,7 +78,7 @@
     const sourceId = connection.source;
     const targetId = connection.target;
 
-    const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
+    const sourceNode = dialogues.selectedNodes.find((n) => n.id === sourceId);
     if (sourceNode.type === "end" || sourceNode.type === "branchContainer") {
       throw Error("Invalid state: source connection on end or branch container node.");
     }
@@ -91,7 +91,7 @@
 
   function handleBeforeConnect(connection: Connection): Edge {
     // Prevent connections to self.
-    dialogues.edges = dialogues.edges.filter(
+    dialogues.selectedEdges = dialogues.selectedEdges.filter(
       (e) => e.source !== connection.source || e.sourceHandle !== connection.sourceHandle
     );
     return {
@@ -110,7 +110,7 @@
     const { edge } = event;
 
     const sourceId = edge.source;
-    const sourceNode = dialogues.nodes.find((n) => n.id === sourceId);
+    const sourceNode = dialogues.selectedNodes.find((n) => n.id === sourceId);
 
     if (sourceNode.type === "branchContainer" || sourceNode.type === "end") {
       throw new Error("Invalid state: source conection on branchContainer");
@@ -119,7 +119,7 @@
     const connectable = sourceNode as ConnectableNodeType;
     connectable.data.next = null;
 
-    dialogues.edges = dialogues.edges.filter((e) => e.id !== edge.id);
+    dialogues.selectedEdges = dialogues.selectedEdges.filter((e) => e.id !== edge.id);
     dialogues.save();
   }
 </script>
@@ -128,8 +128,8 @@
   <DialogueSelect />
   {#if dialogues.selectedIndex != null}
     <SvelteFlow
-      bind:nodes={dialogues.nodes}
-      bind:edges={dialogues.edges}
+      bind:nodes={dialogues.selectedNodes}
+      bind:edges={dialogues.selectedEdges}
       {nodeTypes}
       {edgeTypes}
       onconnect={handleConnect}
