@@ -4,6 +4,12 @@
   import { dialogues } from "../../main-window/stores/dialogueStore.svelte";
 
   let open = $state(false);
+
+  function handleAddDialogue() {
+    dialogues.add();
+    dialogues.selectDialogue(dialogues.data.length - 1);
+    dialogues.editing = true;
+  }
 </script>
 
 <div class="dropdown">
@@ -11,7 +17,7 @@
   {#if open}
     <ul class="dropdown-menu">
       <li>
-        <button onclick={() => dialogues.add()}>Add Dialogue</button>
+        <button onclick={handleAddDialogue}>Add Dialogue</button>
       </li>
       <li>
         <button onclick={() => (dialogues.editing = true)}>Rename Dialogue</button>

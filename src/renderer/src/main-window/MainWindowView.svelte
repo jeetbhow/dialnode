@@ -22,7 +22,7 @@
   import BranchContainerNode from "./components/nodes/branch/BranchContainerNode.svelte";
   import SkillCheckNode from "./components/nodes/branch/SkillCheckNode.svelte";
   import BranchNode from "./components/nodes/branch/BranchNode.svelte";
-  import DialogueSelect from "./components/dialogue-select/DialogueSelect.svelte";
+  import DialogueSelect from "./components/dialogue/DialogueSelect.svelte";
   import ButtonsContainer from "../shared/components/buttons/ButtonsContainer.svelte";
   import DatabaseModal from "./components/database/DatabaseModal.svelte";
 

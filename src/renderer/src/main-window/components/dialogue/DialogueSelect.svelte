@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { dialogues } from "../../stores/dialogueStore.svelte";
+  import DialogueController from "./DialogueController.svelte";
 
   let inputRef: HTMLInputElement | null = $state(null);
   let newName = $derived(dialogues.get(dialogues.selectedIndex).name);
@@ -23,6 +24,7 @@
 </script>
 
 <div class="sidebar">
+  <DialogueController />
   <ul class="project-dialogues">
     {#each dialogues.data as dialogue, i (dialogue)}
       <li class:selected={dialogues.selectedIndex === i}>
