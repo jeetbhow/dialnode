@@ -14,7 +14,7 @@
 
 <div class="controller">
   <button onclick={handleAddDialogue}>
-    <AddDialogue width={ICON_SIZE} height={ICON_SIZE} color={"#322E2C"} />
+    <AddDialogue width={ICON_SIZE} height={ICON_SIZE} color="#322E2C" />
   </button>
 </div>
 

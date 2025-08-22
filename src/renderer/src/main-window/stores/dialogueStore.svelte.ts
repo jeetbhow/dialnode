@@ -18,7 +18,7 @@ import type {
 const db = useDb();
 
 class Dialogues {
-  public selectedNodes = $state.raw<DialogueNode<any>[]>([]);
+  public selectedNodes = $state.raw<DialogueNode<Record<string, unknown>>[]>([]);
   public selectedEdges = $state.raw<Edge[]>([]);
 
   private _data = $state<Dialogue[]>([]);

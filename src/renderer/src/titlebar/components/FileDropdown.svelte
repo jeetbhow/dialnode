@@ -5,15 +5,15 @@
 
   let open = $state(false);
 
-  function handleClickSave() {
+  function handleClickSave(): void {
     dialogues.saveToDb();
   }
 
-  function handleClickManageRepositories() {
+  function handleClickManageRepositories(): void {
     window.api.createRepositoryWindow();
   }
 
-  async function handleClickExport() {
+  async function handleClickExport(): Promise<void> {
     const filteredNodes = filterNodeProps(dialogues.selectedNodes);
     await window.api.exportJson(filteredNodes);
   }

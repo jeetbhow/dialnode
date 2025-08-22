@@ -15,9 +15,12 @@ export default tseslint.config(
     }
   },
   {
-    files: ["**/*.{tsx,svelte}"],
+    files: ["**/*.{ts,tsx,svelte}"],
     rules: {
-      "svelte/no-unused-svelte-ignore": "off"
+      "svelte/no-unused-svelte-ignore": "off",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "linebreak-style": ["warn", "windows"]
     }
   },
   {

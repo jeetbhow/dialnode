@@ -186,7 +186,7 @@ ipcMain.handle("select-image", async (_event, projectDir: string) => {
   };
 });
 
-ipcMain.handle("open-repository", async (_event): Promise<void> => {
+ipcMain.handle("open-repository", async (): Promise<void> => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: "Open Repository",
     buttonLabel: "Select Folder",
@@ -226,8 +226,9 @@ ipcMain.handle("create-repository", async (_event, repository: Repository) => {
 
     createMainWindow(repository);
   } catch (error) {
+    const e = error as Error;
     await rm(repositoryPath, { force: true });
-    throw new Error("Failed to create the repository.");
+    throw new Error(`Failed to create the repository: ${e.message}`);
   }
 });
 
@@ -253,7 +254,8 @@ ipcMain.handle(
           throw new Error("Failed to find project.godot file.");
         }
       } catch (error) {
-        throw error;
+        const e = error as Error;
+        throw new Error(`Failed to find project.godot file: ${e.message}`);
       }
     }
 
@@ -300,7 +302,7 @@ function createMainWindow(repository: Repository): void {
   });
 }
 
-function createRepositoryWindow() {
+function createRepositoryWindow(): void {
   const repositoryWindow = new BrowserWindow({
     width: 750,
     height: 750,

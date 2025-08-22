@@ -18,7 +18,7 @@
     godotProjectLocation !== null || customRepositoryLocation !== null
   );
 
-  async function handleClickRepositoryLocation() {
+  async function handleClickRepositoryLocation(): Promise<void> {
     const result = await window.api.selectDirectory({
       title: "Custom Repository",
       buttonLabel: "Select Folder",
@@ -28,7 +28,7 @@
     customRepositoryLocation = result ?? customRepositoryLocation;
   }
 
-  async function handleClickGodotProjectDirectory() {
+  async function handleClickGodotProjectDirectory(): Promise<void> {
     const options = {
       title: "Godot Project Location",
       buttonLabel: "Select Folder"
@@ -46,12 +46,12 @@
     }
   }
 
-  function handleCustomLocationCheck() {
+  function handleCustomLocationCheck(): void {
     godotProjectLocation = null;
     customRepositoryLocation = null;
   }
 
-  function handleClickBack() {
+  function handleClickBack(): void {
     view = "main";
     name = DEFAULT_REPOSITORY_NAME;
     useCustomLocation = false;
@@ -59,7 +59,7 @@
     customRepositoryLocation = null;
   }
 
-  async function handleClickOpen() {
+  async function handleClickOpen(): Promise<void> {
     try {
       await window.api.openRepository();
     } catch (error) {
@@ -67,7 +67,7 @@
     }
   }
 
-  async function handleClickCreate() {
+  async function handleClickCreate(): Promise<void> {
     const location = godotProjectLocation ?? customRepositoryLocation;
 
     const repository: Repository = {

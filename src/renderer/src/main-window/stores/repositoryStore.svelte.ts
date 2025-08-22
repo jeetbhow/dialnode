@@ -10,6 +10,6 @@ export function useRepository(): Repository {
   return repository;
 }
 
-export async function fetchRepository() {
+export async function fetchRepository(): Promise<void> {
   repository = await window.api.waitForRepo();
 }

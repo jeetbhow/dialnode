@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Cross from "../../../../shared/components/icons/Cross.svelte"
+  import Cross from "../../../../shared/components/icons/Cross.svelte";
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
 
   const ICON_SIZE = 24;

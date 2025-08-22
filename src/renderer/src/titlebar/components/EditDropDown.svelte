@@ -5,7 +5,7 @@
 
   let open = $state(false);
 
-  function handleAddDialogue() {
+  function handleAddDialogue(): void {
     dialogues.add();
     dialogues.selectDialogue(dialogues.data.length - 1);
     dialogues.editing = true;

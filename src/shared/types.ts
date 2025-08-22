@@ -57,7 +57,7 @@ export type Button = {
 export type Dialogue = {
   id: string;
   name: string;
-  nodes: DialogueNode<any>[];
+  nodes: DialogueNode<Record<string, unknown>>[];
   edges: Edge[];
 };
 

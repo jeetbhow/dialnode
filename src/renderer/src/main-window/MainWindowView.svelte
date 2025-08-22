@@ -67,10 +67,10 @@
   });
 
   function handleNodeDragStop(_: {
-    targetNode: DialogueNode<any>;
-    nodes: DialogueNode<any>[];
+    targetNode: DialogueNode<Record<string, unknown>>;
+    nodes: DialogueNode<Record<string, unknown>>[];
     event: MouseEvent | TouchEvent;
-  }) {
+  }): void {
     dialogues.save();
   }
 
@@ -85,7 +85,6 @@
 
     const connectable = sourceNode as ConnectableNodeType;
     connectable.data.next = targetId;
-
     dialogues.save();
   }
 

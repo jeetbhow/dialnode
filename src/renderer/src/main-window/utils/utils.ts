@@ -16,14 +16,15 @@ export const MARKER_END_HEIGHT = 28;
 export function filterNodeProps(nodes: Node[]): DialogueJSON[] {
   const result = nodes.map((node) => {
     switch (node.type) {
-      case "start":
+      case "start": {
         const s = node as StartNodeType;
         return {
           id: node.id,
           type: node.type,
           next: s.data.next
         };
-      case "text":
+      }
+      case "text": {
         const tn = node as TextNodeType;
         return {
           id: tn.id,
@@ -33,23 +34,26 @@ export function filterNodeProps(nodes: Node[]): DialogueJSON[] {
           portrait: tn.data.portrait?.virtualPath,
           next: tn.data.next
         };
-      case "branchContainer":
+      }
+      case "branchContainer": {
         const bc = node as BranchContainerNodeType;
         return {
           id: node.id,
           type: node.type,
           branches: bc.data.branches
         };
-      case "branch":
+      }
+      case "branch": {
         const b = node as BranchNodeType;
         return {
           id: node.id,
-          parentd: node.parentId,
+          parentId: node.parentId,
           type: node.type,
           text: b.data.text,
           next: b.data.next
         };
-      case "skillCheck":
+      }
+      case "skillCheck": {
         const sc = node as SkillCheckNodeType;
         return {
           id: node.id,
@@ -60,13 +64,16 @@ export function filterNodeProps(nodes: Node[]): DialogueJSON[] {
           difficulty: sc.data.difficulty,
           next: sc.data.next
         };
-      case "end":
+      }
+      case "end": {
         return {
           id: node.id,
           type: node.type
         };
-      default:
+      }
+      default: {
         throw new Error(`Invalid node type ${node.type}`);
+      }
     }
   });
 
