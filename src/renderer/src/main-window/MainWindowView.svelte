@@ -125,23 +125,25 @@
 
 <div class="main">
   <DialogueSelect />
-  <SvelteFlow
-    bind:nodes={graph.nodes}
-    bind:edges={graph.edges}
-    {nodeTypes}
-    {edgeTypes}
-    onconnect={handleConnect}
-    onbeforeconnect={handleBeforeConnect}
-    onedgeclick={handleEdgeClick}
-    onnodedragstop={handleNodeDragStop}
-  >
-    <Panel position="top-center">
-      <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
-    </Panel>
-    <MiniMap />
-    <Controls />
-    <Background />
-  </SvelteFlow>
+  {#if graph.nodes !== null && graph.edges !== null}
+    <SvelteFlow
+      bind:nodes={graph.nodes}
+      bind:edges={graph.edges}
+      {nodeTypes}
+      {edgeTypes}
+      onconnect={handleConnect}
+      onbeforeconnect={handleBeforeConnect}
+      onedgeclick={handleEdgeClick}
+      onnodedragstop={handleNodeDragStop}
+    >
+      <Panel position="top-center">
+        <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
+      </Panel>
+      <MiniMap />
+      <Controls />
+      <Background />
+    </SvelteFlow>
+  {/if}
 </div>
 
 {#if modal.open}

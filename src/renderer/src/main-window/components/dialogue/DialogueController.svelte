@@ -1,7 +1,7 @@
 <script lang="ts">
   import AddDialogue from "../../../shared/components/icons/AddDialogue.svelte";
 
-  import { root, type DialogueSelectNode } from "../../stores/rootFolderStore.svelte";
+  import { root, type DialogueSelectNode } from "../../stores/dialoguesStore.svelte";
 
   const ICON_SIZE = 24;
 

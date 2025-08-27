@@ -2,7 +2,7 @@
   import Chevron from "../../../../shared/components/icons/Chevron.svelte";
   import DialogueSelectItem from "./DialogueSelectListItem.svelte";
 
-  import { root, type DialogueSelectNode } from "../../../stores/rootFolderStore.svelte";
+  import { root, type DialogueSelectNode } from "../../../stores/dialoguesStore.svelte";
 
   const BASE_DIALOGUE_INDENTATION = 2.6;
   const BASE_FOLDER_INDENTATION = 1;
@@ -49,7 +49,7 @@
 {/if}
 
 {#if node.type === "dialogue"}
-  <li class="dialogue {node.selected ? 'selected' : ''}">
+  <li class="dialogue {root.selectedDialogue?.id === node.id ? 'selected' : ''}">
     <button onclick={handleDialogueClick} style:padding-left={dialogueIndentation}>
       {node.name}
     </button>

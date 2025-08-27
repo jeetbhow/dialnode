@@ -14,7 +14,6 @@ export interface BaseDialogueSelectNode {
 
 export interface Dialogue extends BaseDialogueSelectNode {
   type: "dialogue";
-  selected: boolean;
   nodes: DialogueNode<Record<string, unknown>>[];
   edges: Edge[];
 }
@@ -32,8 +31,12 @@ class RootDialogueSelectNode implements Folder {
   public name: string = "root";
   public parentId: string = null;
 
-  private selectedDialogue = $state<Dialogue | null>(null);
+  private _selectedDialogue = $state<Dialogue | null>(null);
   private _children = $state<DialogueSelectNode[]>([]);
+
+  get selectedDialogue(): Dialogue | null {
+    return this._selectedDialogue;
+  }
 
   get children(): readonly DialogueSelectNode[] {
     return this._children;
@@ -48,14 +51,12 @@ class RootDialogueSelectNode implements Folder {
   }
 
   public selectDialogue(dialogue: Dialogue) {
-    if (this.selectedDialogue !== null) {
-      this.selectedDialogue.nodes = graph.nodes;
-      this.selectedDialogue.edges = graph.edges;
-      this.selectedDialogue.selected = false;
+    if (this._selectedDialogue !== null) {
+      this._selectedDialogue.nodes = graph.nodes;
+      this._selectedDialogue.edges = graph.edges;
     }
 
-    this.selectedDialogue = dialogue;
-    this.selectedDialogue.selected = true;
+    this._selectedDialogue = dialogue;
     graph.display(dialogue);
   }
 }

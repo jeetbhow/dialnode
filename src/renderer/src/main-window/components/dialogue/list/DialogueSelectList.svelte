@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { root } from "../../../stores/rootFolderStore.svelte";
+  import { root } from "../../../stores/dialoguesStore.svelte";
   import DialogueSelectListItem from "./DialogueSelectListItem.svelte";
 </script>
 
