@@ -6,7 +6,7 @@
   import Plus from "../../../../shared/components/icons/Plus.svelte";
 
   import { useDb } from "../../../stores/dbStore.svelte";
-  import { dialogues } from "../../../stores/dialogueStore.svelte";
+  import { graph } from "../../../stores/graphStore.svelte";
 
   import { BRANCH_NODE_INITIAL_HEIGHT, BRANCH_NODE_INITIAL_WIDTH } from "../../../utils/utils";
   import type { BranchContainerNodeType } from "./../../../../../../shared/types";
@@ -20,7 +20,7 @@
   const { deleteElements } = useSvelteFlow();
 
   function addBranch(): void {
-    const branchId = dialogues.addBranchNode(id);
+    const branchId = graph.addBranchNode(id);
     data.branches.push(branchId);
   }
 
@@ -32,7 +32,7 @@
       return;
     }
 
-    const skillCheckId = dialogues.addSkillCheckNode(id);
+    const skillCheckId = graph.addSkillCheckNode(id);
     data.branches.push(skillCheckId);
   }
 

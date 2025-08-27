@@ -1,22 +1,21 @@
 <script lang="ts">
   import AddDialogue from "../../../shared/components/icons/AddDialogue.svelte";
 
-  import { useRootFolder, type DialogueSelectNode } from "../../stores/rootFolderStore.svelte";
+  import { root, type DialogueSelectNode } from "../../stores/rootFolderStore.svelte";
 
   const ICON_SIZE = 24;
-
-  const rootFolder = useRootFolder();
 
   function handleAddDialogue(): void {
     const newDialogue: DialogueSelectNode = {
       id: crypto.randomUUID(),
       type: "dialogue",
       name: "Untitled",
+      selected: false,
       nodes: [],
       edges: []
     };
 
-    rootFolder.add(newDialogue);
+    root.add(newDialogue);
   }
 </script>
 

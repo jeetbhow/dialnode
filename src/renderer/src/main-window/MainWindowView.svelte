@@ -27,7 +27,7 @@
   import DatabaseModal from "./components/database/DatabaseModal.svelte";
 
   import { modal } from "./stores/dbModal.svelte";
-  import { dialogues } from "./stores/dialogueStore.svelte";
+  import { graph } from "./stores/graphStore.svelte";
   import {
     loadPortraitsFromDb,
     loadSkillsFromDb,
@@ -63,7 +63,7 @@
     await loadSpeakersFromDb();
     await loadPortraitsFromDb();
     await loadSkillsFromDb();
-    await dialogues.loadFromDb();
+    //await dialogues.loadFromDb();
   });
 
   function handleNodeDragStop(_: {
@@ -71,26 +71,26 @@
     nodes: DialogueNode<Record<string, unknown>>[];
     event: MouseEvent | TouchEvent;
   }): void {
-    dialogues.save();
+    //dialogues.save();
   }
 
   function handleConnect(connection: Connection): void {
     const sourceId = connection.source;
     const targetId = connection.target;
 
-    const sourceNode = dialogues.selectedNodes.find((n) => n.id === sourceId);
+    const sourceNode = graph.nodes.find((n) => n.id === sourceId);
     if (sourceNode.type === "end" || sourceNode.type === "branchContainer") {
       throw Error("Invalid state: source connection on end or branch container node.");
     }
 
     const connectable = sourceNode as ConnectableNodeType;
     connectable.data.next = targetId;
-    dialogues.save();
+    //dialogues.save();
   }
 
   function handleBeforeConnect(connection: Connection): Edge {
     // Prevent connections to self.
-    dialogues.selectedEdges = dialogues.selectedEdges.filter(
+    graph.edges = graph.edges.filter(
       (e) => e.source !== connection.source || e.sourceHandle !== connection.sourceHandle
     );
     return {
@@ -109,7 +109,7 @@
     const { edge } = event;
 
     const sourceId = edge.source;
-    const sourceNode = dialogues.selectedNodes.find((n) => n.id === sourceId);
+    const sourceNode = graph.nodes.find((n) => n.id === sourceId);
 
     if (sourceNode.type === "branchContainer" || sourceNode.type === "end") {
       throw new Error("Invalid state: source conection on branchContainer");
@@ -118,32 +118,30 @@
     const connectable = sourceNode as ConnectableNodeType;
     connectable.data.next = null;
 
-    dialogues.selectedEdges = dialogues.selectedEdges.filter((e) => e.id !== edge.id);
-    dialogues.save();
+    graph.edges = graph.edges.filter((e) => e.id !== edge.id);
+    //dialogues.save();
   }
 </script>
 
 <div class="main">
   <DialogueSelect />
-  {#if dialogues.selectedIndex != null}
-    <SvelteFlow
-      bind:nodes={dialogues.selectedNodes}
-      bind:edges={dialogues.selectedEdges}
-      {nodeTypes}
-      {edgeTypes}
-      onconnect={handleConnect}
-      onbeforeconnect={handleBeforeConnect}
-      onedgeclick={handleEdgeClick}
-      onnodedragstop={handleNodeDragStop}
-    >
-      <Panel position="top-center">
-        <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
-      </Panel>
-      <MiniMap />
-      <Controls />
-      <Background />
-    </SvelteFlow>
-  {/if}
+  <SvelteFlow
+    bind:nodes={graph.nodes}
+    bind:edges={graph.edges}
+    {nodeTypes}
+    {edgeTypes}
+    onconnect={handleConnect}
+    onbeforeconnect={handleBeforeConnect}
+    onedgeclick={handleEdgeClick}
+    onnodedragstop={handleNodeDragStop}
+  >
+    <Panel position="top-center">
+      <ButtonsContainer flexDirection="row" buttons={nodeButtons} />
+    </Panel>
+    <MiniMap />
+    <Controls />
+    <Background />
+  </SvelteFlow>
 </div>
 
 {#if modal.open}

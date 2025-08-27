@@ -4,7 +4,7 @@
   import { Handle, Position, useSvelteFlow, type NodeProps } from "@xyflow/svelte";
   import { useDb } from "../../../stores/dbStore.svelte";
   import type { BranchContainerNodeType, SkillCheckNodeType } from "../../../../../../shared/types";
-  import { dialogues } from "../../../stores/dialogueStore.svelte";
+  import { graph } from "../../../stores/graphStore.svelte";
 
   const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -25,33 +25,26 @@
   function handleDifficultyChange(e: Event): void {
     const target = e.target as HTMLInputElement;
 
-    dialogues.selectedNodes = dialogues.selectedNodes.map((n) =>
+    graph.nodes = graph.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, difficulty: parseInt(target.value) } } : n
     );
-
-    dialogues.save();
   }
 
   function handleTextChange(e: Event): void {
     const target = e.target as HTMLInputElement;
 
-    dialogues.selectedNodes = dialogues.selectedNodes.map((n) =>
+    graph.nodes = graph.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, text: target.value } } : n
     );
-
-    dialogues.save();
   }
 
   function deleteThisNode(): void {
-    const branchContainer = dialogues.selectedNodes.find(
-      (n) => n.id === parentId
-    ) as BranchContainerNodeType;
+    const branchContainer = graph.nodes.find((n) => n.id === parentId) as BranchContainerNodeType;
 
     const branches = branchContainer.data.branches;
     branchContainer.data.branches = branches.filter((b) => b !== id);
 
     deleteElements({ nodes: [{ id }] });
-    dialogues.save();
   }
 </script>
 

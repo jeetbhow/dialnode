@@ -1,14 +1,13 @@
 <script lang="ts">
   import { clickOutside } from "../../shared/attachments/attachments";
   import { modal } from "../../main-window/stores/dbModal.svelte";
-  import { dialogues } from "../../main-window/stores/dialogueStore.svelte";
 
   let open = $state(false);
 
   function handleAddDialogue(): void {
-    dialogues.add();
-    dialogues.selectDialogue(dialogues.data.length - 1);
-    dialogues.editing = true;
+    // graph.add();
+    // graph.selectDialogue(graph.data.length - 1);
+    // graph.editing = true;
   }
 </script>
 
@@ -20,10 +19,10 @@
         <button onclick={handleAddDialogue}>Add Dialogue</button>
       </li>
       <li>
-        <button onclick={() => (dialogues.editing = true)}>Rename Dialogue</button>
+        <button>Rename Dialogue</button>
       </li>
       <li>
-        <button onclick={() => dialogues.removeSelected()}>Remove Dialogue</button>
+        <button>Remove Dialogue</button>
       </li>
       <li>
         <button onclick={() => (modal.open = true)}>Open Database</button>

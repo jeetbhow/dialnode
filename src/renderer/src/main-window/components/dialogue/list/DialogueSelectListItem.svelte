@@ -2,7 +2,7 @@
   import Chevron from "../../../../shared/components/icons/Chevron.svelte";
   import DialogueSelectItem from "./DialogueSelectListItem.svelte";
 
-  import type { DialogueSelectNode } from "../../../stores/rootFolderStore.svelte";
+  import { root, type DialogueSelectNode } from "../../../stores/rootFolderStore.svelte";
 
   const BASE_DIALOGUE_INDENTATION = 2.6;
   const BASE_FOLDER_INDENTATION = 1;
@@ -21,6 +21,14 @@
 
   function handleClickShow() {
     showDropDown = !showDropDown;
+  }
+
+  function handleDialogueClick() {
+    if (node.type !== "dialogue") {
+      return;
+    }
+
+    root.selectDialogue(node);
   }
 </script>
 
@@ -41,8 +49,8 @@
 {/if}
 
 {#if node.type === "dialogue"}
-  <li class="dialogue">
-    <button style:padding-left={dialogueIndentation}>
+  <li class="dialogue {node.selected ? 'selected' : ''}">
+    <button onclick={handleDialogueClick} style:padding-left={dialogueIndentation}>
       {node.name}
     </button>
   </li>
@@ -73,5 +81,9 @@
     width: 100%;
     padding: 0.3rem 0;
     transition: background-color ease-in 100ms;
+  }
+
+  .dialogue.selected {
+    background-color: var(--secondary-color);
   }
 </style>

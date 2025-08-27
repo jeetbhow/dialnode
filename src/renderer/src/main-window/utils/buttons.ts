@@ -1,20 +1,20 @@
-import { dialogues } from "../stores/dialogueStore.svelte";
+import { graph } from "../stores/graphStore.svelte";
 
 export const nodeButtons = [
   {
     text: "+ Start",
-    onClick: dialogues.addStartNode
+    onClick: graph.addStartNode
   },
   {
     text: "+ Node",
-    onClick: dialogues.addTextNode
+    onClick: graph.addTextNode
   },
   {
     text: "+ Branch",
-    onClick: dialogues.addBranchContainerNode
+    onClick: graph.addBranchContainerNode
   },
   {
     text: "+ End",
-    onClick: dialogues.addEndNode
+    onClick: graph.addEndNode
   }
 ];

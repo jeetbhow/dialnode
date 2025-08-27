@@ -3,7 +3,7 @@
 
   import { useSvelteFlow, Handle, Position, type NodeProps } from "@xyflow/svelte";
   import type { BranchContainerNodeType, BranchNodeType } from "../../../../../../shared/types";
-  import { dialogues } from "../../../stores/dialogueStore.svelte";
+  import { graph } from "../../../stores/graphStore.svelte";
 
   const ICON_SIZE = 26;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -15,23 +15,18 @@
     const target = e.target as HTMLInputElement;
     const newValue = target.value;
 
-    dialogues.selectedNodes = dialogues.selectedNodes.map((n) =>
+    graph.nodes = graph.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, text: newValue } } : n
     );
-
-    dialogues.save();
   }
 
   function deleteBranch(): void {
-    const branchContainer = dialogues.selectedNodes.find(
-      (n) => n.id === parentId
-    ) as BranchContainerNodeType;
+    const branchContainer = graph.nodes.find((n) => n.id === parentId) as BranchContainerNodeType;
 
     const branches = branchContainer.data.branches;
     branchContainer.data.branches = branches.filter((b) => b !== id);
 
     deleteElements({ nodes: [{ id }] });
-    dialogues.save();
   }
 </script>
 

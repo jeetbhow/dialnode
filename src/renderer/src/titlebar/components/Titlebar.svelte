@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { dialogues } from "../../main-window/stores/dialogueStore.svelte";
   import Cross from "../../shared/components/icons/Cross.svelte";
   import Maximize from "../../shared/components/icons/Maximize.svelte";
   import Minimize from "../../shared/components/icons/Minimize.svelte";
@@ -17,7 +16,6 @@
   let { view }: Props = $props();
 
   function handleClose(): void {
-    dialogues.saveToDb();
     window.api.close();
   }
 </script>

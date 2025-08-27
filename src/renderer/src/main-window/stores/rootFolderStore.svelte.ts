@@ -1,4 +1,6 @@
-import type { Node, Edge } from "@xyflow/svelte";
+import { type Edge } from "@xyflow/svelte";
+
+import { graph } from "./graphStore.svelte";
 import type { DialogueNode } from "../../../../shared/types";
 
 export type StorageType = "folder" | "dialogue";
@@ -12,37 +14,53 @@ export interface BaseDialogueSelectNode {
 
 export interface Dialogue extends BaseDialogueSelectNode {
   type: "dialogue";
+  selected: boolean;
   nodes: DialogueNode<Record<string, unknown>>[];
   edges: Edge[];
 }
 
 export interface Folder extends BaseDialogueSelectNode {
   type: "folder";
-  children: DialogueSelectNode[];
+  readonly children: readonly DialogueSelectNode[];
 }
 
 export type DialogueSelectNode = Folder | Dialogue;
 
-class RootFolder implements Folder {
-  type: "folder" = "folder";
-  id: string = "root";
-  name: string = "root";
-  parentId: string = null;
+class RootDialogueSelectNode implements Folder {
+  public type: "folder" = "folder";
+  public id: string = "root";
+  public name: string = "root";
+  public parentId: string = null;
 
-  selectedNodes = $state.raw<Node[]>([]);
-  selectedEdges = $state.raw<Edge[]>([]);
-  children = $state<DialogueSelectNode[]>([]);
+  private selectedDialogue = $state<Dialogue | null>(null);
+  private _children = $state<DialogueSelectNode[]>([]);
+
+  get children(): readonly DialogueSelectNode[] {
+    return this._children;
+  }
 
   public add(node: DialogueSelectNode) {
-    this.children.push(node);
+    this._children.push(node);
   }
 
   public remove(node: DialogueSelectNode) {
-    this.children = this.children.filter((n) => n.id === node.id);
+    this._children = this.children.filter((n) => n.id === node.id);
+  }
+
+  public selectDialogue(dialogue: Dialogue) {
+    if (this.selectedDialogue !== null) {
+      this.selectedDialogue.nodes = graph.nodes;
+      this.selectedDialogue.edges = graph.edges;
+      this.selectedDialogue.selected = false;
+    }
+
+    this.selectedDialogue = dialogue;
+    this.selectedDialogue.selected = true;
+    graph.display(dialogue);
   }
 }
 
-const rootFolder = new RootFolder();
+export const root = new RootDialogueSelectNode();
 
 const testData: DialogueSelectNode[] = [
   {
@@ -61,6 +79,7 @@ const testData: DialogueSelectNode[] = [
         id: "folder 1 child dialogue",
         parentId: "1",
         type: "dialogue",
+        selected: false,
         name: "folder 1 child dialogue",
         edges: [],
         nodes: []
@@ -71,15 +90,12 @@ const testData: DialogueSelectNode[] = [
     id: "2",
     type: "dialogue",
     name: "dialogue 1",
+    selected: false,
     nodes: [],
     edges: []
   }
 ];
 
 for (const data of testData) {
-  rootFolder.add(data);
-}
-
-export function useRootFolder() {
-  return rootFolder;
+  root.add(data);
 }

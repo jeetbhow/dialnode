@@ -1,12 +1,12 @@
 <script lang="ts">
   import { clickOutside } from "../../shared/attachments/attachments";
-  import { dialogues } from "../../main-window/stores/dialogueStore.svelte";
+  import { graph } from "../../main-window/stores/graphStore.svelte";
   import { filterNodeProps } from "../../main-window/utils/utils";
 
   let open = $state(false);
 
   function handleClickSave(): void {
-    dialogues.saveToDb();
+    // graph.saveToDb();
   }
 
   function handleClickManageRepositories(): void {
@@ -14,7 +14,7 @@
   }
 
   async function handleClickExport(): Promise<void> {
-    const filteredNodes = filterNodeProps(dialogues.selectedNodes);
+    const filteredNodes = filterNodeProps(graph.nodes);
     await window.api.exportJson(filteredNodes);
   }
 </script>

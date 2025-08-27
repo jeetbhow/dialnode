@@ -1,13 +1,11 @@
 <script lang="ts">
-  import { useRootFolder } from "../../../stores/rootFolderStore.svelte";
+  import { root } from "../../../stores/rootFolderStore.svelte";
   import DialogueSelectListItem from "./DialogueSelectListItem.svelte";
-
-  const rootFolder = useRootFolder();
 </script>
 
 <div>
   <ul>
-    {#each rootFolder.children as node}
+    {#each root.children as node}
       <li>
         <DialogueSelectListItem {node} recursionLevel={0} />
       </li>
