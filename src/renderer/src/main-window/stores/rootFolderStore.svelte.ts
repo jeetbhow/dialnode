@@ -29,9 +29,9 @@ class RootFolder implements Folder {
   name: string = "root";
   parentId: string = null;
 
-  selectedNodes = $state<Node[]>([]);
-  selectedEdges = $state<Edge[]>([]);
-  children: DialogueSelectNode[] = [];
+  selectedNodes = $state.raw<Node[]>([]);
+  selectedEdges = $state.raw<Edge[]>([]);
+  children = $state<DialogueSelectNode[]>([]);
 
   public add(node: DialogueSelectNode) {
     this.children.push(node);
