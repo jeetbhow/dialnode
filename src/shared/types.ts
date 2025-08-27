@@ -56,9 +56,17 @@ export type Button = {
 
 export type Dialogue = {
   id: string;
+  parentId?: string;
   name: string;
   nodes: DialogueNode<Record<string, unknown>>[];
   edges: Edge[];
+};
+
+export type DialogueFolder = {
+  id: string;
+  parentId: string;
+  name: string;
+  dialogues: Dialogue[];
 };
 
 export type Object = Record<string, unknown>;
