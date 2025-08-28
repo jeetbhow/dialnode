@@ -49,6 +49,10 @@
     node.name = renameInputValue;
     root.editing = false;
   }
+
+  function handleRenameChange() {
+    root.editing = false;
+  }
 </script>
 
 {#if node.type === "folder"}
@@ -71,7 +75,7 @@
   <li class="dialogue {root.selectedDialogue?.id === node.id ? 'selected' : ''}">
     {#if root.editing && root.selectedDialogue.id === node.id}
       <form onsubmit={handleSubmitRename}>
-        <input use:autofocus bind:value={renameInputValue} />
+        <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
       </form>
     {:else}
       <button onclick={handleDialogueClick} style:padding-left={dialogueIndentation}>
