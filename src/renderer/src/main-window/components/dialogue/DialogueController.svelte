@@ -10,12 +10,13 @@
       id: crypto.randomUUID(),
       type: "dialogue",
       name: "Untitled",
-      selected: false,
       nodes: [],
       edges: []
     };
 
     root.add(newDialogue);
+    root.selectDialogue(newDialogue);
+    root.editing = true;
   }
 </script>
 

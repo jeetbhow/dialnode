@@ -1,18 +1,30 @@
 <script lang="ts">
   import { clickOutside } from "../../shared/attachments/attachments";
   import { modal } from "../../main-window/stores/dbModal.svelte";
-  import { root } from "../../main-window/stores/dialoguesStore.svelte";
+  import { root, type DialogueSelectNode } from "../../main-window/stores/dialoguesStore.svelte";
 
   let open = $state(false);
 
   function handleAddDialogue(): void {
-    // graph.add();
-    // graph.selectDialogue(graph.data.length - 1);
-    // graph.editing = true;
+    const newDialogue: DialogueSelectNode = {
+      id: crypto.randomUUID(),
+      type: "dialogue",
+      name: "Untitled",
+      nodes: [],
+      edges: []
+    };
+
+    root.add(newDialogue);
+    root.selectDialogue(newDialogue);
+    root.editing = true;
   }
 
   function handleEditDialogue(): void {
     root.editing = true;
+  }
+
+  function handleRemoveDialogue(): void {
+    root.removeSelected();
   }
 </script>
 
@@ -27,7 +39,7 @@
         <button onclick={handleEditDialogue}>Rename Dialogue</button>
       </li>
       <li>
-        <button>Remove Dialogue</button>
+        <button onclick={handleRemoveDialogue}>Remove Dialogue</button>
       </li>
       <li>
         <button onclick={() => (modal.open = true)}>Open Database</button>

@@ -68,6 +68,11 @@ class RootDialogueSelectNode implements Folder {
     this._children = this.children.filter((n) => n.id === node.id);
   }
 
+  public removeSelected() {
+    this._children = this._children.filter((n) => n.id !== this._selectedDialogue.id);
+    this._selectedDialogue = null;
+  }
+
   public selectDialogue(dialogue: Dialogue) {
     // This fetches the nodes and edges from the flow and updates
     // the data on the currently selected dialogue before discarding it.
