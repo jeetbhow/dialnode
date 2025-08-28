@@ -1,6 +1,7 @@
 <script lang="ts">
   import { clickOutside } from "../../shared/attachments/attachments";
   import { modal } from "../../main-window/stores/dbModal.svelte";
+  import { root } from "../../main-window/stores/dialoguesStore.svelte";
 
   let open = $state(false);
 
@@ -8,6 +9,10 @@
     // graph.add();
     // graph.selectDialogue(graph.data.length - 1);
     // graph.editing = true;
+  }
+
+  function handleEditDialogue(): void {
+    root.editing = true;
   }
 </script>
 
@@ -19,7 +24,7 @@
         <button onclick={handleAddDialogue}>Add Dialogue</button>
       </li>
       <li>
-        <button>Rename Dialogue</button>
+        <button onclick={handleEditDialogue}>Rename Dialogue</button>
       </li>
       <li>
         <button>Remove Dialogue</button>

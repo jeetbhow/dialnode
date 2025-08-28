@@ -45,6 +45,9 @@ class Dialogues {
   //   this._editing = false;
   // }
 
+  /**
+   * Displays the nodes and edges in a dialogue on the main flow.
+   */
   public display(dialogue: Dialogue) {
     this.nodes = dialogue.nodes;
     this.edges = dialogue.edges;

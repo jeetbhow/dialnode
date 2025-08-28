@@ -3,6 +3,7 @@
   import DialogueSelectItem from "./DialogueSelectListItem.svelte";
 
   import { root, type DialogueSelectNode } from "../../../stores/dialoguesStore.svelte";
+  import { tick } from "svelte";
 
   const BASE_DIALOGUE_INDENTATION = 2.6;
   const BASE_FOLDER_INDENTATION = 1;
@@ -15,20 +16,38 @@
 
   let { node, recursionLevel }: Props = $props();
   let showDropDown = $state(false);
+  let renameInputValue = $state(node.name);
+
+  function autofocus(el: HTMLInputElement) {
+    tick().then(() => {
+      el.focus();
+      el.select();
+    });
+
+    return {
+      destroy() {}
+    };
+  }
 
   const dialogueIndentation = BASE_DIALOGUE_INDENTATION + recursionLevel + "rem";
   const folderIndentation = BASE_FOLDER_INDENTATION + recursionLevel + "rem";
 
-  function handleClickShow() {
+  function handleClickShow(): void {
     showDropDown = !showDropDown;
   }
 
-  function handleDialogueClick() {
+  function handleDialogueClick(): void {
     if (node.type !== "dialogue") {
       return;
     }
 
     root.selectDialogue(node);
+  }
+
+  function handleSubmitRename(event: SubmitEvent) {
+    event.preventDefault();
+    node.name = renameInputValue;
+    root.editing = false;
   }
 </script>
 
@@ -50,9 +69,15 @@
 
 {#if node.type === "dialogue"}
   <li class="dialogue {root.selectedDialogue?.id === node.id ? 'selected' : ''}">
-    <button onclick={handleDialogueClick} style:padding-left={dialogueIndentation}>
-      {node.name}
-    </button>
+    {#if root.editing && root.selectedDialogue.id === node.id}
+      <form onsubmit={handleSubmitRename}>
+        <input use:autofocus bind:value={renameInputValue} />
+      </form>
+    {:else}
+      <button onclick={handleDialogueClick} style:padding-left={dialogueIndentation}>
+        {node.name}
+      </button>
+    {/if}
   </li>
 {/if}
 

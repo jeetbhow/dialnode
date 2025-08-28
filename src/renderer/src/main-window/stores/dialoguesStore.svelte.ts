@@ -26,13 +26,31 @@ export interface Folder extends BaseDialogueSelectNode {
 export type DialogueSelectNode = Folder | Dialogue;
 
 class RootDialogueSelectNode implements Folder {
-  public type: "folder" = "folder";
-  public id: string = "root";
-  public name: string = "root";
-  public parentId: string = null;
+  public editing: boolean = $state(false);
 
   private _selectedDialogue = $state<Dialogue | null>(null);
   private _children = $state<DialogueSelectNode[]>([]);
+
+  private _type: "folder" = "folder";
+  private _id: string = "root";
+  private _name: string = "root";
+  private _parentId: string = null;
+
+  get type(): "folder" {
+    return this._type;
+  }
+
+  get id(): string {
+    return this._id;
+  }
+
+  get name(): string {
+    return this._name;
+  }
+
+  get parentId(): string {
+    return this._parentId;
+  }
 
   get selectedDialogue(): Dialogue | null {
     return this._selectedDialogue;
@@ -51,6 +69,8 @@ class RootDialogueSelectNode implements Folder {
   }
 
   public selectDialogue(dialogue: Dialogue) {
+    // This fetches the nodes and edges from the flow and updates
+    // the data on the currently selected dialogue before discarding it.
     if (this._selectedDialogue !== null) {
       this._selectedDialogue.nodes = graph.nodes;
       this._selectedDialogue.edges = graph.edges;
@@ -80,7 +100,6 @@ const testData: DialogueSelectNode[] = [
         id: "folder 1 child dialogue",
         parentId: "1",
         type: "dialogue",
-        selected: false,
         name: "folder 1 child dialogue",
         edges: [],
         nodes: []
@@ -91,7 +110,6 @@ const testData: DialogueSelectNode[] = [
     id: "2",
     type: "dialogue",
     name: "dialogue 1",
-    selected: false,
     nodes: [],
     edges: []
   }
