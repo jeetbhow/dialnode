@@ -1,12 +1,13 @@
 <script lang="ts">
   import AddDialogue from "../../../shared/components/icons/AddDialogue.svelte";
+  import AddFolder from "../../../shared/components/icons/AddFolder.svelte";
 
-  import { root, type DialogueSelectNode } from "../../stores/dialoguesStore.svelte";
+  import { root, type Folder, type Dialogue } from "../../stores/dialoguesStore.svelte";
 
   const ICON_SIZE = 24;
 
   function handleAddDialogue(): void {
-    const newDialogue: DialogueSelectNode = {
+    const newDialogue: Dialogue = {
       id: crypto.randomUUID(),
       type: "dialogue",
       name: "Untitled",
@@ -15,7 +16,20 @@
     };
 
     root.add(newDialogue);
-    root.selectDialogue(newDialogue);
+    root.select(newDialogue);
+    root.editing = true;
+  }
+
+  function handleAddFolder(): void {
+    const newFolder: Folder = {
+      id: crypto.randomUUID(),
+      type: "folder",
+      name: "Untitled",
+      children: []
+    };
+
+    root.add(newFolder);
+    root.select(newFolder);
     root.editing = true;
   }
 </script>
@@ -23,6 +37,9 @@
 <div class="controller">
   <button onclick={handleAddDialogue}>
     <AddDialogue width={ICON_SIZE} height={ICON_SIZE} color="#322E2C" />
+  </button>
+  <button onclick={handleAddFolder}>
+    <AddFolder width={ICON_SIZE} height={ICON_SIZE} color="#322E2C" />
   </button>
 </div>
 

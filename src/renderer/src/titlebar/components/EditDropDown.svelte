@@ -15,7 +15,7 @@
     };
 
     root.add(newDialogue);
-    root.selectDialogue(newDialogue);
+    root.select(newDialogue);
     root.editing = true;
   }
 

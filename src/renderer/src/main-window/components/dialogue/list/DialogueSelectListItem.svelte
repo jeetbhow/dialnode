@@ -41,7 +41,7 @@
       return;
     }
 
-    root.selectDialogue(node);
+    root.select(node);
   }
 
   function handleSubmitRename(event: SubmitEvent) {
@@ -57,23 +57,29 @@
 
 {#if node.type === "folder"}
   <li class="folder">
-    <button onclick={handleClickShow} style:padding-left={folderIndentation}>
-      <Chevron width={ICON_SIZE} height={ICON_SIZE} direction={showDropDown ? "down" : "right"} />
-      {node.name}
-    </button>
-    {#if showDropDown}
-      <ul>
-        {#each node.children as child}
-          <DialogueSelectItem node={child} recursionLevel={recursionLevel + 1} />
-        {/each}
-      </ul>
+    {#if root.editing && root.selected.id === node.id}
+      <form onsubmit={handleSubmitRename}>
+        <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
+      </form>
+    {:else}
+      <button onclick={handleClickShow} style:padding-left={folderIndentation}>
+        <Chevron width={ICON_SIZE} height={ICON_SIZE} direction={showDropDown ? "down" : "right"} />
+        {node.name}
+      </button>
+      {#if showDropDown}
+        <ul>
+          {#each node.children as child}
+            <DialogueSelectItem node={child} recursionLevel={recursionLevel + 1} />
+          {/each}
+        </ul>
+      {/if}
     {/if}
   </li>
 {/if}
 
 {#if node.type === "dialogue"}
-  <li class="dialogue {root.selectedDialogue?.id === node.id ? 'selected' : ''}">
-    {#if root.editing && root.selectedDialogue.id === node.id}
+  <li class="dialogue {root.selected?.id === node.id ? 'selected' : ''}">
+    {#if root.editing && root.selected.id === node.id}
       <form onsubmit={handleSubmitRename}>
         <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
       </form>

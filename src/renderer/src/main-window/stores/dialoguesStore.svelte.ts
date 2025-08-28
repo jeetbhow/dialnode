@@ -28,7 +28,7 @@ export type DialogueSelectNode = Folder | Dialogue;
 class RootDialogueSelectNode implements Folder {
   public editing: boolean = $state(false);
 
-  private _selectedDialogue = $state<Dialogue | null>(null);
+  private _selected = $state<DialogueSelectNode | null>(null);
   private _children = $state<DialogueSelectNode[]>([]);
 
   private _type: "folder" = "folder";
@@ -52,8 +52,8 @@ class RootDialogueSelectNode implements Folder {
     return this._parentId;
   }
 
-  get selectedDialogue(): Dialogue | null {
-    return this._selectedDialogue;
+  get selected(): DialogueSelectNode | null {
+    return this._selected;
   }
 
   get children(): readonly DialogueSelectNode[] {
@@ -69,57 +69,23 @@ class RootDialogueSelectNode implements Folder {
   }
 
   public removeSelected() {
-    this._children = this._children.filter((n) => n.id !== this._selectedDialogue.id);
-    this._selectedDialogue = null;
+    this._children = this._children.filter((n) => n.id !== this._selected.id);
+    this._selected = null;
   }
 
-  public selectDialogue(dialogue: Dialogue) {
+  public select(node: DialogueSelectNode) {
     // This fetches the nodes and edges from the flow and updates
     // the data on the currently selected dialogue before discarding it.
-    if (this._selectedDialogue !== null) {
-      this._selectedDialogue.nodes = graph.nodes;
-      this._selectedDialogue.edges = graph.edges;
+    if (this._selected !== null && this._selected.type === "dialogue") {
+      this._selected.nodes = graph.nodes;
+      this._selected.edges = graph.edges;
     }
 
-    this._selectedDialogue = dialogue;
-    graph.display(dialogue);
+    this._selected = node;
+    if (node.type === "dialogue") {
+      graph.display(node);
+    }
   }
 }
 
 export const root = new RootDialogueSelectNode();
-
-const testData: DialogueSelectNode[] = [
-  {
-    id: "1",
-    type: "folder",
-    name: "folder 1",
-    children: [
-      {
-        id: "folder 1 child folder",
-        parentId: "1",
-        type: "folder",
-        name: "folder 1 child folder",
-        children: []
-      },
-      {
-        id: "folder 1 child dialogue",
-        parentId: "1",
-        type: "dialogue",
-        name: "folder 1 child dialogue",
-        edges: [],
-        nodes: []
-      }
-    ]
-  },
-  {
-    id: "2",
-    type: "dialogue",
-    name: "dialogue 1",
-    nodes: [],
-    edges: []
-  }
-];
-
-for (const data of testData) {
-  root.add(data);
-}
