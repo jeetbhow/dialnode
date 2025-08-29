@@ -11,7 +11,8 @@ import type {
   BranchNodeType,
   SkillCheckNodeType,
   EndNodeType,
-  BranchContainerNodeType
+  BranchContainerNodeType,
+  DialogueNodeType
 } from "../../../../shared/types";
 
 const db = useDb();
@@ -20,34 +21,6 @@ class Dialogues {
   public nodes = $state.raw<DialogueNode<Record<string, unknown>>[] | null>(null);
   public edges = $state.raw<Edge[] | null>(null);
 
-  // private _data = $state<Dialogue[]>([]);
-  // private _selectedIndex: number | null = $state(null);
-  // private _editing: boolean = $state(false);
-
-  // get data(): Dialogue[] {
-  //   return this._data;
-  // }
-
-  // get selectedIndex(): number | null {
-  //   return this._selectedIndex;
-  // }
-
-  // get editing(): boolean {
-  //   return this._editing;
-  // }
-
-  // set editing(value: boolean) {
-  //   this._editing = value;
-  // }
-
-  // set selectedIndex(index: number) {
-  //   this._selectedIndex = index;
-  //   this._editing = false;
-  // }
-
-  /**
-   * Displays the nodes and edges in a dialogue on the main flow.
-   */
   public display(dialogue: Dialogue) {
     this.nodes = dialogue.nodes;
     this.edges = dialogue.edges;
@@ -76,25 +49,6 @@ class Dialogues {
   //   await window.api.saveDialogues(this.serialize());
   // }
 
-  // public add(): void {
-  //   this._data.push({ id: crypto.randomUUID(), name: "Untitled", nodes: [], edges: [] });
-  // }
-
-  // public removeSelected(): void {
-  //   if (this.selectedIndex === null) {
-  //     return;
-  //   }
-
-  //   this._data = this.data.filter((_, i) => i !== this._selectedIndex);
-  //   this.selectedIndex = this.selectedIndex !== 0 ? this.selectedIndex - 1 : null;
-
-  //   if (this._selectedIndex !== null) {
-  //     const { nodes, edges } = dialogues.get(this.selectedIndex);
-  //     this.selectedNodes = nodes;
-  //     this.selectedEdges = edges;
-  //   }
-  // }
-
   // public save(): void {
   //   if (this._selectedIndex === null) {
   //     return;
@@ -107,24 +61,39 @@ class Dialogues {
   //   };
   // }
 
-  // public get(index: number): Dialogue {
-  //   return this._data[index];
-  // }
+  public addNode(type: DialogueNodeType, parentId?: string): string | null {
+    let childId = null;
 
-  // public renameSelected(name: string): void {
-  //   this._data[this._selectedIndex].name = name;
-  // }
+    switch (type) {
+      case "start":
+        this.addStartNode();
+        break;
+      case "end":
+        this.addEndNode();
+        break;
+      case "text":
+        this.addTextNode();
+        break;
+      case "branchContainer":
+        this.addBranchContainerNode();
+        break;
+      case "branch": {
+        childId = this.addBranchNode(parentId);
+        break;
+      }
+      case "skillCheck": {
+        childId = this.addSkillCheckNode(parentId);
+        break;
+      }
+      default:
+        throw new Error("Error creating node: Invalid node type.");
+    }
 
-  // public selectDialogue(index: number): void {
-  //   dialogues.save();
-  //   dialogues.selectedIndex = index;
-  //   const { nodes, edges } = dialogues.get(index);
-  //   this.selectedNodes = nodes;
-  //   this.selectedEdges = edges;
-  // }
+    return childId;
+  }
 
   // TODO: Replace fixed-positions with drag and drop later on.
-  public addStartNode(): void {
+  private addStartNode(): void {
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
@@ -133,10 +102,9 @@ class Dialogues {
     };
 
     graph.nodes = [...graph.nodes, newNode];
-    //dialogues.save();
   }
 
-  public addEndNode(): void {
+  private addEndNode(): void {
     const newNode: EndNodeType = {
       id: crypto.randomUUID(),
       type: "end",
@@ -145,10 +113,9 @@ class Dialogues {
     };
 
     graph.nodes = [...graph.nodes, newNode];
-    //dialogues.save();
   }
 
-  public addTextNode(): void {
+  private addTextNode(): void {
     const id = crypto.randomUUID();
     const position = { x: 0, y: 0 };
 
@@ -160,10 +127,9 @@ class Dialogues {
     };
 
     graph.nodes = [...graph.nodes, newNode];
-    //dialogues.save();
   }
 
-  public addBranchContainerNode(): void {
+  private addBranchContainerNode(): void {
     const id = crypto.randomUUID();
     const newNode: BranchContainerNodeType = {
       id,
@@ -175,10 +141,9 @@ class Dialogues {
     };
 
     graph.nodes = [...graph.nodes, newNode];
-    //dialogues.save();
   }
 
-  public addBranchNode(parentId: string): string {
+  private addBranchNode(parentId: string): string {
     const id = crypto.randomUUID();
     const newNode: BranchNodeType = {
       id,
@@ -190,11 +155,10 @@ class Dialogues {
     };
 
     graph.nodes = [...graph.nodes, newNode];
-    //dialogues.save();
     return id;
   }
 
-  public addSkillCheckNode(parentId: string): string {
+  private addSkillCheckNode(parentId: string): string {
     const id = crypto.randomUUID();
     const skill = db.skillCategories?.[0]?.skills?.[0] ?? null;
 
@@ -208,7 +172,6 @@ class Dialogues {
     };
 
     graph.nodes = [...graph.nodes, newNode];
-    //dialogues.save();
     return id;
   }
 

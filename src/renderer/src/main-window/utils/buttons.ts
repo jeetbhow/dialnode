@@ -3,18 +3,18 @@ import { graph } from "../stores/graphStore.svelte";
 export const nodeButtons = [
   {
     text: "+ Start",
-    onClick: graph.addStartNode
+    onClick: () => graph.addNode("start")
   },
   {
     text: "+ Node",
-    onClick: graph.addTextNode
+    onClick: () => graph.addNode("text")
   },
   {
     text: "+ Branch",
-    onClick: graph.addBranchContainerNode
+    onClick: () => graph.addNode("branchContainer")
   },
   {
     text: "+ End",
-    onClick: graph.addEndNode
+    onClick: () => graph.addNode("end")
   }
 ];
