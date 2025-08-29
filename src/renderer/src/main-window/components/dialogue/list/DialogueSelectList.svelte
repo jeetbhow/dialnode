@@ -7,7 +7,7 @@
   <ul>
     {#each root.children as node}
       <li>
-        <DialogueSelectListItem {node} recursionLevel={0} />
+        <DialogueSelectListItem bind:node recursionLevel={0} />
       </li>
     {/each}
   </ul>

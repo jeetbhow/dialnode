@@ -2,13 +2,14 @@
   import AddDialogue from "../../../shared/components/icons/AddDialogue.svelte";
   import AddFolder from "../../../shared/components/icons/AddFolder.svelte";
 
-  import { root, type Folder, type Dialogue } from "../../stores/dialoguesStore.svelte";
+  import { root, type Dialogue, DialogueFolder } from "../../stores/dialoguesStore.svelte";
 
   const ICON_SIZE = 24;
 
   function handleAddDialogue(): void {
     const newDialogue: Dialogue = {
       id: crypto.randomUUID(),
+      parent: root,
       type: "dialogue",
       name: "Untitled",
       nodes: [],
@@ -21,13 +22,7 @@
   }
 
   function handleAddFolder(): void {
-    const newFolder: Folder = {
-      id: crypto.randomUUID(),
-      type: "folder",
-      name: "Untitled",
-      children: []
-    };
-
+    const newFolder = new DialogueFolder(crypto.randomUUID(), "Untitled", null);
     root.add(newFolder);
     root.select(newFolder);
     root.editing = true;

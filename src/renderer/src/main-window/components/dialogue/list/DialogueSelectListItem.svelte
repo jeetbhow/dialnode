@@ -14,9 +14,10 @@
     recursionLevel: number;
   };
 
-  let { node, recursionLevel }: Props = $props();
+  let { node = $bindable(), recursionLevel }: Props = $props();
   let showDropDown = $state(false);
   let renameInputValue = $state(node.name);
+  let draggedOn = $state(false);
 
   function autofocus(el: HTMLInputElement) {
     tick().then(() => {
@@ -53,10 +54,49 @@
   function handleRenameChange() {
     root.editing = false;
   }
+
+  function handleDragStart(): void {
+    if (node.type !== "dialogue") {
+      return;
+    }
+
+    root.dragged = node;
+  }
+
+  function handleDragOver(event: DragEvent): void {
+    event.preventDefault();
+    draggedOn = true;
+  }
+
+  function handleDragLeave(): void {
+    draggedOn = false;
+  }
+
+  function handleDrop(): void {
+    if (node.type !== "folder") {
+      return;
+    }
+
+    const draggedEl = root.dragged;
+    node.children.push(draggedEl);
+
+    const parent = draggedEl.parent;
+    parent.remove(draggedEl);
+
+    draggedEl.parent = node;
+    root.dragged = null;
+    draggedOn = false;
+  }
 </script>
 
 {#if node.type === "folder"}
-  <li class="folder">
+  <li
+    class="folder"
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
+    class:dragged={draggedOn}
+  >
     {#if root.editing && root.selected.id === node.id}
       <form onsubmit={handleSubmitRename}>
         <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
@@ -78,7 +118,11 @@
 {/if}
 
 {#if node.type === "dialogue"}
-  <li class="dialogue {root.selected?.id === node.id ? 'selected' : ''}">
+  <li
+    class="dialogue {root.selected?.id === node.id ? 'selected' : ''}"
+    draggable="true"
+    ondragstart={handleDragStart}
+  >
     {#if root.editing && root.selected.id === node.id}
       <form onsubmit={handleSubmitRename}>
         <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
@@ -109,6 +153,10 @@
     padding: 0rem;
   }
 
+  li {
+    border: solid 2px transparent;
+  }
+
   li button {
     display: flex;
     align-items: center;
@@ -120,5 +168,9 @@
 
   .dialogue.selected {
     background-color: var(--secondary-color);
+  }
+
+  li.dragged {
+    border: solid 2px var(--primary-color);
   }
 </style>

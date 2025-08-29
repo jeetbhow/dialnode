@@ -9,7 +9,7 @@ export interface BaseDialogueSelectNode {
   id: string;
   type: StorageType;
   name: string;
-  parentId?: string;
+  parent: Folder | null;
 }
 
 export interface Dialogue extends BaseDialogueSelectNode {
@@ -20,56 +20,46 @@ export interface Dialogue extends BaseDialogueSelectNode {
 
 export interface Folder extends BaseDialogueSelectNode {
   type: "folder";
-  readonly children: readonly DialogueSelectNode[];
+  children: DialogueSelectNode[];
+  add: (node: DialogueSelectNode) => void;
+  remove: (node: DialogueSelectNode) => void;
 }
 
 export type DialogueSelectNode = Folder | Dialogue;
 
-class RootDialogueSelectNode implements Folder {
+export class DialogueFolder implements Folder {
   public editing: boolean = $state(false);
+  public dragged = $state<Dialogue | null>(null);
+  public children = $state<DialogueSelectNode[]>([]);
 
   private _selected = $state<DialogueSelectNode | null>(null);
-  private _children = $state<DialogueSelectNode[]>([]);
 
-  private _type: "folder" = "folder";
-  private _id: string = "root";
-  private _name: string = "root";
-  private _parentId: string = null;
+  public type: "folder" = "folder";
+  public id: string = "root";
+  public name: string = "root";
+  public parent: Folder | null = null;
 
-  get type(): "folder" {
-    return this._type;
-  }
-
-  get id(): string {
-    return this._id;
-  }
-
-  get name(): string {
-    return this._name;
-  }
-
-  get parentId(): string {
-    return this._parentId;
+  constructor(id: string = "root", name: string = "root", parent: Folder | null = null) {
+    this.id = id;
+    this.type = "folder";
+    this.name = name;
+    this.parent = parent;
   }
 
   get selected(): DialogueSelectNode | null {
     return this._selected;
   }
 
-  get children(): readonly DialogueSelectNode[] {
-    return this._children;
-  }
-
   public add(node: DialogueSelectNode) {
-    this._children.push(node);
+    this.children.push(node);
   }
 
   public remove(node: DialogueSelectNode) {
-    this._children = this.children.filter((n) => n.id === node.id);
+    this.children = this.children.filter((n) => n.id !== node.id);
   }
 
   public removeSelected() {
-    this._children = this._children.filter((n) => n.id !== this._selected.id);
+    this.children = this.children.filter((n) => n.id !== this._selected.id);
     this._selected = null;
   }
 
@@ -88,4 +78,4 @@ class RootDialogueSelectNode implements Folder {
   }
 }
 
-export const root = new RootDialogueSelectNode();
+export const root = new DialogueFolder();
