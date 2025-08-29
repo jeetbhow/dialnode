@@ -56,10 +56,6 @@
   }
 
   function handleDragStart(): void {
-    if (node.type !== "dialogue") {
-      return;
-    }
-
     root.dragged = node;
   }
 
@@ -92,6 +88,8 @@
 {#if node.type === "folder"}
   <li
     class="folder"
+    draggable="true"
+    ondragstart={handleDragStart}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
     ondrop={handleDrop}

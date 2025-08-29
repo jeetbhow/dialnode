@@ -22,7 +22,7 @@
   }
 
   function handleAddFolder(): void {
-    const newFolder = new DialogueFolder(crypto.randomUUID(), "Untitled", null);
+    const newFolder = new DialogueFolder(crypto.randomUUID(), "Untitled", root);
     root.add(newFolder);
     root.select(newFolder);
     root.editing = true;

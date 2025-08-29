@@ -29,7 +29,7 @@ export type DialogueSelectNode = Folder | Dialogue;
 
 export class DialogueFolder implements Folder {
   public editing: boolean = $state(false);
-  public dragged = $state<Dialogue | null>(null);
+  public dragged = $state<DialogueSelectNode | null>(null);
   public children = $state<DialogueSelectNode[]>([]);
 
   private _selected = $state<DialogueSelectNode | null>(null);
