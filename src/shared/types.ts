@@ -78,14 +78,23 @@ export type DialogueNodeType =
   | "branch"
   | "skillCheck";
 
+export type SerializedDialogueNode = SerializedDialogue | SerializedFolder;
+
 export type SerializedDialogue = {
   id: string;
+  parentId?: string;
   name: string;
-  nodes: SerializedDialogueNode[];
-  edges: SerializedDialogueEdge[];
+  nodes: SerializedGraphNode[];
+  edges: SerializedGraphEdge[];
 };
 
-export type SerializedDialogueNode = {
+export type SerializedFolder = {
+  id: string;
+  parentId?: string;
+  name: string;
+};
+
+export type SerializedGraphNode = {
   id: string;
   parentId?: string;
   dialogueId: string;
@@ -98,7 +107,7 @@ export type SerializedDialogueNode = {
   data: string;
 };
 
-export type SerializedDialogueEdge = {
+export type SerializedGraphEdge = {
   id: string;
   dialogueId: string;
   type: string;

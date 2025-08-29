@@ -1,7 +1,12 @@
 import { type Edge } from "@xyflow/svelte";
 
 import { graph } from "./graphStore.svelte";
-import type { DialogueNode } from "../../../../shared/types";
+import type {
+  DialogueNode,
+  SerializedDialogueNode,
+  SerializedDialogue,
+  SerializedFolder
+} from "../../../../shared/types";
 
 export type StorageType = "folder" | "dialogue";
 
@@ -12,36 +17,54 @@ export interface BaseDialogueSelectNode {
   parent: Folder | null;
 }
 
-export interface Dialogue extends BaseDialogueSelectNode {
-  type: "dialogue";
-  nodes: DialogueNode<Record<string, unknown>>[];
-  edges: Edge[];
-}
-
-export interface Folder extends BaseDialogueSelectNode {
-  type: "folder";
-  children: DialogueSelectNode[];
-  add: (node: DialogueSelectNode) => void;
-  remove: (node: DialogueSelectNode) => void;
-}
-
 export type DialogueSelectNode = Folder | Dialogue;
 
-export class DialogueFolder implements Folder {
+export class Dialogue implements BaseDialogueSelectNode {
+  public type: "dialogue" = "dialogue";
+  public nodes: DialogueNode<Record<string, unknown>>[] = [];
+  public edges: Edge[] = [];
+
+  public name = $state("");
+  public parent = $state<Folder | null>(null);
+
+  constructor(
+    public id: string = crypto.randomUUID(),
+    name: string = "Untitled",
+    parent: Folder | null = root
+  ) {
+    this.name = name;
+    this.parent = parent;
+  }
+
+  public move(folder: Folder) {
+    if (this.parent) {
+      this.parent.remove(this);
+    }
+
+    folder.add(this);
+    this.parent = folder;
+  }
+}
+
+export class Folder implements BaseDialogueSelectNode {
   public editing: boolean = $state(false);
   public dragged = $state<DialogueSelectNode | null>(null);
   public children = $state<DialogueSelectNode[]>([]);
 
   private _selected = $state<DialogueSelectNode | null>(null);
 
-  public type: "folder" = "folder";
-  public id: string = "root";
-  public name: string = "root";
-  public parent: Folder | null = null;
+  public name = $state("root");
+  public parent = $state<Folder | null>(null);
 
-  constructor(id: string = "root", name: string = "root", parent: Folder | null = null) {
+  public type: "folder" = "folder";
+  public id: string;
+
+  constructor(
+    id: string = crypto.randomUUID(),
+    name: string = "Untitled",
+    parent: Folder | null = root
+  ) {
     this.id = id;
-    this.type = "folder";
     this.name = name;
     this.parent = parent;
   }
@@ -63,19 +86,94 @@ export class DialogueFolder implements Folder {
     this._selected = null;
   }
 
-  public select(node: DialogueSelectNode) {
-    // This fetches the nodes and edges from the flow and updates
-    // the data on the currently selected dialogue before discarding it.
-    if (this._selected !== null && this._selected.type === "dialogue") {
-      this._selected.nodes = graph.nodes;
-      this._selected.edges = graph.edges;
+  public move(folder: Folder) {
+    if (this.parent) {
+      this.parent.remove(this);
     }
 
+    folder.add(this);
+    this.parent = folder;
+  }
+
+  public select(node: DialogueSelectNode) {
+    this.save();
     this._selected = node;
     if (node.type === "dialogue") {
       graph.display(node);
     }
   }
+
+  public save() {
+    if (this._selected !== null && this._selected.type === "dialogue") {
+      this._selected.nodes = graph.nodes;
+      this._selected.edges = graph.edges;
+    }
+  }
+
+  public serialize(): SerializedDialogueNode[] {
+    const json = [];
+    const stack: Folder[] = [this];
+
+    while (stack.length > 0) {
+      // Get the top elem (always a folder)
+      const top = stack.pop();
+
+      // iterate through the children.
+      for (const child of top.children) {
+        // if it's a folder, then serialize it and then add it to the stack. Also
+        // add it to the json.
+        let ser: SerializedDialogueNode;
+        if (child.type === "folder") {
+          ser = this.serializeFolder(child);
+          stack.push(child);
+        }
+        // if it's regular dialogue, then serialize it and then add it to the json.
+        else {
+          ser = this.serializeDialogue(child);
+        }
+        json.push(ser);
+      }
+    }
+
+    return json;
+  }
+
+  private serializeDialogue(dialogue: Dialogue): SerializedDialogue {
+    return {
+      id: dialogue.id,
+      parentId: dialogue.parent?.id,
+      name: dialogue.name,
+      nodes: dialogue.nodes.map((node) => ({
+        id: node.id,
+        parentId: node.parentId,
+        dialogueId: dialogue.id,
+        extent: node.extent,
+        type: node.type,
+        positionX: node.position.x,
+        positionY: node.position.y,
+        width: node.width,
+        height: node.height,
+        data: JSON.stringify(node.data)
+      })),
+      edges: dialogue.edges.map((edge) => ({
+        id: edge.id,
+        dialogueId: dialogue.id,
+        type: edge.type,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle
+      }))
+    };
+  }
+
+  private serializeFolder(folder: Folder): SerializedFolder {
+    return {
+      id: folder.id,
+      parentId: folder.parent.id,
+      name: folder.name
+    };
+  }
 }
 
-export const root = new DialogueFolder();
+export const root = new Folder("root", "root", null);

@@ -2,11 +2,13 @@
   import { clickOutside } from "../../shared/attachments/attachments";
   import { graph } from "../../main-window/stores/graphStore.svelte";
   import { filterNodeProps } from "../../main-window/utils/utils";
+  import { root } from "../../main-window/stores/dialoguesStore.svelte";
 
   let open = $state(false);
 
   function handleClickSave(): void {
-    // graph.saveToDb();
+    const serializedData = root.serialize();
+    console.log(serializedData);
   }
 
   function handleClickManageRepositories(): void {

@@ -70,12 +70,8 @@
     }
 
     const draggedEl = root.dragged;
-    node.children.push(draggedEl);
+    draggedEl.move(node);
 
-    const parent = draggedEl.parent;
-    parent.remove(draggedEl);
-
-    draggedEl.parent = node;
     root.dragged = null;
     draggedOn = false;
   }

@@ -7,8 +7,8 @@ import type {
   SkillCategory,
   Skill,
   SerializedDialogue,
-  SerializedDialogueNode,
-  SerializedDialogueEdge
+  SerializedGraphNode,
+  SerializedGraphEdge
 } from "../shared/types";
 
 const ERROR_MSG = "Database does not exist.";
@@ -162,8 +162,8 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
 export function getAllDialogues(): Array<{
   id: string;
   name: string;
-  nodes: SerializedDialogueNode[];
-  edges: SerializedDialogueEdge[];
+  nodes: SerializedGraphNode[];
+  edges: SerializedGraphEdge[];
 }> {
   if (db === null) {
     throw new Error(ERROR_MSG);
@@ -175,8 +175,8 @@ export function getAllDialogues(): Array<{
 
   return dialogues.map((dialogue) => ({
     ...dialogue,
-    nodes: getNodes.all(dialogue.id) as SerializedDialogueNode[],
-    edges: getEdges.all(dialogue.id) as SerializedDialogueEdge[]
+    nodes: getNodes.all(dialogue.id) as SerializedGraphNode[],
+    edges: getEdges.all(dialogue.id) as SerializedGraphEdge[]
   }));
 }
 

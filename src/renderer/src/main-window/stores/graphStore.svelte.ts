@@ -174,34 +174,6 @@ class Dialogues {
     graph.nodes = [...graph.nodes, newNode];
     return id;
   }
-
-  // public serialize(): SerializedDialogue[] {
-  //   return this.data.map((dialogue) => ({
-  //     id: dialogue.id,
-  //     name: dialogue.name,
-  //     nodes: dialogue.nodes.map((node) => ({
-  //       id: node.id,
-  //       parentId: node?.parentId,
-  //       extent: node?.extent,
-  //       dialogueId: dialogue.id,
-  //       type: node.type,
-  //       positionX: node.position.x,
-  //       positionY: node.position.y,
-  //       width: node?.width,
-  //       height: node?.height,
-  //       data: JSON.stringify(node.data)
-  //     })),
-  //     edges: dialogue.edges.map((edge) => ({
-  //       id: edge.id,
-  //       dialogueId: dialogue.id,
-  //       type: edge.type ?? null,
-  //       source: edge.source,
-  //       target: edge.target,
-  //       sourceHandle: edge.sourceHandle ?? null,
-  //       targetHandle: edge.targetHandle ?? null
-  //     }))
-  //   }));
-  // }
 }
 
 export const graph = new Dialogues();
