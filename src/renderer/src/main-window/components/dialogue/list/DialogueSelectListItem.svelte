@@ -24,10 +24,6 @@
       el.focus();
       el.select();
     });
-
-    return {
-      destroy() {}
-    };
   }
 
   const dialogueIndentation = BASE_DIALOGUE_INDENTATION + recursionLevel + "rem";
@@ -140,6 +136,7 @@
     gap: 0.3rem;
     font-size: 0.9rem;
     font-weight: 300;
+    border: solid 2px transparent;
   }
 
   button:hover {
@@ -149,10 +146,6 @@
   ul {
     list-style: none;
     padding: 0rem;
-  }
-
-  li {
-    border: solid 2px transparent;
   }
 
   li button {
@@ -170,5 +163,14 @@
 
   li.dragged {
     border: solid 2px var(--primary-color);
+  }
+
+  form input {
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  form input:focus {
+    outline-color: var(--primary-color);
   }
 </style>

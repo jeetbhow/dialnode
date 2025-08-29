@@ -12,7 +12,7 @@
   .sidebar {
     background-color: #fafafa;
     width: 15%;
-    min-width: 250px;
+    min-width: 350px;
     height: 100%;
   }
 </style>
