@@ -2,22 +2,23 @@
   import AddDialogue from "../../../shared/components/icons/AddDialogue.svelte";
   import AddFolder from "../../../shared/components/icons/AddFolder.svelte";
 
-  import { Dialogue, root, Folder } from "../../stores/dialoguesStore.svelte";
+  import { Dialogue, root, rootState, Folder } from "../../stores/dialoguesStore.svelte";
+  import { graph } from "../../stores/graphStore.svelte";
 
   const ICON_SIZE = 24;
 
   function handleAddDialogue(): void {
     const newDialogue = new Dialogue();
     root.add(newDialogue);
-    root.select(newDialogue);
-    root.editing = true;
+    graph.select(newDialogue);
+    rootState.editing = true;
   }
 
   function handleAddFolder(): void {
     const newFolder = new Folder();
     root.add(newFolder);
-    root.select(newFolder);
-    root.editing = true;
+    graph.select(newFolder);
+    rootState.editing = true;
   }
 </script>
 

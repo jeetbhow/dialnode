@@ -1,6 +1,5 @@
 import { type Edge } from "@xyflow/svelte";
 
-import { graph } from "./graphStore.svelte";
 import type {
   DialogueNode,
   SerializedDialogueNode,
@@ -47,12 +46,7 @@ export class Dialogue implements BaseDialogueSelectNode {
 }
 
 export class Folder implements BaseDialogueSelectNode {
-  public editing: boolean = $state(false);
-  public dragged = $state<DialogueSelectNode | null>(null);
   public children = $state<DialogueSelectNode[]>([]);
-
-  private _selected = $state<DialogueSelectNode | null>(null);
-
   public name = $state("root");
   public parent = $state<Folder | null>(null);
 
@@ -69,21 +63,12 @@ export class Folder implements BaseDialogueSelectNode {
     this.parent = parent;
   }
 
-  get selected(): DialogueSelectNode | null {
-    return this._selected;
-  }
-
   public add(node: DialogueSelectNode) {
     this.children.push(node);
   }
 
   public remove(node: DialogueSelectNode) {
     this.children = this.children.filter((n) => n.id !== node.id);
-  }
-
-  public removeSelected() {
-    this.children = this.children.filter((n) => n.id !== this._selected.id);
-    this._selected = null;
   }
 
   public move(folder: Folder) {
@@ -93,21 +78,6 @@ export class Folder implements BaseDialogueSelectNode {
 
     folder.add(this);
     this.parent = folder;
-  }
-
-  public select(node: DialogueSelectNode) {
-    this.save();
-    this._selected = node;
-    if (node.type === "dialogue") {
-      graph.display(node);
-    }
-  }
-
-  public save() {
-    if (this._selected !== null && this._selected.type === "dialogue") {
-      this._selected.nodes = graph.nodes;
-      this._selected.edges = graph.edges;
-    }
   }
 
   public serialize(): SerializedDialogueNode[] {
@@ -177,3 +147,13 @@ export class Folder implements BaseDialogueSelectNode {
 }
 
 export const root = new Folder("root", "root", null);
+
+type RootState = {
+  editing: boolean;
+  draggedNode: DialogueSelectNode;
+};
+
+export let rootState = $state<RootState>({
+  editing: false,
+  draggedNode: null
+});

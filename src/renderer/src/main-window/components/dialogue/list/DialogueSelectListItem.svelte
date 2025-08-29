@@ -1,9 +1,11 @@
 <script lang="ts">
+  import { tick } from "svelte";
+
   import Chevron from "../../../../shared/components/icons/Chevron.svelte";
   import DialogueSelectItem from "./DialogueSelectListItem.svelte";
 
-  import { root, type DialogueSelectNode } from "../../../stores/dialoguesStore.svelte";
-  import { tick } from "svelte";
+  import { rootState, type DialogueSelectNode } from "../../../stores/dialoguesStore.svelte";
+  import { graph } from "../../../stores/graphStore.svelte";
 
   const BASE_DIALOGUE_INDENTATION = 2.6;
   const BASE_FOLDER_INDENTATION = 1;
@@ -38,21 +40,21 @@
       return;
     }
 
-    root.select(node);
+    graph.select(node);
   }
 
   function handleSubmitRename(event: SubmitEvent) {
     event.preventDefault();
     node.name = renameInputValue;
-    root.editing = false;
+    rootState.editing = false;
   }
 
   function handleRenameChange() {
-    root.editing = false;
+    rootState.editing = false;
   }
 
   function handleDragStart(): void {
-    root.dragged = node;
+    rootState.draggedNode = node;
   }
 
   function handleDragOver(event: DragEvent): void {
@@ -69,10 +71,10 @@
       return;
     }
 
-    const draggedEl = root.dragged;
+    const draggedEl = rootState.draggedNode;
     draggedEl.move(node);
 
-    root.dragged = null;
+    rootState.draggedNode = null;
     draggedOn = false;
   }
 </script>
@@ -87,7 +89,7 @@
     ondrop={handleDrop}
     class:dragged={draggedOn}
   >
-    {#if root.editing && root.selected.id === node.id}
+    {#if rootState.editing && graph.selected.id === node.id}
       <form onsubmit={handleSubmitRename}>
         <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
       </form>
@@ -109,11 +111,11 @@
 
 {#if node.type === "dialogue"}
   <li
-    class="dialogue {root.selected?.id === node.id ? 'selected' : ''}"
+    class="dialogue {graph.selected?.id === node.id ? 'selected' : ''}"
     draggable="true"
     ondragstart={handleDragStart}
   >
-    {#if root.editing && root.selected.id === node.id}
+    {#if rootState.editing && graph.selected.id === node.id}
       <form onsubmit={handleSubmitRename}>
         <input use:autofocus bind:value={renameInputValue} onblur={handleRenameChange} />
       </form>

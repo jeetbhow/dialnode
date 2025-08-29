@@ -4,7 +4,6 @@ import { useDb } from "./dbStore.svelte";
 import { BRANCH_NODE_INITIAL_WIDTH, BRANCH_NODE_INITIAL_HEIGHT } from "../utils/utils";
 
 import type {
-  Dialogue,
   DialogueNode,
   StartNodeType,
   TextNodeType,
@@ -15,15 +14,32 @@ import type {
   DialogueNodeType
 } from "../../../../shared/types";
 
+import type { DialogueSelectNode } from "./dialoguesStore.svelte";
+
 const db = useDb();
 
 class Dialogues {
+  public selected = $state<DialogueSelectNode>(null);
   public nodes = $state.raw<DialogueNode<Record<string, unknown>>[] | null>(null);
   public edges = $state.raw<Edge[] | null>(null);
 
-  public display(dialogue: Dialogue) {
-    this.nodes = dialogue.nodes;
-    this.edges = dialogue.edges;
+  public select(node: DialogueSelectNode) {
+    if (node.type === "dialogue") {
+      this.save();
+      this.nodes = node.nodes;
+      this.edges = node.edges;
+    }
+
+    this.selected = node;
+  }
+
+  public save() {
+    if (this.selected === null || this.selected.type !== "dialogue") {
+      return;
+    }
+
+    this.selected.nodes = this.nodes;
+    this.selected.edges = this.edges;
   }
 
   // public async loadFromDb(): Promise<void> {
