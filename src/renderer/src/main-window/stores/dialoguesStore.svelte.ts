@@ -1,7 +1,7 @@
 import { type Edge } from "@xyflow/svelte";
 
 import type {
-  DialogueNode,
+  GraphNode,
   SerializedDialogueNode,
   SerializedDialogue,
   SerializedFolder
@@ -20,7 +20,7 @@ export type DialogueSelectNode = Folder | Dialogue;
 
 export class Dialogue implements BaseDialogueSelectNode {
   public type: "dialogue" = "dialogue";
-  public nodes: DialogueNode<Record<string, unknown>>[] = [];
+  public nodes: GraphNode<Record<string, unknown>>[] = [];
   public edges: Edge[] = [];
 
   public name = $state("");
@@ -85,20 +85,14 @@ export class Folder implements BaseDialogueSelectNode {
     const stack: Folder[] = [this];
 
     while (stack.length > 0) {
-      // Get the top elem (always a folder)
       const top = stack.pop();
 
-      // iterate through the children.
       for (const child of top.children) {
-        // if it's a folder, then serialize it and then add it to the stack. Also
-        // add it to the json.
         let ser: SerializedDialogueNode;
         if (child.type === "folder") {
           ser = this.serializeFolder(child);
           stack.push(child);
-        }
-        // if it's regular dialogue, then serialize it and then add it to the json.
-        else {
+        } else {
           ser = this.serializeDialogue(child);
         }
         json.push(ser);

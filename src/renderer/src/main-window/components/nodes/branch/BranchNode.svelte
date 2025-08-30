@@ -18,6 +18,8 @@
     graph.nodes = graph.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, text: newValue } } : n
     );
+
+    graph.save();
   }
 
   function deleteBranch(): void {

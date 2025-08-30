@@ -4,7 +4,7 @@ import { useDb } from "./dbStore.svelte";
 import { BRANCH_NODE_INITIAL_WIDTH, BRANCH_NODE_INITIAL_HEIGHT } from "../utils/utils";
 
 import type {
-  DialogueNode,
+  GraphNode,
   StartNodeType,
   TextNodeType,
   BranchNodeType,
@@ -20,7 +20,7 @@ const db = useDb();
 
 class Dialogues {
   public selected = $state<DialogueSelectNode>(null);
-  public nodes = $state.raw<DialogueNode<Record<string, unknown>>[] | null>(null);
+  public nodes = $state.raw<GraphNode<Record<string, unknown>>[] | null>(null);
   public edges = $state.raw<Edge[] | null>(null);
 
   public select(node: DialogueSelectNode) {
@@ -77,6 +77,11 @@ class Dialogues {
   //   };
   // }
 
+  public removeNode(node: GraphNode<Record<string, unknown>>) {
+    this.nodes = this.nodes.filter((n) => n.id !== node.id);
+    this.save();
+  }
+
   public addNode(type: DialogueNodeType, parentId?: string): string | null {
     let childId = null;
 
@@ -105,6 +110,7 @@ class Dialogues {
         throw new Error("Error creating node: Invalid node type.");
     }
 
+    this.save();
     return childId;
   }
 

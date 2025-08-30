@@ -8,6 +8,7 @@
 
   import type { DbEntityKind, TextNodeType } from "../../../../../../shared/types";
   import { requestModal } from "../../../stores/dbModal.svelte";
+  import { graph } from "../../../stores/graphStore.svelte";
 
   const ICON_SIZE = 18;
   const DEFAULT_HANDLE_STYLE = "width: 0.5rem; height: 0.5rem";
@@ -37,6 +38,8 @@
         updateNodeData(id, { speaker: response.value });
         break;
     }
+
+    graph.save();
   }
 
   function removeData(type: DbEntityKind): void {
@@ -48,6 +51,8 @@
         updateNodeData(id, { speaker: null });
         break;
     }
+
+    graph.save();
   }
 
   function handleTextAreaChange(event: Event): void {
@@ -61,6 +66,7 @@
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
     data.text = textarea.value;
+    graph.save();
   }
 </script>
 

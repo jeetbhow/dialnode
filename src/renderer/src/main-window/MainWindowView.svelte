@@ -34,7 +34,7 @@
     loadSpeakersFromDb
   } from "./stores/dbStore.svelte";
 
-  import type { ConnectableNodeType, DialogueNode } from "../../../shared/types";
+  import type { ConnectableNodeType, GraphNode } from "../../../shared/types";
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
   import { nodeButtons } from "./utils/buttons";
   import { fetchRepository } from "./stores/repositoryStore.svelte";
@@ -67,11 +67,11 @@
   });
 
   function handleNodeDragStop(_: {
-    targetNode: DialogueNode<Record<string, unknown>>;
-    nodes: DialogueNode<Record<string, unknown>>[];
+    targetNode: GraphNode<Record<string, unknown>>;
+    nodes: GraphNode<Record<string, unknown>>[];
     event: MouseEvent | TouchEvent;
   }): void {
-    //dialogues.save();
+    graph.save();
   }
 
   function handleConnect(connection: Connection): void {
@@ -85,7 +85,7 @@
 
     const connectable = sourceNode as ConnectableNodeType;
     connectable.data.next = targetId;
-    //dialogues.save();
+    graph.save();
   }
 
   function handleBeforeConnect(connection: Connection): Edge {
@@ -119,7 +119,16 @@
     connectable.data.next = null;
 
     graph.edges = graph.edges.filter((e) => e.id !== edge.id);
-    //dialogues.save();
+    graph.save();
+  }
+
+  async function handleDelete(deleted: {
+    nodes: GraphNode<Record<string, unknown>>[];
+    edges: Edge[];
+  }): Promise<boolean> {
+    const deletedNode = deleted.nodes[0];
+    graph.removeNode(deletedNode);
+    return true;
   }
 </script>
 
@@ -135,6 +144,7 @@
       onbeforeconnect={handleBeforeConnect}
       onedgeclick={handleEdgeClick}
       onnodedragstop={handleNodeDragStop}
+      onbeforedelete={handleDelete}
     >
       <Panel position="top-center">
         <ButtonsContainer flexDirection="row" buttons={nodeButtons} />

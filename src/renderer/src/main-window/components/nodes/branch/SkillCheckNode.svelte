@@ -28,6 +28,8 @@
     graph.nodes = graph.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, difficulty: parseInt(target.value) } } : n
     );
+
+    graph.save();
   }
 
   function handleTextChange(e: Event): void {
@@ -36,6 +38,8 @@
     graph.nodes = graph.nodes.map((n) =>
       n.id === id ? { ...n, data: { ...n.data, text: target.value } } : n
     );
+
+    graph.save();
   }
 
   function deleteThisNode(): void {

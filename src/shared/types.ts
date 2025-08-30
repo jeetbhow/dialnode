@@ -58,7 +58,7 @@ export type Dialogue = {
   id: string;
   parentId?: string;
   name: string;
-  nodes: DialogueNode<Record<string, unknown>>[];
+  nodes: GraphNode<Record<string, unknown>>[];
   edges: Edge[];
 };
 
@@ -122,7 +122,7 @@ export type DialogueJSON = {
   type: DialogueNodeType;
 };
 
-export interface DialogueNode<T extends Object> extends Node<T> {
+export interface GraphNode<T extends Object> extends Node<T> {
   id: string;
   parentId?: string;
   extent?: "parent";
@@ -160,13 +160,13 @@ export interface SkillCheckNodeData extends Connectable {
 
 export interface EndNodeData extends Record<string, unknown> {}
 
-export type ConnectableNodeType = DialogueNode<Connectable>;
+export type ConnectableNodeType = GraphNode<Connectable>;
 export type StartNodeType = ConnectableNodeType;
-export type EndNodeType = DialogueNode<EndNodeData>;
-export type TextNodeType = DialogueNode<TextNodeData>;
-export type BranchContainerNodeType = DialogueNode<BranchContainerNodeData>;
-export type BranchNodeType = DialogueNode<BranchNodeData>;
-export type SkillCheckNodeType = DialogueNode<SkillCheckNodeData>;
+export type EndNodeType = GraphNode<EndNodeData>;
+export type TextNodeType = GraphNode<TextNodeData>;
+export type BranchContainerNodeType = GraphNode<BranchContainerNodeData>;
+export type BranchNodeType = GraphNode<BranchNodeData>;
+export type SkillCheckNodeType = GraphNode<SkillCheckNodeData>;
 
 export type ElectronSelectDirectoryOptions = {
   title?: string;
