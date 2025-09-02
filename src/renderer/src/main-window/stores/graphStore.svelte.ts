@@ -42,36 +42,6 @@ class Dialogues {
     this.selected.edges = this.edges || [];
   }
 
-  // public async loadFromDb(): Promise<void> {
-  //   const serializedDialogue = await window.api.getAllDialogues();
-  //   const dialogues: Dialogue[] = serializedDialogue.map((sd) => ({
-  //     ...sd,
-  //     nodes: sd.nodes.map((node) => ({
-  //       id: node.id,
-  //       parentId: node.parentId ?? undefined,
-  //       extent: node.extent ?? undefined,
-  //       type: node.type,
-  //       width: node.width ?? undefined,
-  //       height: node.height ?? undefined,
-  //       position: { x: node.positionX ?? 0, y: node.positionY ?? 0 },
-  //       data: JSON.parse(node.data)
-  //     }))
-  //   }));
-  //   this._data = dialogues;
-  // }
-
-  // public save(): void {
-  //   if (this._selectedIndex === null) {
-  //     return;
-  //   }
-
-  //   this._data[this._selectedIndex] = {
-  //     ...this._data[this._selectedIndex],
-  //     nodes: this.selectedNodes,
-  //     edges: this.selectedEdges
-  //   };
-  // }
-
   public removeNode(node: GraphNode<Record<string, unknown>>) {
     this.nodes = this.nodes.filter((n) => n.id !== node.id);
     this.save();

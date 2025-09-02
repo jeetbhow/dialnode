@@ -16,7 +16,7 @@
     const newValue = target.value;
 
     graph.nodes = graph.nodes.map((n) =>
-      n.id === id ? { ...n, data: { ...n.data, text: newValue } } : n
+      n.id === id ? { ...n, data: { ...n.data, name: newValue } } : n
     );
 
     graph.save();
@@ -47,7 +47,7 @@
     </header>
     <div>
       <label for="text">Text:</label>
-      <input id="text" value={data.name} placeholder="Branch name" onchange={handleChange} />
+      <input id="text" value={data.name} placeholder="Branch name" oninput={handleChange} />
     </div>
   </div>
 </div>

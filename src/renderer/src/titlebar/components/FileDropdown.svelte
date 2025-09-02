@@ -1,15 +1,13 @@
 <script lang="ts">
   import { clickOutside } from "../../shared/attachments/attachments";
   import { graph } from "../../main-window/stores/graphStore.svelte";
-  import { root } from "../../main-window/stores/dialoguesStore.svelte";
   import { filterNodeProps } from "../../main-window/utils/utils";
-  import { serialize } from "../../main-window/utils/utils";
+  import { saveToDb } from "../../main-window/stores/dialoguesStore.svelte";
 
   let open = $state(false);
 
   function handleClickSave(): void {
-    const serializedData = serialize(root);
-    window.api.saveDialogues(serializedData);
+    saveToDb();
   }
 
   function handleClickManageRepositories(): void {

@@ -1,6 +1,11 @@
 import { type Edge } from "@xyflow/svelte";
 
-import type { GraphNode } from "../../../../shared/types";
+import type {
+  GraphNode,
+  SerializedDialogue,
+  SerializedDialogueNode,
+  SerializedFolder
+} from "../../../../shared/types";
 
 export type StorageType = "folder" | "dialogue";
 
@@ -76,16 +81,14 @@ export class Folder implements BaseDialogueSelectNode {
   }
 }
 
-// public async saveToDb(): Promise<void> {
-//   this.save();
-//   await window.api.saveDialogues(this.serialize());
-// }
+export async function saveToDb(): Promise<void> {
+  await window.api.saveDialogues(serialize(root));
+}
 
 export async function loadDialoguesFromDb(): Promise<void> {
   const serializedNodes = await window.api.getAllDialogues();
   const nodeMap = new Map<string, DialogueSelectNode>();
 
-  // Clear the current root children
   root.children = [];
   nodeMap.set(root.id, root);
 
@@ -132,6 +135,69 @@ export async function loadDialoguesFromDb(): Promise<void> {
       childNode.parent = root;
     }
   }
+}
+
+export function serialize(root: Folder): SerializedDialogueNode[] {
+  const serializedNodes: SerializedDialogueNode[] = [];
+  const stack: (Folder | Dialogue)[] = [root];
+
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+
+    let serializedNode: SerializedDialogueNode;
+    if (node.type === "folder") {
+      serializedNode = serializeFolder(node);
+      const children = [...node.children].reverse();
+      for (const child of children) {
+        stack.push(child);
+      }
+    } else {
+      serializedNode = serializeDialogue(node);
+    }
+    serializedNodes.push(serializedNode);
+  }
+
+  return serializedNodes;
+}
+
+function serializeDialogue(dialogue: Dialogue): SerializedDialogue {
+  return {
+    id: dialogue.id,
+    parentId: dialogue.parent?.id,
+    type: "dialogue",
+    name: dialogue.name,
+    nodes: dialogue.nodes.map((node) => ({
+      id: node.id,
+      parentId: node.parentId,
+      dialogueId: dialogue.id,
+      extent: node.extent,
+      type: node.type,
+      positionX: node.position.x,
+      positionY: node.position.y,
+      width: node.width,
+      height: node.height,
+      data: JSON.stringify(node.data)
+    })),
+    edges: dialogue.edges.map((edge) => ({
+      id: edge.id,
+      dialogueId: dialogue.id,
+      type: edge.type,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle
+    }))
+  };
+}
+
+function serializeFolder(folder: Folder): SerializedFolder {
+  return {
+    id: folder.id,
+    parentId: folder.parent?.id ?? null,
+    type: "folder",
+    name: folder.name
+  };
 }
 
 export const root = new Folder("root", "root", null);

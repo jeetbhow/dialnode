@@ -5,6 +5,8 @@
   import EditDropDown from "./EditDropDown.svelte";
   import FileDropdown from "./FileDropdown.svelte";
 
+  import { saveToDb } from "../../main-window/stores/dialoguesStore.svelte";
+
   const CROSS_SIZE = 24;
   const MAXIMIZE_ICON_SIZE = 16;
   const MINIMIZE_ICON_SIZE = 16;
@@ -16,6 +18,7 @@
   let { view }: Props = $props();
 
   function handleClose(): void {
+    saveToDb();
     window.api.close();
   }
 </script>
