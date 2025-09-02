@@ -6,6 +6,7 @@ import type {
   SerializedDialogueNode,
   SerializedFolder
 } from "../../../../shared/types";
+import { SvelteMap } from "svelte/reactivity";
 
 export type StorageType = "folder" | "dialogue";
 
@@ -19,7 +20,7 @@ export interface BaseDialogueSelectNode {
 export type DialogueSelectNode = Folder | Dialogue;
 
 export class Dialogue implements BaseDialogueSelectNode {
-  public type: "dialogue" = "dialogue";
+  public readonly type: "dialogue" = "dialogue" as const;
   public nodes: GraphNode<Record<string, unknown>>[] = [];
   public edges: Edge[] = [];
 
@@ -35,7 +36,7 @@ export class Dialogue implements BaseDialogueSelectNode {
     this.parent = parent;
   }
 
-  public move(folder: Folder) {
+  public move(folder: Folder): void {
     if (this.parent) {
       this.parent.remove(this);
     }
@@ -50,7 +51,7 @@ export class Folder implements BaseDialogueSelectNode {
   public name = $state("root");
   public parent = $state<Folder | null>(null);
 
-  public type: "folder" = "folder";
+  public readonly type: "folder" = "folder" as const;
   public id: string;
 
   constructor(
@@ -63,15 +64,15 @@ export class Folder implements BaseDialogueSelectNode {
     this.parent = parent;
   }
 
-  public add(node: DialogueSelectNode) {
+  public add(node: DialogueSelectNode): void {
     this.children.push(node);
   }
 
-  public remove(node: DialogueSelectNode) {
+  public remove(node: DialogueSelectNode): void {
     this.children = this.children.filter((n) => n.id !== node.id);
   }
 
-  public move(folder: Folder) {
+  public move(folder: Folder): void {
     if (this.parent) {
       this.parent.remove(this);
     }
@@ -87,7 +88,7 @@ export async function saveToDb(): Promise<void> {
 
 export async function loadDialoguesFromDb(): Promise<void> {
   const serializedNodes = await window.api.getAllDialogues();
-  const nodeMap = new Map<string, DialogueSelectNode>();
+  const nodeMap = new SvelteMap<string, DialogueSelectNode>();
 
   root.children = [];
   nodeMap.set(root.id, root);
@@ -207,7 +208,7 @@ type RootState = {
   draggedNode: DialogueSelectNode;
 };
 
-export let rootState = $state<RootState>({
+export const rootState = $state<RootState>({
   editing: false,
   draggedNode: null
 });

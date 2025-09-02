@@ -23,7 +23,7 @@ class Dialogues {
   public nodes = $state.raw<GraphNode<Record<string, unknown>>[] | null>([]);
   public edges = $state.raw<Edge[] | null>([]);
 
-  public select(node: DialogueSelectNode) {
+  public select(node: DialogueSelectNode): void {
     if (node.type === "dialogue") {
       this.save();
       this.nodes = node.nodes || [];
@@ -33,7 +33,7 @@ class Dialogues {
     this.selected = node;
   }
 
-  public save() {
+  public save(): void {
     if (this.selected === null || this.selected.type !== "dialogue") {
       return;
     }
@@ -42,7 +42,7 @@ class Dialogues {
     this.selected.edges = this.edges || [];
   }
 
-  public removeNode(node: GraphNode<Record<string, unknown>>) {
+  public removeNode(node: GraphNode<Record<string, unknown>>): void {
     this.nodes = this.nodes.filter((n) => n.id !== node.id);
     this.save();
   }

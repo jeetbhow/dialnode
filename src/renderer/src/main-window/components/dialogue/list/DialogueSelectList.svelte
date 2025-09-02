@@ -5,7 +5,7 @@
 
 <div>
   <ul>
-    {#each root.children as node}
+    {#each root.children as node (node.id)}
       <li>
         <DialogueSelectListItem bind:node recursionLevel={0} />
       </li>

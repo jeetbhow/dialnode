@@ -21,7 +21,7 @@
   let renameInputValue = $state(node.name);
   let draggedOn = $state(false);
 
-  function autofocus(el: HTMLInputElement) {
+  function autofocus(el: HTMLInputElement): void {
     tick().then(() => {
       el.focus();
       el.select();
@@ -43,13 +43,13 @@
     graph.select(node);
   }
 
-  function handleSubmitRename(event: SubmitEvent) {
+  function handleSubmitRename(event: SubmitEvent): void {
     event.preventDefault();
     node.name = renameInputValue;
     rootState.editing = false;
   }
 
-  function handleRenameChange() {
+  function handleRenameChange(): void {
     rootState.editing = false;
   }
 
@@ -100,7 +100,7 @@
       </button>
       {#if showDropDown}
         <ul>
-          {#each node.children as child}
+          {#each node.children as child (child.id)}
             <DialogueSelectItem node={child} recursionLevel={recursionLevel + 1} />
           {/each}
         </ul>
