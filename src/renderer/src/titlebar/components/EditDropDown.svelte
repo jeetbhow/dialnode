@@ -1,30 +1,24 @@
 <script lang="ts">
   import { clickOutside } from "../../shared/attachments/attachments";
   import { modal } from "../../main-window/stores/dbModal.svelte";
-  import { root, type DialogueSelectNode } from "../../main-window/stores/dialoguesStore.svelte";
+  import { Dialogue, root, rootState } from "../../main-window/stores/dialoguesStore.svelte";
+  import { graph } from "../../main-window/stores/graphStore.svelte";
 
   let open = $state(false);
 
   function handleAddDialogue(): void {
-    const newDialogue: DialogueSelectNode = {
-      id: crypto.randomUUID(),
-      type: "dialogue",
-      name: "Untitled",
-      nodes: [],
-      edges: []
-    };
-
+    const newDialogue = new Dialogue();
     root.add(newDialogue);
-    root.select(newDialogue);
-    root.editing = true;
+    graph.select(newDialogue);
+    rootState.editing = true;
   }
 
   function handleEditDialogue(): void {
-    root.editing = true;
+    rootState.editing = true;
   }
 
   function handleRemoveDialogue(): void {
-    root.removeSelected();
+    root.remove(graph.selected);
   }
 </script>
 

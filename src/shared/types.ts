@@ -1,4 +1,4 @@
-import { Node, Edge } from "@xyflow/svelte";
+import { Node } from "@xyflow/svelte";
 import { FileFilter } from "electron";
 
 export type Repository = {
@@ -54,21 +54,6 @@ export type Button = {
   onClick: () => void;
 };
 
-export type Dialogue = {
-  id: string;
-  parentId?: string;
-  name: string;
-  nodes: GraphNode<Record<string, unknown>>[];
-  edges: Edge[];
-};
-
-export type DialogueFolder = {
-  id: string;
-  parentId: string;
-  name: string;
-  dialogues: Dialogue[];
-};
-
 export type Object = Record<string, unknown>;
 export type DialogueNodeType =
   | "start"
@@ -82,7 +67,8 @@ export type SerializedDialogueNode = SerializedDialogue | SerializedFolder;
 
 export type SerializedDialogue = {
   id: string;
-  parentId?: string;
+  parentId: string;
+  type: "dialogue";
   name: string;
   nodes: SerializedGraphNode[];
   edges: SerializedGraphEdge[];
@@ -90,7 +76,8 @@ export type SerializedDialogue = {
 
 export type SerializedFolder = {
   id: string;
-  parentId?: string;
+  parentId: string | null;
+  type: "folder";
   name: string;
 };
 

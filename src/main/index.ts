@@ -30,10 +30,10 @@ import { stat, mkdir, writeFile, rm, readFile } from "fs/promises";
 import { imageSize } from "image-size";
 import type {
   DialogueJSON,
-  SerializedDialogue,
   ElectronSelectDirectoryOptions,
   ExtraSelectDirectoryOptions,
-  Repository
+  Repository,
+  SerializedDialogueNode
 } from "../shared/types";
 
 function getMimeType(filePath: string): string {
@@ -73,7 +73,7 @@ ipcMain.on("window-close", () => {
   BrowserWindow.getFocusedWindow()?.close();
 });
 
-ipcMain.handle("save-dialogues", async (_event, dialogues: SerializedDialogue[]) => {
+ipcMain.handle("save-dialogues", async (_event, dialogues: SerializedDialogueNode[]) => {
   return saveDialogues(dialogues);
 });
 
@@ -227,7 +227,8 @@ ipcMain.handle("create-repository", async (_event, repository: Repository) => {
     createMainWindow(repository);
   } catch (error) {
     const e = error as Error;
-    await rm(repositoryPath, { force: true });
+    closeDb();
+    await rm(repositoryPath, { recursive: true, force: true });
     throw new Error(`Failed to create the repository: ${e.message}`);
   }
 });

@@ -8,7 +8,9 @@ import type {
   Skill,
   SerializedDialogue,
   SerializedGraphNode,
-  SerializedGraphEdge
+  SerializedGraphEdge,
+  SerializedDialogueNode,
+  SerializedFolder
 } from "../shared/types";
 
 const ERROR_MSG = "Database does not exist.";
@@ -23,9 +25,11 @@ export function createDb(path: string): void {
   db = new sqlite(join(path, "db.sqlite"));
   db.pragma("foreign_keys = ON");
   db.exec(`
-    CREATE TABLE IF NOT EXISTS dialogues (
+    CREATE TABLE IF NOT EXISTS dialogueNodes (
       id TEXT PRIMARY KEY,
-      name TEXT
+      type TEXT CHECK(type IN('folder', 'dialogue')),
+      name TEXT,
+      parentId TEXT REFERENCES dialogueNodes(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
     );
     CREATE TABLE IF NOT EXISTS nodes (
       id TEXT PRIMARY KEY,
@@ -38,7 +42,7 @@ export function createDb(path: string): void {
       width REAL,
       height REAL,
       data TEXT,
-      FOREIGN KEY (dialogueId) REFERENCES dialogues(id) ON DELETE CASCADE 
+      FOREIGN KEY (dialogueId) REFERENCES dialogueNodes(id) ON DELETE CASCADE 
     );
     CREATE TABLE IF NOT EXISTS edges (
       id TEXT PRIMARY KEY,
@@ -48,7 +52,7 @@ export function createDb(path: string): void {
       target TEXT,
       sourceHandle TEXT,
       targetHandle TEXT,
-      FOREIGN KEY (dialogueId) REFERENCES dialogues(id) ON DELETE CASCADE
+      FOREIGN KEY (dialogueId) REFERENCES dialogueNodes(id) ON DELETE CASCADE
     );
     CREATE TABLE IF NOT EXISTS portraits (
         id TEXT PRIMARY KEY,
@@ -88,18 +92,19 @@ export function closeDb(): void {
 
 export function connectDb(path: string): void {
   db = new sqlite(path);
+  db.pragma("foreign_keys = ON");
 }
 
-export function saveDialogues(dialogues: SerializedDialogue[]): void {
+export function saveDialogues(dialogues: SerializedDialogueNode[]): void {
   if (db === null) {
     throw new Error(ERROR_MSG);
   }
 
-  const deleteAllDialogues = db.prepare(`DELETE FROM dialogues`);
+  const deleteAllDialogueNodes = db.prepare(`DELETE FROM dialogueNodes`);
 
-  const insertDialogue = db.prepare(`
-    INSERT INTO dialogues (id, name)
-    VALUES (?, ?)
+  const insertDialogueNode = db.prepare(`
+    INSERT INTO dialogueNodes (id, type, name, parentId)
+    VALUES (?, ?, ?, ?)
   `);
 
   const insertNode = db.prepare(`
@@ -114,38 +119,38 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
     ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const writeAll = db.transaction((all: SerializedDialogue[]) => {
-    deleteAllDialogues.run(); // Since we have cascading deletes, we only have to delete the dialogues.
+  const writeAll = db.transaction((all: SerializedDialogueNode[]) => {
+    deleteAllDialogueNodes.run();
 
     for (const dialogue of all) {
-      const dId = dialogue.id;
-      insertDialogue.run(dId, dialogue.name);
+      insertDialogueNode.run(dialogue.id, dialogue.type, dialogue.name, dialogue.parentId);
+      if (dialogue.type === "dialogue") {
+        for (const n of dialogue.nodes) {
+          insertNode.run(
+            n.id,
+            n.parentId ?? null,
+            n.extent ?? null,
+            dialogue.id,
+            n.type,
+            n.positionX,
+            n.positionY,
+            n.width ?? null,
+            n.height ?? null,
+            n.data ?? null
+          );
+        }
 
-      for (const n of dialogue.nodes) {
-        insertNode.run(
-          n.id,
-          n.parentId ?? null,
-          n.extent ?? null,
-          dId,
-          n.type,
-          n.positionX,
-          n.positionY,
-          n.width ?? null,
-          n.height ?? null,
-          n.data ?? null
-        );
-      }
-
-      for (const e of dialogue.edges) {
-        insertEdge.run(
-          e.id,
-          dId,
-          e.type,
-          e.source,
-          e.target,
-          e.sourceHandle ?? null,
-          e.targetHandle ?? null
-        );
+        for (const e of dialogue.edges) {
+          insertEdge.run(
+            e.id,
+            dialogue.id,
+            e.type,
+            e.source,
+            e.target,
+            e.sourceHandle ?? null,
+            e.targetHandle ?? null
+          );
+        }
       }
     }
   });
@@ -159,25 +164,61 @@ export function saveDialogues(dialogues: SerializedDialogue[]): void {
   }
 }
 
-export function getAllDialogues(): Array<{
-  id: string;
-  name: string;
-  nodes: SerializedGraphNode[];
-  edges: SerializedGraphEdge[];
-}> {
+export function getAllDialogues(): SerializedDialogueNode[] {
   if (db === null) {
     throw new Error(ERROR_MSG);
   }
 
-  const dialogues = db.prepare(`SELECT id, name FROM dialogues`).all() as SerializedDialogue[];
-  const getNodes = db.prepare(`SELECT * FROM nodes WHERE dialogueId = ?`);
-  const getEdges = db.prepare(`SELECT * FROM edges WHERE dialogueId = ?`);
+  const dialogueNodes = db.prepare(`SELECT * FROM dialogueNodes`).all() as {
+    id: string;
+    type: "folder" | "dialogue";
+    name: string;
+    parentId: string | null;
+  }[];
 
-  return dialogues.map((dialogue) => ({
-    ...dialogue,
-    nodes: getNodes.all(dialogue.id) as SerializedGraphNode[],
-    edges: getEdges.all(dialogue.id) as SerializedGraphEdge[]
-  }));
+  const allGraphNodes = db.prepare(`SELECT * FROM nodes`).all() as SerializedGraphNode[];
+  const nodesByDialogueId = allGraphNodes.reduce(
+    (acc, node) => {
+      if (!acc[node.dialogueId]) {
+        acc[node.dialogueId] = [];
+      }
+      acc[node.dialogueId].push(node);
+      return acc;
+    },
+    {} as Record<string, SerializedGraphNode[]>
+  );
+
+  const allGraphEdges = db.prepare(`SELECT * FROM edges`).all() as SerializedGraphEdge[];
+  const edgesByDialogueId = allGraphEdges.reduce(
+    (acc, edge) => {
+      if (!acc[edge.dialogueId]) {
+        acc[edge.dialogueId] = [];
+      }
+      acc[edge.dialogueId].push(edge);
+      return acc;
+    },
+    {} as Record<string, SerializedGraphEdge[]>
+  );
+
+  return dialogueNodes.map((node) => {
+    if (node.type === "dialogue") {
+      return {
+        id: node.id,
+        type: "dialogue",
+        name: node.name,
+        parentId: node.parentId,
+        nodes: nodesByDialogueId[node.id] || [],
+        edges: edgesByDialogueId[node.id] || []
+      } as SerializedDialogue;
+    } else {
+      return {
+        id: node.id,
+        type: "folder",
+        name: node.name,
+        parentId: node.parentId
+      } as SerializedFolder;
+    }
+  });
 }
 
 // --- Portraits CRUD ---

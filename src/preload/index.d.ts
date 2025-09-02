@@ -8,7 +8,8 @@ import type {
   ElectronSelectDirectoryOptions,
   ExtraSelectDirectoryOptions,
   Repository,
-  DialogueJSON
+  DialogueJSON,
+  SerializedDialogueNode
 } from "../shared/types";
 
 type ImageMetaData = {
@@ -29,8 +30,8 @@ interface AppApi {
 
   waitForRepo: () => Promise<Repository>;
 
-  saveDialogues: (dialogues: SerializedDialogue[]) => Promise<void>;
-  getAllDialogues: () => Promise<SerializedDialogue[]>;
+  saveDialogues: (dialogues: SerializedDialogueNode[]) => Promise<void>;
+  getAllDialogues: () => Promise<SerializedDialogueNode[]>;
 
   getAllSkills: () => Promise<Skill[]>;
   createSkill: (skill: Skill) => Promise<void>;

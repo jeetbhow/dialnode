@@ -38,6 +38,7 @@
   import { MARKER_END_HEIGHT, MARKER_END_WIDTH } from "./utils/utils";
   import { nodeButtons } from "./utils/buttons";
   import { fetchRepository } from "./stores/repositoryStore.svelte";
+  import { loadDialoguesFromDb } from "./stores/dialoguesStore.svelte";
 
   // Alias for parameter type in SvelteFlow's onedgeclick callback.
   type EdgeClickEvent = {
@@ -63,7 +64,7 @@
     await loadSpeakersFromDb();
     await loadPortraitsFromDb();
     await loadSkillsFromDb();
-    //await dialogues.loadFromDb();
+    await loadDialoguesFromDb();
   });
 
   function handleNodeDragStop(_: {
@@ -134,7 +135,7 @@
 
 <div class="main">
   <DialogueSelect />
-  {#if graph.nodes !== null && graph.edges !== null}
+  {#if graph.selected && graph.nodes && graph.edges}
     <SvelteFlow
       bind:nodes={graph.nodes}
       bind:edges={graph.edges}

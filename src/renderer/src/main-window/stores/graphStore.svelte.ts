@@ -20,14 +20,14 @@ const db = useDb();
 
 class Dialogues {
   public selected = $state<DialogueSelectNode>(null);
-  public nodes = $state.raw<GraphNode<Record<string, unknown>>[] | null>(null);
-  public edges = $state.raw<Edge[] | null>(null);
+  public nodes = $state.raw<GraphNode<Record<string, unknown>>[] | null>([]);
+  public edges = $state.raw<Edge[] | null>([]);
 
   public select(node: DialogueSelectNode) {
     if (node.type === "dialogue") {
       this.save();
-      this.nodes = node.nodes;
-      this.edges = node.edges;
+      this.nodes = node.nodes || [];
+      this.edges = node.edges || [];
     }
 
     this.selected = node;
@@ -38,8 +38,8 @@ class Dialogues {
       return;
     }
 
-    this.selected.nodes = this.nodes;
-    this.selected.edges = this.edges;
+    this.selected.nodes = this.nodes || [];
+    this.selected.edges = this.edges || [];
   }
 
   // public async loadFromDb(): Promise<void> {
@@ -58,11 +58,6 @@ class Dialogues {
   //     }))
   //   }));
   //   this._data = dialogues;
-  // }
-
-  // public async saveToDb(): Promise<void> {
-  //   this.save();
-  //   await window.api.saveDialogues(this.serialize());
   // }
 
   // public save(): void {

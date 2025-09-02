@@ -1,11 +1,6 @@
 import { type Edge } from "@xyflow/svelte";
 
-import type {
-  GraphNode,
-  SerializedDialogueNode,
-  SerializedDialogue,
-  SerializedFolder
-} from "../../../../shared/types";
+import type { GraphNode } from "../../../../shared/types";
 
 export type StorageType = "folder" | "dialogue";
 
@@ -29,7 +24,7 @@ export class Dialogue implements BaseDialogueSelectNode {
   constructor(
     public id: string = crypto.randomUUID(),
     name: string = "Untitled",
-    parent: Folder | null = root
+    parent: Folder | null = null
   ) {
     this.name = name;
     this.parent = parent;
@@ -56,7 +51,7 @@ export class Folder implements BaseDialogueSelectNode {
   constructor(
     id: string = crypto.randomUUID(),
     name: string = "Untitled",
-    parent: Folder | null = root
+    parent: Folder | null = null
   ) {
     this.id = id;
     this.name = name;
@@ -79,64 +74,63 @@ export class Folder implements BaseDialogueSelectNode {
     folder.add(this);
     this.parent = folder;
   }
+}
 
-  public serialize(): SerializedDialogueNode[] {
-    const json = [];
-    const stack: Folder[] = [this];
+// public async saveToDb(): Promise<void> {
+//   this.save();
+//   await window.api.saveDialogues(this.serialize());
+// }
 
-    while (stack.length > 0) {
-      const top = stack.pop();
+export async function loadDialoguesFromDb(): Promise<void> {
+  const serializedNodes = await window.api.getAllDialogues();
+  const nodeMap = new Map<string, DialogueSelectNode>();
 
-      for (const child of top.children) {
-        let ser: SerializedDialogueNode;
-        if (child.type === "folder") {
-          ser = this.serializeFolder(child);
-          stack.push(child);
-        } else {
-          ser = this.serializeDialogue(child);
-        }
-        json.push(ser);
-      }
+  // Clear the current root children
+  root.children = [];
+  nodeMap.set(root.id, root);
+
+  // First pass: create all nodes and add them to the map
+  for (const sNode of serializedNodes) {
+    if (sNode.id === "root") continue;
+
+    let node: DialogueSelectNode;
+    if (sNode.type === "dialogue") {
+      const dialogue = new Dialogue(sNode.id, sNode.name);
+      dialogue.nodes = sNode.nodes.map((n) => ({
+        id: n.id,
+        type: n.type,
+        position: { x: n.positionX, y: n.positionY },
+        data: JSON.parse(n.data),
+        width: n.width ?? undefined,
+        height: n.height ?? undefined,
+        parentId: n.parentId ?? undefined,
+        extent: n.extent ?? undefined
+      }));
+      dialogue.edges = sNode.edges;
+      node = dialogue;
+    } else {
+      node = new Folder(sNode.id, sNode.name);
     }
 
-    return json;
+    nodeMap.set(node.id, node);
   }
 
-  private serializeDialogue(dialogue: Dialogue): SerializedDialogue {
-    return {
-      id: dialogue.id,
-      parentId: dialogue.parent?.id,
-      name: dialogue.name,
-      nodes: dialogue.nodes.map((node) => ({
-        id: node.id,
-        parentId: node.parentId,
-        dialogueId: dialogue.id,
-        extent: node.extent,
-        type: node.type,
-        positionX: node.position.x,
-        positionY: node.position.y,
-        width: node.width,
-        height: node.height,
-        data: JSON.stringify(node.data)
-      })),
-      edges: dialogue.edges.map((edge) => ({
-        id: edge.id,
-        dialogueId: dialogue.id,
-        type: edge.type,
-        source: edge.source,
-        target: edge.target,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
-      }))
-    };
-  }
+  // Second pass: link children to their parents
+  for (const sNode of serializedNodes) {
+    if (sNode.id === "root") continue;
 
-  private serializeFolder(folder: Folder): SerializedFolder {
-    return {
-      id: folder.id,
-      parentId: folder.parent.id,
-      name: folder.name
-    };
+    const childNode = nodeMap.get(sNode.id);
+    if (!childNode) continue;
+
+    const parentNode = nodeMap.get(sNode.parentId ?? "root") as Folder;
+    if (parentNode) {
+      parentNode.add(childNode);
+      childNode.parent = parentNode;
+    } else {
+      // This case should ideally not happen if parentId is always valid or null
+      root.add(childNode);
+      childNode.parent = root;
+    }
   }
 }
 
