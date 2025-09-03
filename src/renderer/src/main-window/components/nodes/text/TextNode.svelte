@@ -161,6 +161,7 @@
       <textarea
         id="text"
         class="nodrag"
+        spellcheck="false"
         placeholder="Enter the dialogue text."
         oninput={handleTextAreaChange}
         value={data.text}

@@ -47,7 +47,13 @@
     </header>
     <div>
       <label for="text">Text:</label>
-      <input id="text" value={data.text} placeholder="Branch text" oninput={handleChange} />
+      <input
+        id="text"
+        value={data.text}
+        spellcheck="false"
+        placeholder="Branch text"
+        oninput={handleChange}
+      />
     </div>
   </div>
 </div>

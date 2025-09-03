@@ -70,6 +70,7 @@
       <input
         id="text"
         value={data.text}
+        spellcheck="false"
         placeholder="Enter skill check text."
         onchange={handleTextChange}
       />
