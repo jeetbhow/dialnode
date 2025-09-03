@@ -31,8 +31,9 @@ export class Dialogue implements BaseDialogueSelectNode {
   constructor(
     public id: string = crypto.randomUUID(),
     name: string = "Untitled",
-    parent: Folder | null = null
+    parent: Folder | null = root
   ) {
+    this.id = id;
     this.name = name;
     this.parent = parent;
   }
@@ -58,7 +59,7 @@ export class Folder implements BaseDialogueSelectNode {
   constructor(
     id: string = crypto.randomUUID(),
     name: string = "Untitled",
-    parent: Folder | null = null
+    parent: Folder | null = root
   ) {
     this.id = id;
     this.name = name;
