@@ -8,14 +8,14 @@
 
   const { text, nodeType }: Props = $props();
 
-  function handleDragStart(event: DragEvent) {
+  function handleDragStart(event: DragEvent): void {
     if (event.dataTransfer) {
       event.dataTransfer.setData("text/plain", nodeType);
       event.dataTransfer.effectAllowed = "move";
     }
   }
 
-  function handleDragEnd(event: DragEvent) {
+  function handleDragEnd(event: DragEvent): void {
     if (event.dataTransfer) {
       event.dataTransfer.clearData();
     }
