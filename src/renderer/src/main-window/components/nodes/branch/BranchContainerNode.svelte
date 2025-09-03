@@ -20,7 +20,7 @@
   const { deleteElements } = useSvelteFlow();
 
   function addBranch(): void {
-    const branchId = graph.addNode("branch", id);
+    const branchId = graph.addNode("branch", { x: 0, y: 0 }, id);
     data.branches.push(branchId);
   }
 
@@ -32,7 +32,7 @@
       return;
     }
 
-    const skillCheckId = graph.addNode("skillCheck", id);
+    const skillCheckId = graph.addNode("skillCheck", { x: 0, y: 0 }, id);
     data.branches.push(skillCheckId);
   }
 

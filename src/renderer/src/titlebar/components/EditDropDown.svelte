@@ -18,7 +18,14 @@
   }
 
   function handleRemoveDialogue(): void {
-    root.remove(graph.selected);
+    const parent = graph.selected?.parent;
+
+    if (!parent) {
+      throw new Error("Tried to remove a dialogue but the parent was not found.");
+    }
+
+    parent.remove(graph.selected);
+    graph.clear();
   }
 </script>
 

@@ -19,7 +19,7 @@ import type { DialogueSelectNode } from "./dialoguesStore.svelte";
 const db = useDb();
 
 class Dialogues {
-  public selected = $state<DialogueSelectNode>(null);
+  public selected = $state<DialogueSelectNode | null>(null);
   public nodes = $state.raw<GraphNode<Record<string, unknown>>[] | null>([]);
   public edges = $state.raw<Edge[] | null>([]);
 
@@ -31,6 +31,12 @@ class Dialogues {
     }
 
     this.selected = node;
+  }
+
+  public clear(): void {
+    this.selected = null;
+    this.nodes = [];
+    this.edges = [];
   }
 
   public save(): void {
@@ -47,21 +53,25 @@ class Dialogues {
     this.save();
   }
 
-  public addNode(type: DialogueNodeType, parentId?: string): string | null {
+  public addNode(
+    type: DialogueNodeType,
+    position: { x: number; y: number },
+    parentId?: string
+  ): string | null {
     let childId = null;
 
     switch (type) {
       case "start":
-        this.addStartNode();
+        this.addStartNode(position);
         break;
       case "end":
-        this.addEndNode();
+        this.addEndNode(position);
         break;
       case "text":
-        this.addTextNode();
+        this.addTextNode(position);
         break;
       case "branchContainer":
-        this.addBranchContainerNode();
+        this.addBranchContainerNode(position);
         break;
       case "branch": {
         childId = this.addBranchNode(parentId);
@@ -80,48 +90,47 @@ class Dialogues {
   }
 
   // TODO: Replace fixed-positions with drag and drop later on.
-  private addStartNode(): void {
+  private addStartNode(position: { x: number; y: number }): void {
     const newNode: StartNodeType = {
       id: crypto.randomUUID(),
       type: "start",
-      position: { x: 0, y: 0 },
+      position,
       data: { next: null }
     };
 
     graph.nodes = [...graph.nodes, newNode];
   }
 
-  private addEndNode(): void {
+  private addEndNode(position: { x: number; y: number }): void {
     const newNode: EndNodeType = {
       id: crypto.randomUUID(),
       type: "end",
-      position: { x: 0, y: 0 },
+      position,
       data: {}
     };
 
     graph.nodes = [...graph.nodes, newNode];
   }
 
-  private addTextNode(): void {
+  private addTextNode(position: { x: number; y: number }): void {
     const id = crypto.randomUUID();
-    const position = { x: 0, y: 0 };
 
     const newNode: TextNodeType = {
       id,
       type: "text",
-      position,
+      position: position,
       data: { text: "", next: null }
     };
 
     graph.nodes = [...graph.nodes, newNode];
   }
 
-  private addBranchContainerNode(): void {
+  private addBranchContainerNode(position: { x: number; y: number }): void {
     const id = crypto.randomUUID();
     const newNode: BranchContainerNodeType = {
       id,
       type: "branchContainer",
-      position: { x: 0, y: 0 },
+      position: position,
       data: { branches: [] },
       width: BRANCH_NODE_INITIAL_WIDTH,
       height: BRANCH_NODE_INITIAL_HEIGHT

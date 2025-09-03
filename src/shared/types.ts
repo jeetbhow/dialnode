@@ -49,11 +49,6 @@ export type Skill = {
 export type DbEntityKind = "portrait" | "speaker" | "skillCategory" | "skill";
 export type DbEntity = Speaker | Portrait | SkillCategory | Skill;
 
-export type Button = {
-  text: string;
-  onClick: () => void;
-};
-
 export type Object = Record<string, unknown>;
 export type DialogueNodeType =
   | "start"

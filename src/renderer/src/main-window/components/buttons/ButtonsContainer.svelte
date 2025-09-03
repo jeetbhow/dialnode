@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Button } from "../../../../../shared/types";
+  import type { Button } from "../../utils/buttons";
 
   import MainButton from "./MainButton.svelte";
 
@@ -8,8 +8,8 @@
 </script>
 
 <div style="flex-direction: {flexDirection}">
-  {#each buttons as { text, onClick } (text)}
-    <MainButton {text} {onClick} />
+  {#each buttons as { text, onClick, nodeType } (text)}
+    <MainButton {text} {onClick} {nodeType} />
   {/each}
 </div>
 

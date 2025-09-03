@@ -1,20 +1,25 @@
-import { graph } from "../stores/graphStore.svelte";
+import type { DialogueNodeType } from "../../../../shared/types";
+
+export type Button = {
+  text: string;
+  nodeType?: DialogueNodeType;
+};
 
 export const nodeButtons = [
   {
     text: "+ Start",
-    onClick: () => graph.addNode("start")
+    nodeType: "start"
   },
   {
     text: "+ Node",
-    onClick: () => graph.addNode("text")
+    nodeType: "text"
   },
   {
     text: "+ Branch",
-    onClick: () => graph.addNode("branchContainer")
+    nodeType: "branchContainer"
   },
   {
     text: "+ End",
-    onClick: () => graph.addNode("end")
+    nodeType: "end"
   }
-];
+] satisfies Button[];

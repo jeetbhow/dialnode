@@ -7,6 +7,7 @@ import type {
   SerializedFolder
 } from "../../../../shared/types";
 import { SvelteMap } from "svelte/reactivity";
+import { graph } from "./graphStore.svelte";
 
 export type StorageType = "folder" | "dialogue";
 
@@ -70,6 +71,7 @@ export class Folder implements BaseDialogueSelectNode {
 
   public remove(node: DialogueSelectNode): void {
     this.children = this.children.filter((n) => n.id !== node.id);
+    graph.clear();
   }
 
   public move(folder: Folder): void {
