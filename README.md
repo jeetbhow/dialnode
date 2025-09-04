@@ -3,7 +3,7 @@
 <p align="center"><strong>An open-source, graph-based dialogue editor built for indie game developers.</strong></p>
 <p align="center"><em>Currently in proof-of-concept stage.</em></p>
 
-<img src="./images/example.gif" alt="Example" />
+![Example](./images/example.gif)
 
 <p align="center">
   <a href="https://github.com/jeetbhow/dialnode/releases">Get the pre-release version</a>
