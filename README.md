@@ -1,5 +1,4 @@
 <h1 align="center">Dialnode</h1>
-<hr>
 
 <p align="center"><strong>An open-source, graph-based dialogue editor built for indie game developers.</strong></p>
 <p align="center"><em>Currently in proof-of-concept stage.</em></p>
