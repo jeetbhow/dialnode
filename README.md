@@ -1,17 +1,10 @@
-# Dialnode
+<h1 align="center">Dialnode</h1>
+<hr>
 
-## About
-Dialnode is an open-source, graph-based dialogue editor built for indie game developers.
+<p align="center"><strong>An open-source, graph-based dialogue editor built for indie game developers.</strong></p>
+<p align="center"><em>Currently in proof-of-concept stage.</em></p>
 
-No more wrestling with messy text files—Dialnode unlocks a powerful, visual workflow for crafting dynamic, branching conversations. Whether you’re building:
-
-- A straightforward, linear narrative
-- An RPG with skill checks
-- Or a deeply choice-driven story with branching outcomes
-
-Dialnode helps you design, organize, and export dialogues with ease.
-
-The project is currently in its proof-of-concept stage.
+<img src="./images/example.gif" alt="Example" />
 
 ## What is this not?
 Dialnode is not:
