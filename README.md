@@ -5,12 +5,18 @@
 
 <img src="./images/example.gif" alt="Example" />
 
+## What problem does this solve?
+
+ While working on my own indie game, I found that managing complex, branching dialogue with skill checks in traditional text files was a nightmare. It was difficult to visualize the flow of conversation, track different paths, and ensure all branches connected correctly.
+
+To solve this, I created Dialnode: a visual, graph-based editor designed to make dialogue creation intuitive and efficient. Instead of getting lost in lines of code or tangled scripts, you can build your conversations visually, node by node, just like a flowchart.
+
 ## What is this not?
 Dialnode is not:
 - A plugin for a game engine
 - A dialogue system for a game engine
 
-Instead, it exports a file (JSON, TOML, YAML, etc.) that implements a specification. You are then free to implement your dialogue system around that specification. This will typically involve parsing the file and then converting it into some internal representation that your game can understand. 
+Instead, it exports a file (JSON, TOML, YAML, etc.) that implements a specification. You will then build your game's dialogue system around that specification. This will typically involve parsing the file and then converting it into some internal representation that your game can understand. 
 
 This is an example of the JSON file produced by this program: 
 ```json
