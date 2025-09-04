@@ -5,6 +5,10 @@
 
 <img src="./images/example.gif" alt="Example" />
 
+<p align="center">
+  <a href="https://github.com/jeetbhow/dialnode/releases">Get the pre-release version</a>
+</p>
+
 ## What problem does this solve?
 
  While working on my own indie game, I found that managing complex, branching dialogue with skill checks in traditional text files was a nightmare. It was difficult to visualize the flow of conversation, track different paths, and ensure all branches connected correctly.
