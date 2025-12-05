@@ -9,8 +9,8 @@
   <a href="https://github.com/jeetbhow/dialnode/releases">Get the pre-release version</a>
 </p>
 
-# Note:
-This repo is deprecated. I'm currently in the process of migrating this to Tauri, which offers superior memory efficiency, performance, and binary size. 
+
+**Note: This repo is deprecated. I'm currently in the process of migrating this to Tauri, which offers superior memory efficiency, performance, and binary size.**
 
 ## What problem does this solve?
 
