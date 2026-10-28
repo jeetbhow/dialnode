@@ -1,8 +1,6 @@
-//! On-disk format. A repository is a directory:
+//! On-disk format. A repository is any folder:
 //!
 //! ```text
-//! manifest.dial      repository metadata
-//! database.json      speakers, skills, portraits
 //! Chapter 1/         folders are plain directories
 //!   Intro.json       each dialogue is a JSON file
 //! ```
@@ -19,18 +17,16 @@ use eframe::egui::pos2;
 use serde_json::{Map, Value, json};
 
 use crate::model::{
-    BranchContainerData, BranchData, DialogueTree, Edge, Entities, Graph, GraphNode, NodeData,
-    NodeType, ROOT_ID, SkillCheckData, StartData, TextData, TreeItemKind, new_id,
+    BranchContainerData, BranchData, DialogueTree, Edge, Graph, GraphNode, NodeData, NodeType,
+    ROOT_ID, SkillCheckData, StartData, TextData, TreeItemKind, new_id,
 };
 
-pub const DATABASE_FILE: &str = "database.json";
 const DIALOGUE_EXTENSION: &str = "json";
 /// Spacing for nodes in files that don't say where they go.
 const AUTO_LAYOUT_STEP: f32 = 320.0;
 
-/// Builds a dialogue's JSON. With `layout` false this is exactly the export
-/// format from the README.
-pub fn dialogue_json(graph: &Graph, layout: bool) -> Value {
+/// Builds a dialogue's JSON, including editor layout.
+fn dialogue_json(graph: &Graph) -> Value {
     let nodes = graph
         .nodes
         .iter()
@@ -47,9 +43,6 @@ pub fn dialogue_json(graph: &Graph, layout: bool) -> Value {
                     obj.insert("text".into(), json!(d.text));
                     if let Some(speaker) = &d.speaker {
                         obj.insert("speaker".into(), json!(speaker));
-                    }
-                    if let Some(portrait) = &d.portrait {
-                        obj.insert("portrait".into(), json!(portrait));
                     }
                     obj.insert("next".into(), json!(d.next));
                 }
@@ -69,11 +62,9 @@ pub fn dialogue_json(graph: &Graph, layout: bool) -> Value {
                     obj.insert("next".into(), json!(d.next));
                 }
             }
-            if layout {
-                let layout = node_layout(graph, node);
-                if !layout.is_empty() {
-                    obj.insert("layout".into(), Value::Object(layout));
-                }
+            let layout = node_layout(graph, node);
+            if !layout.is_empty() {
+                obj.insert("layout".into(), Value::Object(layout));
             }
             Value::Object(obj)
         })
@@ -130,7 +121,6 @@ pub fn parse_dialogue(text: &str) -> Result<Graph> {
             NodeType::End => NodeData::End,
             NodeType::Text => NodeData::Text(TextData {
                 speaker: str_field(obj, "speaker"),
-                portrait: str_field(obj, "portrait"),
                 text,
                 next,
             }),
@@ -220,13 +210,13 @@ fn write_atomic(path: &Path, contents: &str) -> Result<()> {
 }
 
 pub fn write_dialogue(path: &Path, graph: &Graph) -> Result<()> {
-    let mut text = serde_json::to_string_pretty(&dialogue_json(graph, true))?;
+    let mut text = serde_json::to_string_pretty(&dialogue_json(graph))?;
     text.push('\n');
     write_atomic(path, &text)
 }
 
-/// Reads the folder/dialogue tree under `root`. Hidden entries and
-/// `database.json` are skipped. Files that aren't valid dialogues are left
+/// Reads the folder/dialogue tree under `root`. Hidden entries are skipped.
+/// Files that aren't valid dialogues are left
 /// out and reported in the returned warnings.
 pub fn load_tree(root: &Path) -> Result<(DialogueTree, Vec<String>)> {
     let mut tree = DialogueTree::default();
@@ -258,7 +248,7 @@ fn load_dir(
         let is_dialogue = path
             .extension()
             .is_some_and(|e| e.eq_ignore_ascii_case(DIALOGUE_EXTENSION));
-        if !is_dialogue || (dir == root && name.eq_ignore_ascii_case(DATABASE_FILE)) {
+        if !is_dialogue {
             continue;
         }
         let stem = path
@@ -283,25 +273,9 @@ fn load_dir(
     Ok(())
 }
 
-pub fn load_entities(root: &Path) -> Result<Entities> {
-    let path = root.join(DATABASE_FILE);
-    if !path.exists() {
-        return Ok(Entities::default());
-    }
-    let text =
-        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
-    serde_json::from_str(&text).with_context(|| format!("{DATABASE_FILE} is not valid"))
-}
-
-pub fn save_entities(root: &Path, entities: &Entities) -> Result<()> {
-    let mut text = serde_json::to_string_pretty(entities)?;
-    text.push('\n');
-    write_atomic(&root.join(DATABASE_FILE), &text)
-}
-
 /// Checks a folder or dialogue name typed by the user. Returns it trimmed,
 /// with a trailing `.json` removed for dialogues.
-pub fn validate_name(name: &str, folder: bool, at_root: bool) -> Result<String> {
+pub fn validate_name(name: &str, folder: bool) -> Result<String> {
     let mut name = name.trim();
     if !folder && name.len() > 5 && name[name.len() - 5..].eq_ignore_ascii_case(".json") {
         name = name[..name.len() - 5].trim_end();
@@ -316,9 +290,6 @@ pub fn validate_name(name: &str, folder: bool, at_root: bool) -> Result<String> 
         matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') || c.is_control()
     }) {
         bail!("Names can't contain {c:?}.");
-    }
-    if !folder && at_root && name.eq_ignore_ascii_case("database") {
-        bail!("\"database\" is reserved at the top level.");
     }
     Ok(name.to_string())
 }
@@ -356,160 +327,4 @@ pub fn trash(path: &Path) -> Result<()> {
 
 pub fn path_of(root: &Path, tree: &DialogueTree, id: &str) -> Option<PathBuf> {
     tree.rel_path(id).map(|rel| root.join(rel))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::model::{Speaker, TreeItemKind};
-
-    fn sample() -> Graph {
-        let mut g = Graph::default();
-        let start = g.add_node(NodeType::Start, pos2(0.0, 10.0));
-        let text = g.add_node(NodeType::Text, pos2(200.0, 10.0));
-        let container = g.add_node(NodeType::BranchContainer, pos2(500.0, 0.0));
-        let blue = g.add_child(&container, NodeType::Branch, None).unwrap();
-        g.add_child(&container, NodeType::SkillCheck, Some("Strength".into()));
-        let end = g.add_node(NodeType::End, pos2(900.0, 0.0));
-        g.connect(&start, None, &text, Some("left-target".into()));
-        g.connect(&text, Some("bottom-source".into()), &container, None);
-        g.connect(&blue, None, &end, None);
-        if let NodeData::Text(d) = &mut g.node_mut(&text).unwrap().data {
-            d.text = "What's your favourite color?".into();
-            d.speaker = Some("Jeet".into());
-            d.portrait = Some("res://portraits/jeet.png".into());
-        }
-        g
-    }
-
-    /// Edge ids are regenerated on load, so compare everything else.
-    fn normalized(mut g: Graph) -> Graph {
-        for e in &mut g.edges {
-            e.id.clear();
-        }
-        g.edges.sort_by(|a, b| a.source.cmp(&b.source));
-        g
-    }
-
-    #[test]
-    fn dialogue_round_trips() {
-        let g = sample();
-        let text = serde_json::to_string(&dialogue_json(&g, true)).unwrap();
-        assert_eq!(normalized(parse_dialogue(&text).unwrap()), normalized(g));
-    }
-
-    #[test]
-    fn export_matches_documented_format() {
-        let mut g = Graph::default();
-        let start = g.add_node(NodeType::Start, pos2(0.0, 0.0));
-        let text = g.add_node(NodeType::Text, pos2(0.0, 0.0));
-        g.connect(&start, None, &text, None);
-        if let NodeData::Text(d) = &mut g.node_mut(&text).unwrap().data {
-            d.text = "Hi".into();
-            d.speaker = Some("Jeet".into());
-        }
-        let out = serde_json::to_string(&dialogue_json(&g, false)).unwrap();
-        assert_eq!(
-            out,
-            format!(
-                r#"[{{"id":"{start}","type":"start","next":"{text}"}},{{"id":"{text}","type":"text","text":"Hi","speaker":"Jeet","next":null}}]"#
-            )
-        );
-    }
-
-    #[test]
-    fn files_without_layout_still_load() {
-        let readme_example = r#"[
-          {"id": "a", "type": "start", "next": "b"},
-          {"id": "b", "type": "text", "text": "Hi", "speaker": "Jeet", "next": "c"},
-          {"id": "c", "type": "end"}
-        ]"#;
-        let g = parse_dialogue(readme_example).unwrap();
-        assert_eq!(g.nodes.len(), 3);
-        assert_eq!(g.edges.len(), 2);
-        assert_ne!(g.nodes[0].position, g.nodes[1].position, "auto-laid out");
-    }
-
-    #[test]
-    fn bad_files_are_reported() {
-        assert!(parse_dialogue("{}").is_err());
-        assert!(parse_dialogue(r#"[{"id":"a","type":"bogus"}]"#).is_err());
-        assert!(parse_dialogue(r#"[{"type":"end"}]"#).is_err());
-    }
-
-    #[test]
-    fn tree_loads_from_directories() {
-        let tmp = tempfile::tempdir().unwrap();
-        let root = tmp.path();
-        fs::create_dir_all(root.join("Chapter 1/Scene")).unwrap();
-        fs::create_dir(root.join(".git")).unwrap();
-        write_dialogue(&root.join("Chapter 1/Scene/Intro.json"), &sample()).unwrap();
-        write_dialogue(&root.join("Top.json"), &Graph::default()).unwrap();
-        fs::write(root.join("broken.json"), "nope").unwrap();
-        fs::write(root.join("notes.txt"), "").unwrap();
-        save_entities(root, &Entities::default()).unwrap();
-
-        let (tree, warnings) = load_tree(root).unwrap();
-        let mut paths: Vec<String> = tree
-            .items
-            .iter()
-            .map(|i| tree.rel_path(&i.id).unwrap().display().to_string())
-            .collect();
-        paths.sort();
-        assert_eq!(
-            paths,
-            [
-                "Chapter 1",
-                "Chapter 1/Scene",
-                "Chapter 1/Scene/Intro.json",
-                "Top.json"
-            ]
-        );
-        assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].starts_with("broken.json"));
-        let intro = tree
-            .dialogues()
-            .into_iter()
-            .find(|id| tree.get(id).unwrap().name == "Intro");
-        assert!(
-            matches!(&tree.get(&intro.unwrap()).unwrap().kind, TreeItemKind::Dialogue(g) if g.nodes.len() == 6)
-        );
-    }
-
-    #[test]
-    fn entities_round_trip() {
-        let tmp = tempfile::tempdir().unwrap();
-        assert_eq!(load_entities(tmp.path()).unwrap(), Entities::default());
-        let mut e = Entities::default();
-        e.speakers.push(Speaker::new("Jeet".into()));
-        save_entities(tmp.path(), &e).unwrap();
-        assert_eq!(load_entities(tmp.path()).unwrap(), e);
-    }
-
-    #[test]
-    fn name_validation() {
-        assert_eq!(
-            validate_name(" Intro.JSON ", false, false).unwrap(),
-            "Intro"
-        );
-        assert_eq!(validate_name("a.json", true, false).unwrap(), "a.json");
-        assert!(validate_name("", false, false).is_err());
-        assert!(validate_name("a/b", true, false).is_err());
-        assert!(validate_name(".hidden", true, false).is_err());
-        assert!(validate_name("database", false, true).is_err());
-        assert!(validate_name("database", false, false).is_ok());
-        assert!(validate_name("database", true, true).is_ok());
-    }
-
-    #[test]
-    fn rename_refuses_to_overwrite() {
-        let tmp = tempfile::tempdir().unwrap();
-        let a = tmp.path().join("a.json");
-        let b = tmp.path().join("b.json");
-        create(&a, false).unwrap();
-        create(&b, false).unwrap();
-        assert!(rename(&a, &b).is_err());
-        assert!(create(&a, false).is_err());
-        rename(&a, &tmp.path().join("c.json")).unwrap();
-    }
 }

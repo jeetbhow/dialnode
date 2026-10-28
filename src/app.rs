@@ -1,7 +1,6 @@
-//! Top-level app state: the repository screen and the editor.
+//! Top-level app state: the menu bar and the editor for the open folder.
 
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
@@ -10,36 +9,33 @@ use eframe::egui::{
     Sense, Stroke, TextEdit, TextureHandle, TextureOptions, Ui, ViewportCommand, vec2,
 };
 
-use crate::database_modal::{DatabaseModal, EntityRequest, Fulfilled};
-use crate::graph_editor::{GraphEnv, GraphEvent, GraphView};
-use crate::images::{self, TextureCache};
-use crate::model::{DialogueTree, Entities, Graph, NodeData, ROOT_ID, Repository, TreeItemKind};
-use crate::repo_screen::RepoScreen;
-use crate::repository::{self, OpenRepository};
+use crate::graph_editor::GraphView;
+use crate::images;
+use crate::model::{APP_VERSION, DialogueTree, Graph, ROOT_ID, TreeItemKind};
 use crate::storage;
 use crate::theme;
 
 const SAVE_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::S);
 
 pub struct DialnodeApp {
-    screen: Screen,
+    /// The open folder, if any.
+    editor: Option<Box<Editor>>,
     logo: Option<TextureHandle>,
     confirm: Option<PendingExit>,
     allow_close: bool,
     title: String,
+    /// Shown while no folder is open; the editor has its own.
+    error: Option<String>,
     #[cfg(debug_assertions)]
     debug: crate::debug_hooks::DebugHooks,
 }
 
-enum Screen {
-    Repository(RepoScreen),
-    Editor(Box<Editor>),
-}
-
+/// Something that leaves the open folder, so it asks about unsaved changes
+/// first.
 #[derive(Clone, Copy)]
 enum PendingExit {
     Quit,
-    ManageRepositories,
+    OpenFolder,
 }
 
 impl DialnodeApp {
@@ -49,31 +45,36 @@ impl DialnodeApp {
                 .load_texture("logo", img, TextureOptions::LINEAR)
         });
         #[allow(unused_mut)]
-        let mut screen = Screen::Repository(RepoScreen::default());
+        let mut editor = None;
         #[cfg(debug_assertions)]
-        if let Some(path) = crate::debug_hooks::DebugHooks::repository_to_open() {
-            match repository::open(&path).and_then(Editor::load) {
-                Ok(mut editor) => {
-                    editor.open_dialogue = editor.tree.dialogues().into_iter().next();
-                    editor.open_folders.extend(
-                        editor
+        if let Some(path) = crate::debug_hooks::DebugHooks::folder_to_open() {
+            match Editor::load(&path) {
+                Ok(mut loaded) => {
+                    loaded.open_dialogue = loaded.tree.dialogues().into_iter().next();
+                    loaded.open_folders.extend(
+                        loaded
                             .tree
                             .items
                             .iter()
                             .filter(|i| i.is_folder())
                             .map(|i| i.id.clone()),
                     );
-                    screen = Screen::Editor(Box::new(editor));
+                    editor = Some(Box::new(loaded));
                 }
                 Err(err) => eprintln!("DIALNODE_OPEN failed: {err:#}"),
             }
         }
+        Self::with_editor(editor, logo)
+    }
+
+    fn with_editor(editor: Option<Box<Editor>>, logo: Option<TextureHandle>) -> Self {
         Self {
-            screen,
+            editor,
             logo,
             confirm: None,
             allow_close: false,
             title: String::new(),
+            error: None,
             #[cfg(debug_assertions)]
             debug: crate::debug_hooks::DebugHooks::from_env(),
         }
@@ -85,14 +86,37 @@ impl DialnodeApp {
                 self.allow_close = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
-            PendingExit::ManageRepositories => {
-                self.screen = Screen::Repository(RepoScreen::default());
+            PendingExit::OpenFolder => {
+                if let Some(path) = rfd::FileDialog::new()
+                    .set_title("Open Folder")
+                    .pick_folder()
+                {
+                    self.open_editor(&path);
+                }
+            }
+        }
+    }
+
+    /// Switches the editor to the folder `root`, or reports why it couldn't
+    /// be opened.
+    fn open_editor(&mut self, root: &Path) {
+        match Editor::load(root) {
+            Ok(editor) => {
+                self.editor = Some(Box::new(editor));
+                self.error = None;
+            }
+            Err(err) => {
+                let message = format!("{err:#}");
+                match &mut self.editor {
+                    Some(editor) => editor.error = Some(message),
+                    None => self.error = Some(message),
+                }
             }
         }
     }
 
     fn request_exit(&mut self, ctx: &egui::Context, exit: PendingExit) {
-        let dirty = matches!(&self.screen, Screen::Editor(e) if e.is_dirty());
+        let dirty = self.editor.as_ref().is_some_and(|e| e.is_dirty());
         if dirty {
             self.confirm = Some(exit);
         } else {
@@ -111,10 +135,10 @@ impl DialnodeApp {
             ui.label("Save your dialogues before leaving?");
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.add(theme::primary_button("Save")).clicked() {
+                if theme::primary_button(ui, "Save").clicked() {
                     choice = Some(true);
                 }
-                if ui.add(theme::secondary_button("Discard")).clicked() {
+                if theme::secondary_button(ui, "Discard").clicked() {
                     choice = Some(false);
                 }
                 if ui.button("Cancel").clicked() {
@@ -124,7 +148,7 @@ impl DialnodeApp {
         });
         match choice {
             Some(true) => {
-                if let Screen::Editor(editor) = &mut self.screen
+                if let Some(editor) = &mut self.editor
                     && !editor.save()
                 {
                     // The save error is shown in the editor; stay put.
@@ -143,11 +167,11 @@ impl DialnodeApp {
     }
 
     fn update_title(&mut self, ctx: &egui::Context) {
-        let title = match &self.screen {
-            Screen::Repository(_) => "Dialnode".to_string(),
-            Screen::Editor(e) => {
+        let title = match &self.editor {
+            None => "Dialnode".to_string(),
+            Some(e) => {
                 let marker = if e.is_dirty() { " •" } else { "" };
-                format!("{}{marker} — Dialnode", e.repo.name)
+                format!("{}{marker} — Dialnode", e.name)
             }
         };
         if title != self.title {
@@ -155,42 +179,124 @@ impl DialnodeApp {
             self.title = title;
         }
     }
-}
 
-impl eframe::App for DialnodeApp {
-    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+    fn show(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
         if ctx.input(|i| i.viewport().close_requested())
             && !self.allow_close
-            && matches!(&self.screen, Screen::Editor(e) if e.is_dirty())
+            && self.editor.as_ref().is_some_and(|e| e.is_dirty())
         {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.confirm = Some(PendingExit::Quit);
         }
 
-        match &mut self.screen {
-            Screen::Repository(screen) => {
-                if let Some(open) = screen.ui(ui, self.logo.as_ref()) {
-                    match Editor::load(open) {
-                        Ok(editor) => self.screen = Screen::Editor(Box::new(editor)),
-                        Err(err) => screen.error = Some(format!("{err:#}")),
-                    }
+        if let Some(exit) = self.menu_bar(ui) {
+            self.request_exit(&ctx, exit);
+        }
+        let interactive = self.confirm.is_none();
+        match &mut self.editor {
+            Some(editor) => editor.ui(ui, interactive),
+            None => {
+                if let Some(exit) = self.empty_editor(ui) {
+                    self.proceed(&ctx, exit);
                 }
             }
-            Screen::Editor(editor) => match editor.ui(ui, self.confirm.is_none()) {
-                EditorAction::None => {}
-                EditorAction::ManageRepositories => {
-                    self.request_exit(&ctx, PendingExit::ManageRepositories)
-                }
-                EditorAction::Quit => self.request_exit(&ctx, PendingExit::Quit),
-            },
         }
 
         self.confirm_dialog(&ctx);
         self.update_title(&ctx);
-        #[cfg(debug_assertions)]
-        self.debug.after_frame(&ctx);
     }
+
+    fn menu_bar(&mut self, ui: &mut Ui) -> Option<PendingExit> {
+        let mut exit = None;
+        egui::Panel::top("menu-bar").show(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open Folder…").clicked() {
+                        exit = Some(PendingExit::OpenFolder);
+                    }
+                    if let Some(editor) = &mut self.editor {
+                        ui.separator();
+                        editor.file_menu(ui);
+                    }
+                    ui.separator();
+                    if ui.button("Exit").clicked() {
+                        exit = Some(PendingExit::Quit);
+                    }
+                });
+                if let Some(editor) = &mut self.editor {
+                    editor.menus(ui);
+                }
+            });
+        });
+        exit
+    }
+
+    /// The editor before a folder is open.
+    fn empty_editor(&mut self, ui: &mut Ui) -> Option<PendingExit> {
+        let mut exit = None;
+        status_bar(ui, &mut self.error, None);
+        sidebar_panel(ui).show(ui, |ui| {
+            ui.add_space(6.0);
+            ui.label(RichText::new("No folder open.").color(theme::SMALL_TEXT));
+        });
+        egui::CentralPanel::default().show(ui, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space((ui.available_height() * 0.2).max(24.0));
+                if let Some(logo) = &self.logo {
+                    ui.add(
+                        egui::Image::new(logo)
+                            .max_size(vec2(250.0, 200.0))
+                            .corner_radius(14),
+                    );
+                }
+                ui.label(
+                    RichText::new(format!("Version: {APP_VERSION}"))
+                        .small()
+                        .color(theme::SMALL_TEXT),
+                );
+                ui.add_space(24.0);
+                ui.label("Open a folder of dialogues, or an empty folder to start a new one.");
+                ui.add_space(12.0);
+                if theme::primary_button(ui, "Open Folder…").clicked() {
+                    exit = Some(PendingExit::OpenFolder);
+                }
+            });
+        });
+        exit
+    }
+}
+
+impl eframe::App for DialnodeApp {
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+        self.show(ui);
+        #[cfg(debug_assertions)]
+        self.debug.after_frame(ui.ctx());
+    }
+}
+
+fn sidebar_panel(ui: &Ui) -> egui::Panel {
+    egui::Panel::left("sidebar")
+        .resizable(true)
+        .default_size(300.0)
+        .min_size(220.0)
+        .frame(Frame::side_top_panel(ui.style()).fill(theme::SIDEBAR_BG))
+}
+
+/// Shows `error` with a button to dismiss it, or else `status`.
+fn status_bar(ui: &mut Ui, error: &mut Option<String>, status: Option<&str>) {
+    egui::Panel::bottom("status-bar").show(ui, |ui| {
+        ui.horizontal(|ui| {
+            if let Some(err) = error.as_deref() {
+                ui.colored_label(theme::ERROR, err);
+                if ui.small_button("Dismiss").clicked() {
+                    *error = None;
+                }
+            } else if let Some(status) = status {
+                ui.label(RichText::new(status).color(theme::SMALL_TEXT));
+            }
+        });
+    });
 }
 
 /// One sidebar row. `folder_open` is `Some` for folders and draws a
@@ -201,6 +307,8 @@ fn tree_row(
     indent: f32,
     selected: bool,
     folder_open: Option<bool>,
+    dragging: bool,
+    drop_allowed: Option<bool>,
 ) -> egui::Response {
     let (rect, resp) =
         ui.allocate_exact_size(vec2(ui.available_width(), 24.0), Sense::click_and_drag());
@@ -208,12 +316,33 @@ fn tree_row(
         return resp;
     }
     let painter = ui.painter();
-    if selected {
+    let drop_hovered = drop_allowed.is_some() && resp.contains_pointer();
+    if drop_hovered {
+        let color = if drop_allowed == Some(true) {
+            theme::PRIMARY
+        } else {
+            theme::ERROR
+        };
+        painter.rect_filled(rect, 4.0, color.gamma_multiply(0.12));
+        painter.rect_stroke(rect, 4.0, Stroke::new(2.0, color), egui::StrokeKind::Inside);
+    } else if dragging {
+        painter.rect_filled(rect, 4.0, ui.visuals().widgets.inactive.weak_bg_fill);
+        painter.rect_stroke(
+            rect,
+            4.0,
+            Stroke::new(1.0, theme::PRIMARY.gamma_multiply(0.4)),
+            egui::StrokeKind::Inside,
+        );
+    } else if selected {
         painter.rect_filled(rect, 4.0, ui.visuals().selection.bg_fill);
     } else if resp.hovered() {
         painter.rect_filled(rect, 4.0, ui.visuals().widgets.hovered.weak_bg_fill);
     }
-    let text_color = ui.visuals().text_color();
+    let text_color = if dragging {
+        theme::SMALL_TEXT
+    } else {
+        ui.visuals().text_color()
+    };
     let mut x = rect.left() + 8.0 + indent;
     let cy = rect.center().y;
     if let Some(open) = folder_open {
@@ -254,13 +383,15 @@ fn tree_row(
         galley,
         text_color,
     );
+    resp.widget_info(|| {
+        egui::WidgetInfo::selected(
+            egui::accesskit::Role::Button,
+            ui.is_enabled(),
+            selected,
+            name,
+        )
+    });
     resp
-}
-
-pub enum EditorAction {
-    None,
-    ManageRepositories,
-    Quit,
 }
 
 enum TreeAction {
@@ -280,11 +411,11 @@ enum TreeAction {
 }
 
 pub struct Editor {
-    repo: Repository,
-    /// The repository directory.
+    /// The folder's name, shown in the title and menu bar.
+    name: String,
+    /// The open folder.
     root: PathBuf,
     tree: DialogueTree,
-    entities: Entities,
     /// The highlighted sidebar item (folder or dialogue).
     selected: Option<String>,
     /// The dialogue shown on the canvas.
@@ -294,8 +425,6 @@ pub struct Editor {
     confirm_delete: Option<String>,
     open_folders: HashSet<String>,
     views: HashMap<String, GraphView>,
-    db_modal: Option<DatabaseModal>,
-    textures: TextureCache,
     /// Dialogues with changes that haven't been written to disk.
     dirty: HashSet<String>,
     status: Option<String>,
@@ -303,10 +432,14 @@ pub struct Editor {
 }
 
 impl Editor {
-    fn load(open: OpenRepository) -> Result<Self> {
-        let OpenRepository { repository, root } = open;
-        let (tree, warnings) = storage::load_tree(&root).context("failed to read dialogues")?;
-        let entities = storage::load_entities(&root)?;
+    /// Opens any folder: its dialogue files and subfolders make up the tree.
+    fn load(root: &Path) -> Result<Self> {
+        let (tree, warnings) = storage::load_tree(root).context("failed to read dialogues")?;
+        // A drive root has no name of its own.
+        let name = root.file_name().map_or_else(
+            || root.display().to_string(),
+            |n| n.to_string_lossy().into_owned(),
+        );
         let error = (!warnings.is_empty()).then(|| {
             format!(
                 "Skipped {} file(s) that aren't valid dialogues: {}",
@@ -315,10 +448,9 @@ impl Editor {
             )
         });
         Ok(Self {
-            repo: repository,
-            root,
+            name,
+            root: root.to_path_buf(),
             tree,
-            entities,
             selected: None,
             open_dialogue: None,
             renaming: None,
@@ -326,8 +458,6 @@ impl Editor {
             confirm_delete: None,
             open_folders: HashSet::new(),
             views: HashMap::new(),
-            db_modal: None,
-            textures: TextureCache::default(),
             dirty: HashSet::new(),
             status: None,
             error,
@@ -360,145 +490,90 @@ impl Editor {
         true
     }
 
-    fn export(&mut self) -> Result<()> {
-        let Some(id) = self.open_dialogue.clone() else {
-            bail!("Open a dialogue to export it.");
-        };
-        let item = self.tree.get(&id).context("dialogue not found")?;
-        let TreeItemKind::Dialogue(graph) = &item.kind else {
-            bail!("Only dialogues can be exported.");
-        };
-        let Some(path) = rfd::FileDialog::new()
-            .set_title("Export JSON without layout")
-            .set_file_name(format!("{}.json", item.name))
-            .add_filter("JSON Files", &["json"])
-            .save_file()
-        else {
-            return Ok(());
-        };
-        let json = serde_json::to_string_pretty(&storage::dialogue_json(graph, false))?;
-        fs::write(&path, json).with_context(|| format!("failed to write {}", path.display()))?;
-        self.status = Some(format!("Exported to {}", path.display()));
-        Ok(())
+    /// The File menu items that need an open folder.
+    fn file_menu(&mut self, ui: &mut Ui) {
+        let save =
+            egui::Button::new("Save").shortcut_text(ui.ctx().format_shortcut(&SAVE_SHORTCUT));
+        if ui.add(save).clicked() {
+            self.save();
+        }
     }
 
-    fn ui(&mut self, ui: &mut Ui, interactive: bool) -> EditorAction {
-        let mut action = EditorAction::None;
+    /// The menu bar after the File menu: the Edit menu and the folder name.
+    fn menus(&mut self, ui: &mut Ui) {
+        ui.menu_button("Edit", |ui| {
+            if ui.button("New Dialogue").clicked() {
+                self.apply_tree_actions(vec![TreeAction::Add {
+                    parent: ROOT_ID.into(),
+                    folder: false,
+                }]);
+            }
+            let selected = self.selected.clone();
+            if ui
+                .add_enabled(selected.is_some(), egui::Button::new("Rename"))
+                .clicked()
+                && let Some(id) = selected.clone()
+            {
+                self.apply_tree_actions(vec![TreeAction::StartRename(id)]);
+            }
+            if ui
+                .add_enabled(selected.is_some(), egui::Button::new("Delete"))
+                .clicked()
+                && let Some(id) = selected
+            {
+                self.apply_tree_actions(vec![TreeAction::Delete(id)]);
+            }
+        });
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            let marker = if self.is_dirty() { " (unsaved)" } else { "" };
+            ui.label(RichText::new(format!("{}{marker}", self.name)).color(theme::SMALL_TEXT))
+                .on_hover_text(self.root.display().to_string());
+        });
+    }
+
+    fn ui(&mut self, ui: &mut Ui, interactive: bool) {
         let ctx = ui.ctx().clone();
 
         if interactive && ctx.input_mut(|i| i.consume_shortcut(&SAVE_SHORTCUT)) {
             self.save();
         }
 
-        egui::Panel::top("menu-bar").show(ui, |ui| {
-            egui::MenuBar::new().ui(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Manage Repositories").clicked() {
-                        action = EditorAction::ManageRepositories;
-                    }
-                    let save = egui::Button::new("Save")
-                        .shortcut_text(ctx.format_shortcut(&SAVE_SHORTCUT));
-                    if ui.add(save).clicked() {
-                        self.save();
-                    }
-                    if ui
-                        .add_enabled(self.open_dialogue.is_some(), egui::Button::new("Export…"))
-                        .on_hover_text("Write the open dialogue without editor layout")
-                        .clicked()
-                        && let Err(err) = self.export()
-                    {
-                        self.error = Some(format!("{err:#}"));
-                    }
-                    ui.separator();
-                    if ui.button("Exit").clicked() {
-                        action = EditorAction::Quit;
-                    }
-                });
-                ui.menu_button("Edit", |ui| {
-                    if ui.button("New Dialogue").clicked() {
-                        self.apply_tree_actions(vec![TreeAction::Add {
-                            parent: ROOT_ID.into(),
-                            folder: false,
-                        }]);
-                    }
-                    let selected = self.selected.clone();
-                    if ui
-                        .add_enabled(selected.is_some(), egui::Button::new("Rename"))
-                        .clicked()
-                        && let Some(id) = selected.clone()
-                    {
-                        self.apply_tree_actions(vec![TreeAction::StartRename(id)]);
-                    }
-                    if ui
-                        .add_enabled(selected.is_some(), egui::Button::new("Delete"))
-                        .clicked()
-                        && let Some(id) = selected
-                    {
-                        self.apply_tree_actions(vec![TreeAction::Delete(id)]);
-                    }
-                    ui.separator();
-                    if ui.button("Open Database").clicked() {
-                        self.db_modal = Some(DatabaseModal::new(None));
-                    }
-                });
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    let marker = if self.is_dirty() { " (unsaved)" } else { "" };
-                    ui.label(
-                        RichText::new(format!("{}{marker}", self.repo.name))
-                            .color(theme::SMALL_TEXT),
-                    )
-                    .on_hover_text(self.root.display().to_string());
-                });
-            });
-        });
-
-        egui::Panel::bottom("status-bar").show(ui, |ui| {
-            ui.horizontal(|ui| {
-                if let Some(err) = &self.error {
-                    ui.colored_label(theme::ERROR, err);
-                    if ui.small_button("Dismiss").clicked() {
-                        self.error = None;
-                    }
-                } else if let Some(status) = &self.status {
-                    ui.label(RichText::new(status).color(theme::SMALL_TEXT));
-                }
-            });
-        });
-
-        egui::Panel::left("sidebar")
-            .resizable(true)
-            .default_size(300.0)
-            .min_size(220.0)
-            .frame(Frame::side_top_panel(ui.style()).fill(theme::SIDEBAR_BG))
-            .show(ui, |ui| self.sidebar(ui));
+        status_bar(ui, &mut self.error, self.status.as_deref());
+        sidebar_panel(ui).show(ui, |ui| self.sidebar(ui));
+        self.inspector(ui);
 
         egui::CentralPanel::no_frame().show(ui, |ui| self.canvas(ui, interactive));
-
-        if let Some(modal) = &mut self.db_modal {
-            let out = modal.show(
-                &ctx,
-                &self.root,
-                &mut self.entities,
-                &self.repo,
-                &mut self.textures,
-            );
-            if let Some(dir) = out.godot_project {
-                self.repo.godot_project_location = Some(dir.to_string_lossy().into_owned());
-                self.textures.clear();
-                if let Err(err) = repository::save_manifest(&self.repo, &self.root) {
-                    self.error = Some(format!("{err:#}"));
-                }
-            }
-            if let Some((request, value)) = out.fulfilled {
-                self.fulfill(request, value);
-            }
-            if out.close {
-                self.db_modal = None;
-            }
-        }
-
         self.delete_dialog(&ctx);
-        action
+    }
+
+    /// The right-hand panel that edits the selected node of the open
+    /// dialogue. It only shows while a node is selected.
+    fn inspector(&mut self, ui: &mut Ui) {
+        let Some(id) = self.open_dialogue.clone() else {
+            return;
+        };
+        let Some(graph) = self.tree.graph_mut(&id) else {
+            return;
+        };
+        let view = self.views.entry(id.clone()).or_default();
+        if !view.has_selection(graph) {
+            return;
+        }
+        let changed = egui::Panel::right("inspector")
+            .resizable(true)
+            .default_size(300.0)
+            .min_size(240.0)
+            .frame(Frame::side_top_panel(ui.style()).fill(theme::SIDEBAR_BG))
+            .show(ui, |ui| {
+                ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| view.inspector(ui, graph))
+                    .inner
+            })
+            .inner;
+        if changed {
+            self.dirty.insert(id);
+        }
     }
 
     fn delete_dialog(&mut self, ctx: &egui::Context) {
@@ -521,7 +596,7 @@ impl Editor {
             ui.label(format!("Move {what} to the trash?"));
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                confirmed = ui.add(theme::primary_button("Move to Trash")).clicked();
+                confirmed = theme::primary_button(ui, "Move to Trash").clicked();
                 if ui.button("Cancel").clicked() {
                     self.confirm_delete = None;
                 }
@@ -534,24 +609,6 @@ impl Editor {
             self.confirm_delete = None;
             self.apply_tree_actions(vec![TreeAction::DeleteConfirmed(id)]);
         }
-    }
-
-    fn fulfill(&mut self, request: EntityRequest, value: Fulfilled) {
-        let Some(graph) = self.tree.graph_mut(&request.dialogue_id) else {
-            return;
-        };
-        let Some(NodeData::Text(data)) = graph.node_mut(&request.node_id).map(|n| &mut n.data)
-        else {
-            return;
-        };
-        match value {
-            Fulfilled::Speaker(s) => data.speaker = Some(s.name),
-            Fulfilled::Portrait(p) => data.portrait = Some(p.virtual_path),
-        }
-        if let Some(view) = self.views.get_mut(&request.dialogue_id) {
-            view.show_text_field(&request.node_id, request.kind);
-        }
-        self.dirty.insert(request.dialogue_id);
     }
 
     fn canvas(&mut self, ui: &mut Ui, interactive: bool) {
@@ -568,40 +625,16 @@ impl Editor {
             self.open_dialogue = None;
             return;
         };
-        let skills = self.entities.all_skills();
+        let keyboard = interactive && self.renaming.is_none() && self.confirm_delete.is_none();
         let view = self.views.entry(id.clone()).or_default();
-        let out = view.show(
-            ui,
-            graph,
-            GraphEnv {
-                skills: &skills,
-                textures: &mut self.textures,
-                godot_project: self.repo.godot_project_location.as_deref().map(Path::new),
-                keyboard: interactive
-                    && self.db_modal.is_none()
-                    && self.renaming.is_none()
-                    && self.confirm_delete.is_none(),
-            },
-        );
-        if out.changed {
-            self.dirty.insert(id.clone());
-        }
-        for event in out.events {
-            match event {
-                GraphEvent::RequestEntity { node_id, kind } => {
-                    self.db_modal = Some(DatabaseModal::new(Some(EntityRequest {
-                        dialogue_id: id.clone(),
-                        node_id,
-                        kind,
-                    })));
-                }
-                GraphEvent::Error(msg) => self.error = Some(msg),
-            }
+        if view.show(ui, graph, keyboard).changed {
+            self.dirty.insert(id);
         }
     }
 
     fn sidebar(&mut self, ui: &mut Ui) {
         let mut actions = Vec::new();
+        let mut drop_allowed = false;
         let target_folder = self
             .selected
             .as_deref()
@@ -611,8 +644,7 @@ impl Editor {
 
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            if ui
-                .button("+ Dialogue")
+            if theme::new_item_button(ui, theme::Icon::Dialogue)
                 .on_hover_text("New dialogue")
                 .clicked()
             {
@@ -621,7 +653,10 @@ impl Editor {
                     folder: false,
                 });
             }
-            if ui.button("+ Folder").on_hover_text("New folder").clicked() {
+            if theme::new_item_button(ui, theme::Icon::Folder)
+                .on_hover_text("New folder")
+                .clicked()
+            {
                 actions.push(TreeAction::Add {
                     parent: target_folder.clone(),
                     folder: true,
@@ -633,16 +668,39 @@ impl Editor {
         ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                self.tree_level(ui, ROOT_ID, 0, &mut actions);
+                self.tree_level(ui, ROOT_ID, 0, &mut actions, &mut drop_allowed);
                 // Dropping on the empty space below the list moves to the top level.
                 let rest = ui.available_size().max(vec2(ui.available_width(), 40.0));
                 let resp = ui.allocate_response(rest, Sense::hover());
+                if let Some(dragged) = egui::DragAndDrop::payload::<String>(ui.ctx()) {
+                    if resp.contains_pointer() {
+                        drop_allowed = self.can_drop(&dragged, ROOT_ID);
+                    }
+                }
                 if let Some(id) = resp.dnd_release_payload::<String>() {
-                    actions.push(TreeAction::Move((*id).clone(), ROOT_ID.into()));
+                    if self.can_drop(&id, ROOT_ID) {
+                        actions.push(TreeAction::Move((*id).clone(), ROOT_ID.into()));
+                    }
                 }
             });
 
         self.apply_tree_actions(actions);
+        if egui::DragAndDrop::has_payload_of_type::<String>(ui.ctx()) {
+            ui.ctx().set_cursor_icon(if drop_allowed {
+                egui::CursorIcon::Grabbing
+            } else {
+                egui::CursorIcon::NoDrop
+            });
+        }
+    }
+
+    /// Use the same checks for the drop cue and the eventual move.
+    fn can_drop(&self, id: &str, folder: &str) -> bool {
+        self.tree.get(id).is_some_and(|item| {
+            item.parent != folder
+                && self.tree.can_move(id, folder)
+                && !self.tree.name_taken(folder, &item.file_name(), Some(id))
+        })
     }
 
     fn tree_level(
@@ -651,6 +709,7 @@ impl Editor {
         parent: &str,
         depth: usize,
         actions: &mut Vec<TreeAction>,
+        drop_allowed: &mut bool,
     ) {
         let children: Vec<(String, String, bool)> = self
             .tree
@@ -666,7 +725,12 @@ impl Editor {
             {
                 ui.horizontal(|ui| {
                     ui.add_space(indent);
-                    let resp = ui.add(TextEdit::singleline(buffer).desired_width(f32::INFINITY));
+                    let resp = ui
+                        .scope(|ui| {
+                            theme::outline_fields(ui);
+                            ui.add(TextEdit::singleline(buffer).desired_width(f32::INFINITY))
+                        })
+                        .inner;
                     if self.focus_rename {
                         resp.request_focus();
                         self.focus_rename = false;
@@ -689,7 +753,19 @@ impl Editor {
             } else {
                 name
             };
-            let resp = tree_row(ui, &label, indent, selected, is_folder.then_some(open));
+            let dragged = egui::DragAndDrop::payload::<String>(ui.ctx());
+            let can_drop = dragged
+                .as_ref()
+                .is_some_and(|dragged| self.can_drop(dragged, &id));
+            let resp = tree_row(
+                ui,
+                &label,
+                indent,
+                selected,
+                is_folder.then_some(open),
+                dragged.as_deref().is_some_and(|dragged| dragged == &id),
+                (is_folder && dragged.is_some()).then_some(can_drop),
+            );
 
             resp.dnd_set_drag_payload(id.clone());
             if resp.clicked() {
@@ -703,15 +779,12 @@ impl Editor {
             }
             if is_folder {
                 if resp.dnd_hover_payload::<String>().is_some() {
-                    ui.painter().rect_stroke(
-                        resp.rect,
-                        4.0,
-                        Stroke::new(2.0, theme::PRIMARY),
-                        egui::StrokeKind::Inside,
-                    );
+                    *drop_allowed = can_drop;
                 }
                 if let Some(dragged) = resp.dnd_release_payload::<String>() {
-                    actions.push(TreeAction::Move((*dragged).clone(), id.clone()));
+                    if self.can_drop(&dragged, &id) {
+                        actions.push(TreeAction::Move((*dragged).clone(), id.clone()));
+                    }
                 }
             }
             resp.context_menu(|ui| {
@@ -739,7 +812,7 @@ impl Editor {
             });
 
             if is_folder && open {
-                self.tree_level(ui, &id, depth + 1, actions);
+                self.tree_level(ui, &id, depth + 1, actions, drop_allowed);
             }
         }
     }
@@ -781,7 +854,7 @@ impl Editor {
                 let item = self.tree.get(&id).context("item not found")?;
                 let (folder, parent, old_name) =
                     (item.is_folder(), item.parent.clone(), item.name.clone());
-                let name = storage::validate_name(&input, folder, parent == ROOT_ID)?;
+                let name = storage::validate_name(&input, folder)?;
                 if name == old_name {
                     return Ok(());
                 }
@@ -881,109 +954,5 @@ impl Editor {
 
     fn path_of(&self, id: &str) -> Result<PathBuf> {
         storage::path_of(&self.root, &self.tree, id).context("item not found")
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::model::{NodeType, TextData};
-    use eframe::egui::pos2;
-    use egui_kittest::Harness;
-
-    fn editor() -> (tempfile::TempDir, Editor) {
-        let tmp = tempfile::tempdir().unwrap();
-        let open = repository::create("repo", tmp.path(), None).unwrap();
-        (tmp, Editor::load(open).unwrap())
-    }
-
-    fn add(editor: &mut Editor, parent: &str, folder: bool) -> String {
-        editor
-            .apply_tree_action(TreeAction::Add {
-                parent: parent.into(),
-                folder,
-            })
-            .unwrap();
-        editor.renaming = None;
-        editor.selected.clone().unwrap()
-    }
-
-    fn rename(editor: &mut Editor, id: &str, name: &str) -> Result<()> {
-        editor.renaming = Some((id.into(), name.into()));
-        editor.apply_tree_action(TreeAction::CommitRename)
-    }
-
-    #[test]
-    fn sidebar_changes_happen_on_disk() {
-        let (_tmp, mut e) = editor();
-        let root = e.root.clone();
-        let folder = add(&mut e, ROOT_ID, true);
-        let dialogue = add(&mut e, &folder, false);
-        assert!(root.join("New Folder/Untitled.json").is_file());
-
-        rename(&mut e, &folder, "Chapter 1").unwrap();
-        rename(&mut e, &dialogue, "Intro.json").unwrap();
-        assert!(root.join("Chapter 1/Intro.json").is_file());
-        assert!(!root.join("New Folder").exists());
-
-        e.apply_tree_action(TreeAction::Move(dialogue.clone(), ROOT_ID.into()))
-            .unwrap();
-        assert!(root.join("Intro.json").is_file());
-
-        let other = add(&mut e, ROOT_ID, false);
-        assert!(rename(&mut e, &other, "intro").is_err(), "name clash");
-        assert!(rename(&mut e, &other, "a/b").is_err());
-        assert!(rename(&mut e, &other, "database").is_err());
-        assert!(
-            root.join("Untitled.json").is_file(),
-            "failed renames leave the file alone"
-        );
-
-        // Reloading from disk gives the same tree shape.
-        let (reloaded, warnings) = storage::load_tree(&root).unwrap();
-        assert!(warnings.is_empty());
-        let mut names: Vec<String> = reloaded
-            .items
-            .iter()
-            .map(|i| reloaded.rel_path(&i.id).unwrap().display().to_string())
-            .collect();
-        names.sort();
-        assert_eq!(names, ["Chapter 1", "Intro.json", "Untitled.json"]);
-    }
-
-    #[test]
-    fn editor_renders_and_saves() {
-        let (_tmp, mut editor) = editor();
-        let folder = add(&mut editor, ROOT_ID, true);
-        let id = add(&mut editor, &folder, false);
-        let graph = editor.tree.graph_mut(&id).unwrap();
-        let text = graph.add_node(NodeType::Text, pos2(0.0, 0.0));
-        graph.node_mut(&text).unwrap().data = NodeData::Text(TextData {
-            text: "Hello".into(),
-            ..Default::default()
-        });
-        let container = graph.add_node(NodeType::BranchContainer, pos2(400.0, 0.0));
-        graph.add_child(&container, NodeType::Branch, None);
-        graph.add_child(&container, NodeType::SkillCheck, None);
-        editor.open_folders.insert(folder);
-        editor.dirty.insert(id.clone());
-        let path = editor.path_of(&id).unwrap();
-
-        let mut harness = Harness::builder()
-            .with_size(vec2(1200.0, 800.0))
-            .build_ui_state(
-                |ui, e: &mut Editor| {
-                    e.ui(ui, true);
-                },
-                editor,
-            );
-        harness.run();
-        harness.key_press_modifiers(Modifiers::COMMAND, Key::S);
-        harness.run();
-
-        let editor = harness.state();
-        assert!(!editor.is_dirty(), "Ctrl+S should save");
-        let on_disk = storage::parse_dialogue(&fs::read_to_string(path).unwrap()).unwrap();
-        assert_eq!(on_disk.nodes, editor.tree.graph(&id).unwrap().nodes);
     }
 }

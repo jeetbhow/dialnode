@@ -1,12 +1,9 @@
 mod app;
-mod database_modal;
 #[cfg(debug_assertions)]
 mod debug_hooks;
 mod graph_editor;
 mod images;
 mod model;
-mod repo_screen;
-mod repository;
 mod storage;
 mod theme;
 

@@ -1,6 +1,6 @@
 //! Debug-build helpers for checking the UI without clicking through it.
 //!
-//! - `DIALNODE_OPEN=<repository folder>` opens a repository on startup.
+//! - `DIALNODE_OPEN=<folder>` opens a folder of dialogues on startup.
 //! - `DIALNODE_SCREENSHOT=<file.png>` saves a screenshot after a few frames,
 //!   then quits.
 
@@ -24,7 +24,7 @@ impl DebugHooks {
         }
     }
 
-    pub fn repository_to_open() -> Option<PathBuf> {
+    pub fn folder_to_open() -> Option<PathBuf> {
         std::env::var_os("DIALNODE_OPEN").map(PathBuf::from)
     }
 

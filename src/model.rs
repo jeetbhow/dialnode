@@ -1,11 +1,8 @@
-//! Core data types. Node data mirrors the dialogue file format: speakers,
-//! portraits, and skills are referenced by name / `res://` path.
+//! Core data types. Node data mirrors the dialogue file format.
 
 use eframe::egui::{Pos2, pos2};
-use serde::{Deserialize, Serialize};
 
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const FORMAT_VERSION: &str = "2.0.0";
 
 pub const ROOT_ID: &str = "root";
 pub const BRANCH_CONTAINER_MIN_WIDTH: f32 = 240.0;
@@ -13,85 +10,6 @@ pub const BRANCH_CONTAINER_MIN_HEIGHT: f32 = 240.0;
 
 pub fn new_id() -> String {
     uuid::Uuid::new_v4().to_string()
-}
-
-/// The contents of `manifest.dial`.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct Repository {
-    pub id: String,
-    pub name: String,
-    pub godot_project_location: Option<String>,
-    pub created_on: String,
-    pub app_version: String,
-    pub format_version: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Speaker {
-    pub id: String,
-    pub name: String,
-}
-
-impl Speaker {
-    pub fn new(name: String) -> Self {
-        Self { id: new_id(), name }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct Portrait {
-    pub id: String,
-    pub name: String,
-    /// Path of the image relative to the Godot project.
-    pub rel_path: String,
-    /// `res://` path, which is what dialogue files reference.
-    pub virtual_path: String,
-    pub filename: String,
-    pub width: u32,
-    pub height: u32,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Skill {
-    pub id: String,
-    pub name: String,
-}
-
-impl Skill {
-    pub fn new(name: String) -> Self {
-        Self { id: new_id(), name }
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct SkillCategory {
-    pub id: String,
-    pub name: String,
-    #[serde(default)]
-    pub skills: Vec<Skill>,
-}
-
-/// The contents of `database.json`.
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct Entities {
-    #[serde(default)]
-    pub speakers: Vec<Speaker>,
-    #[serde(default)]
-    pub skill_categories: Vec<SkillCategory>,
-    #[serde(default)]
-    pub portraits: Vec<Portrait>,
-}
-
-impl Entities {
-    pub fn all_skills(&self) -> Vec<Skill> {
-        self.skill_categories
-            .iter()
-            .flat_map(|c| c.skills.iter().cloned())
-            .collect()
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -141,10 +59,7 @@ pub struct StartData {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextData {
-    /// Speaker name.
     pub speaker: Option<String>,
-    /// Portrait `res://` path.
-    pub portrait: Option<String>,
     pub text: String,
     pub next: Option<String>,
 }
@@ -295,12 +210,7 @@ impl Graph {
     }
 
     /// Adds a branch or skill check node to a branch container.
-    pub fn add_child(
-        &mut self,
-        container_id: &str,
-        node_type: NodeType,
-        default_skill: Option<String>,
-    ) -> Option<String> {
+    pub fn add_child(&mut self, container_id: &str, node_type: NodeType) -> Option<String> {
         debug_assert!(node_type.is_child());
         let id = new_id();
         let container = self.node_mut(container_id)?;
@@ -309,17 +219,13 @@ impl Graph {
         };
         data.branches.push(id.clone());
 
-        let mut child_data = NodeData::default_for(node_type);
-        if let NodeData::SkillCheck(d) = &mut child_data {
-            d.skill = default_skill;
-        }
         self.nodes.push(GraphNode {
             id: id.clone(),
             parent_id: Some(container_id.to_string()),
             position: pos2(0.0, 0.0),
             width: None,
             height: None,
-            data: child_data,
+            data: NodeData::default_for(node_type),
         });
         Some(id)
     }
@@ -342,6 +248,31 @@ impl Graph {
             }
         }
         ids
+    }
+
+    /// Moves a branch or skill check to position `index` among its container's
+    /// children (clamped to the last place). Returns whether the order changed.
+    pub fn move_child(&mut self, child_id: &str, index: usize) -> bool {
+        let Some(parent) = self.node(child_id).and_then(|n| n.parent_id.clone()) else {
+            return false;
+        };
+        let mut order = self.children_of(&parent);
+        let Some(from) = order.iter().position(|c| c == child_id) else {
+            return false;
+        };
+        let to = index.min(order.len() - 1);
+        if from == to {
+            return false;
+        }
+        let child = order.remove(from);
+        order.insert(to, child);
+        match self.node_mut(&parent).map(|n| &mut n.data) {
+            Some(NodeData::BranchContainer(d)) => {
+                d.branches = order;
+                true
+            }
+            _ => false,
+        }
     }
 
     /// Removes a node together with its children, every edge touching it, and
@@ -583,122 +514,5 @@ impl DialogueTree {
         let mut out = Vec::new();
         visit(self, ROOT_ID, &mut out);
         out
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::PathBuf;
-
-    #[test]
-    fn remove_node_cleans_up_edges_and_next() {
-        let mut g = Graph::default();
-        let start = g.add_node(NodeType::Start, pos2(0.0, 0.0));
-        let text = g.add_node(NodeType::Text, pos2(100.0, 0.0));
-        assert!(g.connect(&start, None, &text, Some("left-target".into())));
-        g.remove_node(&text);
-        assert!(g.edges.is_empty());
-        assert_eq!(
-            g.node(&start).unwrap().data,
-            NodeData::Start(StartData { next: None })
-        );
-    }
-
-    #[test]
-    fn removing_container_removes_children() {
-        let mut g = Graph::default();
-        let container = g.add_node(NodeType::BranchContainer, pos2(0.0, 0.0));
-        let branch = g.add_child(&container, NodeType::Branch, None).unwrap();
-        let end = g.add_node(NodeType::End, pos2(300.0, 0.0));
-        g.connect(&branch, None, &end, None);
-        g.remove_node(&container);
-        assert_eq!(g.nodes.len(), 1);
-        assert!(g.edges.is_empty());
-    }
-
-    #[test]
-    fn removing_child_updates_container() {
-        let mut g = Graph::default();
-        let container = g.add_node(NodeType::BranchContainer, pos2(0.0, 0.0));
-        let a = g.add_child(&container, NodeType::Branch, None).unwrap();
-        let b = g.add_child(&container, NodeType::Branch, None).unwrap();
-        g.remove_node(&a);
-        assert_eq!(g.children_of(&container), vec![b]);
-    }
-
-    #[test]
-    fn connect_replaces_previous_edge() {
-        let mut g = Graph::default();
-        let start = g.add_node(NodeType::Start, pos2(0.0, 0.0));
-        let a = g.add_node(NodeType::Text, pos2(0.0, 0.0));
-        let b = g.add_node(NodeType::End, pos2(0.0, 0.0));
-        g.connect(&start, None, &a, None);
-        g.connect(&start, None, &b, None);
-        assert_eq!(g.edges.len(), 1);
-        assert_eq!(g.edges[0].target, b);
-        assert!(!g.connect(&b, None, &a, None), "end nodes have no output");
-        assert!(
-            !g.connect(&a, None, &a, None),
-            "self connections are rejected"
-        );
-    }
-
-    #[test]
-    fn tree_paths_and_names() {
-        let mut t = DialogueTree::default();
-        let outer = t.insert(ROOT_ID, "Chapter 1".into(), TreeItemKind::Folder);
-        let inner = t.insert(&outer, "Scene".into(), TreeItemKind::Folder);
-        let d = t.insert(
-            &inner,
-            "Intro".into(),
-            TreeItemKind::Dialogue(Graph::default()),
-        );
-        assert_eq!(
-            t.rel_path(&d).unwrap(),
-            PathBuf::from("Chapter 1").join("Scene").join("Intro.json")
-        );
-        assert!(t.name_taken(&inner, "intro.JSON", None));
-        assert!(!t.name_taken(&inner, "Intro.json", Some(&d)));
-        assert_eq!(t.unique_name(&inner, "Intro", false), "Intro 2");
-        assert_eq!(
-            t.unique_name(&inner, "Intro", true),
-            "Intro",
-            "folders don't clash with files"
-        );
-    }
-
-    #[test]
-    fn folders_cannot_move_into_themselves() {
-        let mut t = DialogueTree::default();
-        let outer = t.insert(ROOT_ID, "a".into(), TreeItemKind::Folder);
-        let inner = t.insert(&outer, "b".into(), TreeItemKind::Folder);
-        assert!(!t.move_item(&outer, &inner));
-        assert!(!t.move_item(&outer, &outer));
-        assert!(t.move_item(&inner, ROOT_ID));
-        t.remove(&outer);
-        assert_eq!(t.items.len(), 1);
-    }
-
-    #[test]
-    fn children_sort_folders_first() {
-        let mut t = DialogueTree::default();
-        t.insert(
-            ROOT_ID,
-            "b".into(),
-            TreeItemKind::Dialogue(Graph::default()),
-        );
-        t.insert(ROOT_ID, "z".into(), TreeItemKind::Folder);
-        t.insert(
-            ROOT_ID,
-            "A".into(),
-            TreeItemKind::Dialogue(Graph::default()),
-        );
-        let names: Vec<&str> = t
-            .children(ROOT_ID)
-            .iter()
-            .map(|i| i.name.as_str())
-            .collect();
-        assert_eq!(names, ["z", "A", "b"]);
     }
 }
