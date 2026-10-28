@@ -16,7 +16,7 @@ use eframe::egui::{self, FontData, FontDefinitions, FontFamily};
 
 fn main() -> eframe::Result {
     #[cfg(target_os = "linux")]
-    use_software_rendering_on_wsl();
+    configure_wsl_graphics();
 
     let icon = eframe::icon_data::from_png_bytes(include_bytes!("../assets/icon.png"))
         .expect("bundled icon is a valid PNG");
@@ -41,20 +41,35 @@ fn main() -> eframe::Result {
     )
 }
 
-/// WSLg's GPU path usually fails to create a surface, so fall back to Mesa's
-/// software renderer unless the user has configured Mesa themselves.
+/// Works around WSLg quirks:
+/// - Its GPU path usually fails to create a surface, so fall back to Mesa's
+///   software renderer unless the user has configured Mesa themselves.
+/// - Its Wayland compositor intermittently rejects new windows ("Connection
+///   reset by peer"), while XWayland is reliable, so use X11 when it's
+///   available. Set `DIALNODE_WAYLAND=1` to keep Wayland.
 #[cfg(target_os = "linux")]
-fn use_software_rendering_on_wsl() {
+fn configure_wsl_graphics() {
     let on_wsl = std::env::var_os("WSL_DISTRO_NAME").is_some()
         || std::fs::read_to_string("/proc/sys/kernel/osrelease")
             .is_ok_and(|release| release.to_lowercase().contains("microsoft"));
+    if !on_wsl {
+        return;
+    }
     let mesa_configured = std::env::vars_os().any(|(key, _)| {
         let key = key.to_string_lossy();
         key.starts_with("MESA_") || key == "LIBGL_ALWAYS_SOFTWARE" || key == "GALLIUM_DRIVER"
     });
-    if on_wsl && !mesa_configured {
-        // SAFETY: called at the top of main, before any other threads exist.
-        unsafe { std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "1") };
+    let use_x11 =
+        std::env::var_os("DISPLAY").is_some() && std::env::var_os("DIALNODE_WAYLAND").is_none();
+
+    // SAFETY: called at the top of main, before any other threads exist.
+    unsafe {
+        if !mesa_configured {
+            std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "1");
+        }
+        if use_x11 {
+            std::env::remove_var("WAYLAND_DISPLAY");
+        }
     }
 }
 

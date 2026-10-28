@@ -139,11 +139,10 @@ The release binary is written to `target/release/dialnode`.
 
 ### WSL
 
-On WSL the app switches to Mesa's software renderer automatically, unless you've set Mesa variables yourself. WSLg's Wayland compositor can fail to accept new windows (`NoCompositor` or `Connection reset by peer`). If that happens, run the app through X11 instead:
+On WSL the app adjusts two graphics settings automatically:
 
-```bash
-env -u WAYLAND_DISPLAY cargo run
-```
+- It uses Mesa's software renderer, unless you've set Mesa variables yourself.
+- It opens its window through X11 rather than Wayland, because WSLg's Wayland compositor often refuses new windows (`NoCompositor` or `Connection reset by peer`). To use Wayland anyway, run with `DIALNODE_WAYLAND=1`.
 
 ### Debug helpers
 
