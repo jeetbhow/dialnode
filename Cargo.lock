@@ -732,6 +732,7 @@ dependencies = [
  "eframe",
  "image",
  "rfd",
+ "serde",
  "serde_json",
  "trash",
  "uuid",

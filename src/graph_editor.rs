@@ -265,6 +265,7 @@ impl GraphView {
         let response = ui.allocate_rect(canvas, Sense::click_and_drag());
         self.navigate(ui, canvas, &response);
 
+        // Each edge is known by its source node, which has only one.
         let mut edge_paths: Vec<(String, [Pos2; 4])> = Vec::new();
         let mut canvas_ui = ui.new_child(UiBuilder::new().max_rect(canvas));
         canvas_ui.set_clip_rect(canvas.intersect(ui.clip_rect()));
@@ -284,8 +285,8 @@ impl GraphView {
                 .interact_pointer_pos()
                 .and_then(|p| nearest_edge(&edge_paths, p, 6.0));
             match hit {
-                Some(edge_id) => {
-                    graph.disconnect(&edge_id);
+                Some(source) => {
+                    graph.disconnect(&source);
                     out.changed = true;
                 }
                 None => self.selected = None,
@@ -427,20 +428,20 @@ impl GraphView {
 
         let arrow = ARROW_SIZE * xf.zoom;
         let mut shapes = Vec::new();
-        for edge in &graph.edges {
-            let find = |node: &str, handle: &Option<String>, source: bool| {
+        for (source, link) in graph.edges() {
+            let find = |node: &str, handle: &Option<String>, is_source: bool| {
                 handles
                     .iter()
-                    .find(|h| h.node == node && h.is_source == source && &h.id == handle)
+                    .find(|h| h.node == node && h.is_source == is_source && &h.id == handle)
                     .or_else(|| {
                         handles
                             .iter()
-                            .find(|h| h.node == node && h.is_source == source)
+                            .find(|h| h.node == node && h.is_source == is_source)
                     })
             };
             let (Some(src), Some(tgt)) = (
-                find(&edge.source, &edge.source_handle, true),
-                find(&edge.target, &edge.target_handle, false),
+                find(source, &link.source_handle, true),
+                find(&link.target, &link.target_handle, false),
             ) else {
                 continue;
             };
@@ -448,7 +449,7 @@ impl GraphView {
             let points = bezier(src.pos, src.side, tgt.pos, tgt.side).map(|p| xf.to_screen(p));
             let hovered = self.connecting.is_none()
                 && hover.is_some_and(|p| distance_to_curve(&points, p) <= 6.0);
-            let attached = moves_with_drag(&edge.source) || moves_with_drag(&edge.target);
+            let attached = moves_with_drag(source) || moves_with_drag(&link.target);
             let (color, width) = if attached || hovered {
                 (theme::EDGE_HOVER, 2.5)
             } else if dragged.is_some() {
@@ -465,7 +466,7 @@ impl GraphView {
                 (width * xf.zoom).max(1.0),
                 0.0,
             );
-            edge_paths.push((edge.id.clone(), points));
+            edge_paths.push((source.to_string(), points));
         }
         ui.painter().set(edge_layer, Shape::Vec(shapes));
 
@@ -799,10 +800,8 @@ impl GraphView {
         let defs = handle_defs(node_type);
         // A text node only offers the source handle it's already using.
         let used_source = graph
-            .edges
-            .iter()
-            .find(|e| e.source == id)
-            .and_then(|e| e.source_handle.clone())
+            .edge_from(id)
+            .and_then(|l| l.source_handle.clone())
             .filter(|h| defs.iter().any(|d| d.is_source && d.id == Some(h.as_str())));
 
         for def in defs {
@@ -840,11 +839,11 @@ impl GraphView {
             // or the first of that kind when it names none that exist.
             let first_of_kind = defs.iter().find(|d| d.is_source == def.is_source);
             let is_first = first_of_kind.is_some_and(|d| std::ptr::eq(d, def));
-            let linked = graph.edges.iter().any(|e| {
+            let linked = graph.edges().any(|(source, link)| {
                 let (node, named) = if def.is_source {
-                    (&e.source, e.source_handle.as_deref())
+                    (source, link.source_handle.as_deref())
                 } else {
-                    (&e.target, e.target_handle.as_deref())
+                    (link.target.as_str(), link.target_handle.as_deref())
                 };
                 node == id
                     && (named == def.id
@@ -1026,7 +1025,7 @@ impl GraphView {
                 return Some(Placement { pos, link: None });
             }
         };
-        let has_link = graph.edges.iter().any(|e| e.source == selected);
+        let has_link = graph.edge_from(selected).is_some();
         let link = (!has_link).then(|| Link {
             source: selected.to_string(),
             source_handle,

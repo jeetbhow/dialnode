@@ -23,45 +23,31 @@ pub enum NodeType {
 }
 
 impl NodeType {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            NodeType::Start => "start",
-            NodeType::End => "end",
-            NodeType::Text => "text",
-            NodeType::BranchContainer => "branchContainer",
-            NodeType::Branch => "branch",
-            NodeType::SkillCheck => "skillCheck",
-        }
-    }
-
-    pub fn parse(s: &str) -> Option<Self> {
-        Some(match s {
-            "start" => NodeType::Start,
-            "end" => NodeType::End,
-            "text" => NodeType::Text,
-            "branchContainer" => NodeType::BranchContainer,
-            "branch" => NodeType::Branch,
-            "skillCheck" => NodeType::SkillCheck,
-            _ => return None,
-        })
-    }
-
     /// Branch and skill check nodes live inside a branch container.
     pub fn is_child(self) -> bool {
         matches!(self, NodeType::Branch | NodeType::SkillCheck)
     }
 }
 
+/// A node's single outgoing connection, and which handles it's drawn
+/// between. The target may be missing, in which case it isn't drawn.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Link {
+    pub target: String,
+    pub source_handle: Option<String>,
+    pub target_handle: Option<String>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartData {
-    pub next: Option<String>,
+    pub next: Option<Link>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextData {
     pub speaker: Option<String>,
     pub text: String,
-    pub next: Option<String>,
+    pub next: Option<Link>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -72,7 +58,7 @@ pub struct BranchContainerData {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BranchData {
     pub text: String,
-    pub next: Option<String>,
+    pub next: Option<Link>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -81,7 +67,7 @@ pub struct SkillCheckData {
     /// Skill name.
     pub skill: Option<String>,
     pub difficulty: i64,
-    pub next: Option<String>,
+    pub next: Option<Link>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -120,19 +106,19 @@ impl NodeData {
         }
     }
 
-    pub fn next(&self) -> Option<&str> {
+    pub fn next(&self) -> Option<&Link> {
         match self {
-            NodeData::Start(d) => d.next.as_deref(),
-            NodeData::Text(d) => d.next.as_deref(),
-            NodeData::Branch(d) => d.next.as_deref(),
-            NodeData::SkillCheck(d) => d.next.as_deref(),
+            NodeData::Start(d) => d.next.as_ref(),
+            NodeData::Text(d) => d.next.as_ref(),
+            NodeData::Branch(d) => d.next.as_ref(),
+            NodeData::SkillCheck(d) => d.next.as_ref(),
             NodeData::End | NodeData::BranchContainer(_) => None,
         }
     }
 
     /// The `next` pointer of a connectable node, or `None` for nodes that
     /// cannot be a connection source.
-    fn next_mut(&mut self) -> Option<&mut Option<String>> {
+    fn next_mut(&mut self) -> Option<&mut Option<Link>> {
         match self {
             NodeData::Start(d) => Some(&mut d.next),
             NodeData::Text(d) => Some(&mut d.next),
@@ -160,24 +146,27 @@ impl GraphNode {
     }
 }
 
-/// A drawn connection. The source node's `next` is the source of truth; the
-/// edge also remembers which handles it uses.
-#[derive(Clone, Debug, PartialEq)]
-pub struct Edge {
-    pub id: String,
-    pub source: String,
-    pub target: String,
-    pub source_handle: Option<String>,
-    pub target_handle: Option<String>,
-}
-
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Graph {
     pub nodes: Vec<GraphNode>,
-    pub edges: Vec<Edge>,
 }
 
 impl Graph {
+    /// The connections to draw, as `(source id, link)`: every link whose
+    /// target exists.
+    pub fn edges(&self) -> impl Iterator<Item = (&str, &Link)> {
+        self.nodes.iter().filter_map(|n| {
+            let link = n.data.next()?;
+            self.node(&link.target).map(|_| (n.id.as_str(), link))
+        })
+    }
+
+    /// The node's link, if it's drawn.
+    pub fn edge_from(&self, source: &str) -> Option<&Link> {
+        let link = self.node(source)?.data.next()?;
+        self.node(&link.target).map(|_| link)
+    }
+
     pub fn node(&self, id: &str) -> Option<&GraphNode> {
         self.nodes.iter().find(|n| n.id == id)
     }
@@ -275,8 +264,7 @@ impl Graph {
         }
     }
 
-    /// Removes a node together with its children, every edge touching it, and
-    /// any `next` pointers that referenced it.
+    /// Removes a node together with its children and any links to them.
     pub fn remove_node(&mut self, id: &str) {
         let mut removed = vec![id.to_string()];
         removed.extend(self.children_of(id));
@@ -290,19 +278,17 @@ impl Graph {
         }
 
         self.nodes.retain(|n| !removed.contains(&n.id));
-        self.edges
-            .retain(|e| !removed.contains(&e.source) && !removed.contains(&e.target));
         for node in &mut self.nodes {
             if let Some(next) = node.data.next_mut()
-                && next.as_ref().is_some_and(|n| removed.contains(n))
+                && next.as_ref().is_some_and(|l| removed.contains(&l.target))
             {
                 *next = None;
             }
         }
     }
 
-    /// Connects `source` to `target`, replacing the source's previous
-    /// outgoing edge since every node has a single `next`.
+    /// Connects `source` to `target`, replacing the source's previous link
+    /// since every node has a single `next`.
     pub fn connect(
         &mut self,
         source: &str,
@@ -316,12 +302,7 @@ impl Graph {
         let Some(next) = self.node_mut(source).and_then(|n| n.data.next_mut()) else {
             return false;
         };
-        *next = Some(target.to_string());
-
-        self.edges.retain(|e| e.source != source);
-        self.edges.push(Edge {
-            id: new_id(),
-            source: source.to_string(),
+        *next = Some(Link {
             target: target.to_string(),
             source_handle,
             target_handle,
@@ -329,12 +310,9 @@ impl Graph {
         true
     }
 
-    pub fn disconnect(&mut self, edge_id: &str) {
-        let Some(index) = self.edges.iter().position(|e| e.id == edge_id) else {
-            return;
-        };
-        let edge = self.edges.remove(index);
-        if let Some(next) = self.node_mut(&edge.source).and_then(|n| n.data.next_mut()) {
+    /// Removes `source`'s link.
+    pub fn disconnect(&mut self, source: &str) {
+        if let Some(next) = self.node_mut(source).and_then(|n| n.data.next_mut()) {
             *next = None;
         }
     }
@@ -514,5 +492,79 @@ impl DialogueTree {
         let mut out = Vec::new();
         visit(self, ROOT_ID, &mut out);
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn target(graph: &Graph, source: &str) -> Option<String> {
+        graph.edge_from(source).map(|l| l.target.clone())
+    }
+
+    #[test]
+    fn connect_replaces_the_previous_link() {
+        let mut graph = Graph::default();
+        let start = graph.add_node(NodeType::Start, Pos2::ZERO);
+        let a = graph.add_node(NodeType::Text, Pos2::ZERO);
+        let b = graph.add_node(NodeType::Text, Pos2::ZERO);
+        assert!(graph.connect(&start, None, &a, Some("left-target".into())));
+        assert!(graph.connect(&start, None, &b, None));
+        assert_eq!(target(&graph, &start), Some(b.clone()));
+        assert_eq!(graph.edges().count(), 1);
+        assert_eq!(graph.edge_from(&start).unwrap().target_handle, None);
+    }
+
+    #[test]
+    fn connect_refuses_self_links_and_nodes_without_next() {
+        let mut graph = Graph::default();
+        let a = graph.add_node(NodeType::Text, Pos2::ZERO);
+        let end = graph.add_node(NodeType::End, Pos2::ZERO);
+        assert!(!graph.connect(&a, None, &a, None));
+        assert!(!graph.connect(&end, None, &a, None));
+        assert!(!graph.connect(&a, None, "missing", None));
+        assert_eq!(graph.edges().count(), 0);
+    }
+
+    #[test]
+    fn disconnect_clears_the_link() {
+        let mut graph = Graph::default();
+        let a = graph.add_node(NodeType::Text, Pos2::ZERO);
+        let end = graph.add_node(NodeType::End, Pos2::ZERO);
+        graph.connect(&a, None, &end, None);
+        graph.disconnect(&a);
+        assert_eq!(graph.node(&a).unwrap().data.next(), None);
+    }
+
+    #[test]
+    fn removing_a_container_removes_its_children_and_links_to_them() {
+        let mut graph = Graph::default();
+        let a = graph.add_node(NodeType::Text, Pos2::ZERO);
+        let container = graph.add_node(NodeType::BranchContainer, Pos2::ZERO);
+        let branch = graph.add_child(&container, NodeType::Branch).unwrap();
+        let end = graph.add_node(NodeType::End, Pos2::ZERO);
+        graph.connect(&a, None, &container, None);
+        graph.connect(&branch, None, &end, None);
+
+        graph.remove_node(&container);
+        assert!(graph.node(&branch).is_none());
+        assert_eq!(graph.node(&a).unwrap().data.next(), None);
+        assert_eq!(graph.edges().count(), 0);
+    }
+
+    #[test]
+    fn removing_a_child_takes_it_out_of_the_branch_list() {
+        let mut graph = Graph::default();
+        let container = graph.add_node(NodeType::BranchContainer, Pos2::ZERO);
+        let first = graph.add_child(&container, NodeType::Branch).unwrap();
+        let second = graph.add_child(&container, NodeType::SkillCheck).unwrap();
+        assert!(graph.move_child(&second, 0));
+        assert_eq!(
+            graph.children_of(&container),
+            [second.clone(), first.clone()]
+        );
+        graph.remove_node(&second);
+        assert_eq!(graph.children_of(&container), [first]);
     }
 }

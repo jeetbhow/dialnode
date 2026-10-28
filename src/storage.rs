@@ -14,191 +14,227 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
 use eframe::egui::pos2;
-use serde_json::{Map, Value, json};
+use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    BranchContainerData, BranchData, DialogueTree, Edge, Graph, GraphNode, NodeData, NodeType,
-    ROOT_ID, SkillCheckData, StartData, TextData, TreeItemKind, new_id,
+    BranchContainerData, BranchData, DialogueTree, Graph, GraphNode, Link, NodeData, ROOT_ID,
+    SkillCheckData, StartData, TextData, TreeItemKind,
 };
 
 const DIALOGUE_EXTENSION: &str = "json";
 /// Spacing for nodes in files that don't say where they go.
 const AUTO_LAYOUT_STEP: f32 = 320.0;
 
-/// Builds a dialogue's JSON, including editor layout.
-fn dialogue_json(graph: &Graph) -> Value {
-    let nodes = graph
-        .nodes
-        .iter()
-        .map(|node| {
-            let mut obj = Map::new();
-            obj.insert("id".into(), json!(node.id));
-            obj.insert("type".into(), json!(node.node_type().as_str()));
-            match &node.data {
-                NodeData::Start(d) => {
-                    obj.insert("next".into(), json!(d.next));
-                }
-                NodeData::End => {}
-                NodeData::Text(d) => {
-                    obj.insert("text".into(), json!(d.text));
-                    if let Some(speaker) = &d.speaker {
-                        obj.insert("speaker".into(), json!(speaker));
-                    }
-                    obj.insert("next".into(), json!(d.next));
-                }
-                NodeData::BranchContainer(d) => {
-                    obj.insert("branches".into(), json!(d.branches));
-                }
-                NodeData::Branch(d) => {
-                    obj.insert("parentId".into(), json!(node.parent_id));
-                    obj.insert("text".into(), json!(d.text));
-                    obj.insert("next".into(), json!(d.next));
-                }
-                NodeData::SkillCheck(d) => {
-                    obj.insert("parentId".into(), json!(node.parent_id));
-                    obj.insert("text".into(), json!(d.text));
-                    obj.insert("skill".into(), json!(d.skill));
-                    obj.insert("difficulty".into(), json!(d.difficulty));
-                    obj.insert("next".into(), json!(d.next));
-                }
-            }
-            let layout = node_layout(graph, node);
-            if !layout.is_empty() {
-                obj.insert("layout".into(), Value::Object(layout));
-            }
-            Value::Object(obj)
-        })
-        .collect();
-    Value::Array(nodes)
+/// One node as it's written in a dialogue file.
+#[derive(Serialize, Deserialize)]
+struct NodeRecord {
+    id: String,
+    #[serde(flatten)]
+    body: NodeBody,
+    #[serde(default, skip_serializing_if = "Layout::is_empty")]
+    layout: Layout,
 }
 
-fn node_layout(graph: &Graph, node: &GraphNode) -> Map<String, Value> {
-    let mut layout = Map::new();
+/// A node's `type` and the fields that go with it. Missing fields get their
+/// defaults, so hand-written files can leave them out.
+#[derive(Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+enum NodeBody {
+    Start {
+        next: Option<String>,
+    },
+    End,
+    Text {
+        #[serde(default)]
+        text: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        speaker: Option<String>,
+        next: Option<String>,
+    },
+    BranchContainer {
+        #[serde(default)]
+        branches: Vec<String>,
+    },
+    Branch {
+        parent_id: Option<String>,
+        #[serde(default)]
+        text: String,
+        next: Option<String>,
+    },
+    SkillCheck {
+        parent_id: Option<String>,
+        #[serde(default)]
+        text: String,
+        skill: Option<String>,
+        #[serde(default = "default_difficulty")]
+        difficulty: i64,
+        next: Option<String>,
+    },
+}
+
+fn default_difficulty() -> i64 {
+    1
+}
+
+/// Editor-only data: where the node sits and which handles its link uses.
+#[derive(Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Layout {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    x: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    y: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    width: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    height: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_handle: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    target_handle: Option<String>,
+}
+
+impl Layout {
+    fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+}
+
+fn to_record(node: &GraphNode) -> NodeRecord {
+    let link = node.data.next();
+    let next = link.map(|l| l.target.clone());
+    let parent_id = node.parent_id.clone();
+    let body = match &node.data {
+        NodeData::Start(_) => NodeBody::Start { next },
+        NodeData::End => NodeBody::End,
+        NodeData::Text(d) => NodeBody::Text {
+            text: d.text.clone(),
+            speaker: d.speaker.clone(),
+            next,
+        },
+        NodeData::BranchContainer(d) => NodeBody::BranchContainer {
+            branches: d.branches.clone(),
+        },
+        NodeData::Branch(d) => NodeBody::Branch {
+            parent_id,
+            text: d.text.clone(),
+            next,
+        },
+        NodeData::SkillCheck(d) => NodeBody::SkillCheck {
+            parent_id,
+            text: d.text.clone(),
+            skill: d.skill.clone(),
+            difficulty: d.difficulty,
+            next,
+        },
+    };
     // Children are positioned by their container, so only top-level nodes
     // record a position.
-    if node.parent_id.is_none() {
-        layout.insert("x".into(), json!(node.position.x));
-        layout.insert("y".into(), json!(node.position.y));
-        if let Some(w) = node.width {
-            layout.insert("width".into(), json!(w));
-        }
-        if let Some(h) = node.height {
-            layout.insert("height".into(), json!(h));
-        }
-    }
-    if let Some(edge) = graph.edges.iter().find(|e| e.source == node.id) {
-        if let Some(h) = &edge.source_handle {
-            layout.insert("sourceHandle".into(), json!(h));
-        }
-        if let Some(h) = &edge.target_handle {
-            layout.insert("targetHandle".into(), json!(h));
-        }
-    }
-    layout
-}
-
-pub fn parse_dialogue(text: &str) -> Result<Graph> {
-    let value: Value = serde_json::from_str(text).context("not valid JSON")?;
-    let Value::Array(items) = value else {
-        bail!("expected a list of nodes");
+    let top_level = node.parent_id.is_none();
+    let layout = Layout {
+        x: top_level.then_some(node.position.x),
+        y: top_level.then_some(node.position.y),
+        width: node.width.filter(|_| top_level),
+        height: node.height.filter(|_| top_level),
+        source_handle: link.and_then(|l| l.source_handle.clone()),
+        target_handle: link.and_then(|l| l.target_handle.clone()),
     };
-
-    let mut graph = Graph::default();
-    let mut handles = Vec::new();
-    for (index, item) in items.iter().enumerate() {
-        let obj = item
-            .as_object()
-            .with_context(|| format!("node {index} is not an object"))?;
-        let id = str_field(obj, "id").with_context(|| format!("node {index} has no id"))?;
-        let kind = str_field(obj, "type").unwrap_or_default();
-        let node_type = NodeType::parse(&kind)
-            .with_context(|| format!("node {id} has unknown type {kind:?}"))?;
-
-        let next = str_field(obj, "next");
-        let text = str_field(obj, "text").unwrap_or_default();
-        let data = match node_type {
-            NodeType::Start => NodeData::Start(StartData { next }),
-            NodeType::End => NodeData::End,
-            NodeType::Text => NodeData::Text(TextData {
-                speaker: str_field(obj, "speaker"),
-                text,
-                next,
-            }),
-            NodeType::BranchContainer => NodeData::BranchContainer(BranchContainerData {
-                branches: obj
-                    .get("branches")
-                    .and_then(Value::as_array)
-                    .map(|a| {
-                        a.iter()
-                            .filter_map(|b| b.as_str().map(String::from))
-                            .collect()
-                    })
-                    .unwrap_or_default(),
-            }),
-            NodeType::Branch => NodeData::Branch(BranchData { text, next }),
-            NodeType::SkillCheck => NodeData::SkillCheck(SkillCheckData {
-                text,
-                skill: str_field(obj, "skill"),
-                difficulty: obj.get("difficulty").and_then(Value::as_i64).unwrap_or(1),
-                next,
-            }),
-        };
-
-        let layout = obj.get("layout").and_then(Value::as_object);
-        let num = |key: &str| {
-            layout
-                .and_then(|l| l.get(key))
-                .and_then(Value::as_f64)
-                .map(|v| v as f32)
-        };
-        let parent_id = str_field(obj, "parentId");
-        let fallback = if parent_id.is_some() {
-            pos2(0.0, 0.0)
-        } else {
-            pos2(index as f32 * AUTO_LAYOUT_STEP, 0.0)
-        };
-        handles.push((
-            id.clone(),
-            layout.and_then(|l| str_field(l, "sourceHandle")),
-            layout.and_then(|l| str_field(l, "targetHandle")),
-        ));
-        graph.nodes.push(GraphNode {
-            id,
-            parent_id,
-            position: pos2(
-                num("x").unwrap_or(fallback.x),
-                num("y").unwrap_or(fallback.y),
-            ),
-            width: num("width"),
-            height: num("height"),
-            data,
-        });
+    NodeRecord {
+        id: node.id.clone(),
+        body,
+        layout,
     }
-
-    // Edges are derived from `next`; dangling references just don't draw.
-    for (source, source_handle, target_handle) in handles {
-        let Some(target) = graph
-            .node(&source)
-            .and_then(|n| n.data.next())
-            .map(String::from)
-        else {
-            continue;
-        };
-        if graph.node(&target).is_some() {
-            graph.edges.push(Edge {
-                id: new_id(),
-                source,
-                target,
-                source_handle,
-                target_handle,
-            });
-        }
-    }
-    Ok(graph)
 }
 
-fn str_field(obj: &Map<String, Value>, key: &str) -> Option<String> {
-    obj.get(key).and_then(Value::as_str).map(String::from)
+/// `index` is the node's place in the file, used to spread out nodes that
+/// have no position.
+fn from_record(index: usize, record: NodeRecord) -> GraphNode {
+    let NodeRecord { id, body, layout } = record;
+    let link = |next: Option<String>| {
+        next.map(|target| Link {
+            target,
+            source_handle: layout.source_handle.clone(),
+            target_handle: layout.target_handle.clone(),
+        })
+    };
+    let (parent_id, data) = match body {
+        NodeBody::Start { next } => (None, NodeData::Start(StartData { next: link(next) })),
+        NodeBody::End => (None, NodeData::End),
+        NodeBody::Text {
+            text,
+            speaker,
+            next,
+        } => (
+            None,
+            NodeData::Text(TextData {
+                speaker,
+                text,
+                next: link(next),
+            }),
+        ),
+        NodeBody::BranchContainer { branches } => (
+            None,
+            NodeData::BranchContainer(BranchContainerData { branches }),
+        ),
+        NodeBody::Branch {
+            parent_id,
+            text,
+            next,
+        } => (
+            parent_id,
+            NodeData::Branch(BranchData {
+                text,
+                next: link(next),
+            }),
+        ),
+        NodeBody::SkillCheck {
+            parent_id,
+            text,
+            skill,
+            difficulty,
+            next,
+        } => (
+            parent_id,
+            NodeData::SkillCheck(SkillCheckData {
+                text,
+                skill,
+                difficulty,
+                next: link(next),
+            }),
+        ),
+    };
+    let fallback = if parent_id.is_some() {
+        pos2(0.0, 0.0)
+    } else {
+        pos2(index as f32 * AUTO_LAYOUT_STEP, 0.0)
+    };
+    GraphNode {
+        id,
+        parent_id,
+        position: pos2(
+            layout.x.unwrap_or(fallback.x),
+            layout.y.unwrap_or(fallback.y),
+        ),
+        width: layout.width,
+        height: layout.height,
+        data,
+    }
+}
+
+/// Reads a dialogue file. Links to nodes that don't exist are kept, and just
+/// don't draw.
+pub fn parse_dialogue(text: &str) -> Result<Graph> {
+    let records: Vec<NodeRecord> = serde_json::from_str(text)?;
+    let nodes = records
+        .into_iter()
+        .enumerate()
+        .map(|(index, record)| from_record(index, record))
+        .collect();
+    Ok(Graph { nodes })
 }
 
 /// Writes through a temporary file so a crash can't leave a half-written
@@ -209,10 +245,15 @@ fn write_atomic(path: &Path, contents: &str) -> Result<()> {
     fs::rename(&tmp, path).with_context(|| format!("failed to write {}", path.display()))
 }
 
-pub fn write_dialogue(path: &Path, graph: &Graph) -> Result<()> {
-    let mut text = serde_json::to_string_pretty(&dialogue_json(graph))?;
+fn dialogue_text(graph: &Graph) -> Result<String> {
+    let records: Vec<NodeRecord> = graph.nodes.iter().map(to_record).collect();
+    let mut text = serde_json::to_string_pretty(&records)?;
     text.push('\n');
-    write_atomic(path, &text)
+    Ok(text)
+}
+
+pub fn write_dialogue(path: &Path, graph: &Graph) -> Result<()> {
+    write_atomic(path, &dialogue_text(graph)?)
 }
 
 /// Reads the folder/dialogue tree under `root`. Hidden entries are skipped.
@@ -327,4 +368,165 @@ pub fn trash(path: &Path) -> Result<()> {
 
 pub fn path_of(root: &Path, tree: &DialogueTree, id: &str) -> Option<PathBuf> {
     tree.rel_path(id).map(|rel| root.join(rel))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every node type, with layouts and handles, in the exact form
+    /// `write_dialogue` produces.
+    const FULL: &str = r#"[
+  {
+    "id": "start",
+    "type": "start",
+    "next": "line",
+    "layout": {
+      "x": 0.0,
+      "y": 0.0,
+      "targetHandle": "top-target"
+    }
+  },
+  {
+    "id": "line",
+    "type": "text",
+    "text": "What's your favourite colour?",
+    "speaker": "Jeet",
+    "next": "choice",
+    "layout": {
+      "x": 300.0,
+      "y": -20.5,
+      "sourceHandle": "bottom-source"
+    }
+  },
+  {
+    "id": "choice",
+    "type": "branchContainer",
+    "branches": [
+      "blue",
+      "check"
+    ],
+    "layout": {
+      "x": 700.0,
+      "y": 0.0,
+      "width": 260.0,
+      "height": 300.0
+    }
+  },
+  {
+    "id": "blue",
+    "type": "branch",
+    "parentId": "choice",
+    "text": "Blue",
+    "next": "end"
+  },
+  {
+    "id": "check",
+    "type": "skillCheck",
+    "parentId": "choice",
+    "text": "Red",
+    "skill": null,
+    "difficulty": 12,
+    "next": "end"
+  },
+  {
+    "id": "aside",
+    "type": "text",
+    "text": "",
+    "next": null,
+    "layout": {
+      "x": 0.0,
+      "y": 400.0
+    }
+  },
+  {
+    "id": "end",
+    "type": "end",
+    "layout": {
+      "x": 1100.0,
+      "y": 0.0
+    }
+  }
+]
+"#;
+
+    fn targets(graph: &Graph) -> Vec<(String, String)> {
+        let mut links: Vec<(String, String)> = graph
+            .edges()
+            .map(|(source, link)| (source.to_string(), link.target.clone()))
+            .collect();
+        links.sort();
+        links
+    }
+
+    #[test]
+    fn round_trip_is_byte_identical() {
+        let graph = parse_dialogue(FULL).unwrap();
+        assert_eq!(dialogue_text(&graph).unwrap(), FULL);
+    }
+
+    #[test]
+    fn parses_fields_and_links() {
+        let graph = parse_dialogue(FULL).unwrap();
+        let line = graph.node("line").unwrap();
+        assert_eq!(line.position, pos2(300.0, -20.5));
+        let NodeData::Text(d) = &line.data else {
+            panic!("line is a text node");
+        };
+        assert_eq!(d.speaker.as_deref(), Some("Jeet"));
+        let choice = graph.node("choice").unwrap();
+        assert_eq!((choice.width, choice.height), (Some(260.0), Some(300.0)));
+        assert_eq!(graph.children_of("choice"), ["blue", "check"]);
+        assert_eq!(
+            targets(&graph),
+            [
+                ("blue".into(), "end".into()),
+                ("check".into(), "end".into()),
+                ("line".into(), "choice".into()),
+                ("start".into(), "line".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn fills_in_missing_fields() {
+        let graph = parse_dialogue(
+            r#"[
+                {"id": "a", "type": "text"},
+                {"id": "b", "type": "skillCheck", "parentId": "c"},
+                {"id": "c", "type": "branchContainer"}
+            ]"#,
+        )
+        .unwrap();
+        let a = graph.node("a").unwrap();
+        assert_eq!(a.data, NodeData::Text(TextData::default()));
+        assert_eq!(a.position, pos2(0.0, 0.0));
+        let NodeData::SkillCheck(b) = &graph.node("b").unwrap().data else {
+            panic!("b is a skill check");
+        };
+        assert_eq!(b.difficulty, 1);
+        // Files without a layout get their top-level nodes spread out.
+        assert_eq!(
+            graph.node("c").unwrap().position,
+            pos2(2.0 * AUTO_LAYOUT_STEP, 0.0)
+        );
+        assert_eq!(graph.children_of("c"), ["b"]);
+    }
+
+    #[test]
+    fn keeps_dangling_links_without_drawing_them() {
+        let text = r#"[{"id": "a", "type": "start", "next": "gone"}]"#;
+        let graph = parse_dialogue(text).unwrap();
+        assert!(targets(&graph).is_empty());
+        assert!(dialogue_text(&graph).unwrap().contains(r#""next": "gone""#));
+    }
+
+    #[test]
+    fn rejects_invalid_files() {
+        assert!(parse_dialogue("not json").is_err());
+        assert!(parse_dialogue(r#"{"id": "a"}"#).is_err());
+        assert!(parse_dialogue(r#"[{"type": "end"}]"#).is_err());
+        assert!(parse_dialogue(r#"[{"id": "a", "type": "nope"}]"#).is_err());
+        assert!(parse_dialogue(r#"[{"id": "a"}]"#).is_err());
+    }
 }

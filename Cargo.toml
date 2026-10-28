@@ -11,6 +11,7 @@ anyhow = "1.0.104"
 eframe = "0.37"
 image = { version = "0.25.10", default-features = false, features = ["png"] }
 rfd = "0.17.2"
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0.154", features = ["preserve_order"] }
 trash = "5.2.9"
 uuid = { version = "1.29.0", features = ["v4"] }
