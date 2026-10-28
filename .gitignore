@@ -1,8 +1,4 @@
-node_modules
-dist
-build
-out
+/target
 .DS_Store
-.eslintcache
 *.log*
 *.sqlite

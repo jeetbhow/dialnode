@@ -10,7 +10,7 @@
 </p>
 
 
-**Note: This repo is deprecated. I'm currently in the process of migrating this to Tauri, which offers superior memory efficiency, performance, and binary size.**
+**Note: Dialnode is now a native Rust app built with [egui](https://github.com/emilk/egui). It replaces the earlier Electron + Svelte version and reads repositories created by it.**
 
 ## What problem does this solve?
 
@@ -92,46 +92,48 @@ When parsing this file in your game, you should use the `type` property to imple
 - Export to JSON for use in a game engine (portraits only work with Godot for now)
 
 
+## Using the editor
+- **Canvas:** drag the background to pan and scroll to zoom. Drag a node to move it, and click a node then press <kbd>Delete</kbd> to remove it.
+- **Connecting nodes:** drag from a blue (source) handle to a red (target) handle. Click an edge to remove it.
+- **Adding nodes:** use the toolbar at the top of the canvas, or right-click the background to add a node at that spot.
+- **Sidebar:** drag dialogues and folders onto a folder to move them. Double-click an item, or right-click it, to rename it.
+- **Saving:** <kbd>Ctrl</kbd>+<kbd>S</kbd> (or File → Save) writes your dialogues to the repository. Speakers, portraits, and skills are saved as soon as you add them.
+
 ## Technologies Used
-- [Svelte](https://svelte.dev/) – UI framework
-- [Electron](https://www.electronjs.org/) – For building cross-platform desktop apps
-- [Node.js](https://nodejs.org/) – Runtime environment
-- [TypeScript](https://www.typescriptlang.org/) – Type-safe code
-- [SQLite](https://www.sqlite.org/) – Database
+- [Rust](https://www.rust-lang.org/)
+- [egui / eframe](https://github.com/emilk/egui) – immediate-mode UI
+- [SQLite](https://www.sqlite.org/) via [rusqlite](https://github.com/rusqlite/rusqlite) – database (bundled, no system install needed)
+- [rfd](https://github.com/PolyMeilex/rfd) – native file dialogs
 
 ## Building the project
-This section is for users that want to build the project on their own. If you just want to use the app, you can download it from the [releases page](https://github.com/jeetbhow/dialnode/releases).
+This section is for users who want to build the project themselves. If you just want to use the app, you can download it from the [releases page](https://github.com/jeetbhow/dialnode/releases).
 
-### Recommended IDE Setup
-
-[VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode)
-
-### Project Setup
-
-#### Install
+Install a stable [Rust toolchain](https://rustup.rs/), then:
 
 ```bash
-npm install
+cargo run            # development build
+cargo test           # unit tests and headless UI tests
+cargo build --release
 ```
 
-#### Development
+The release binary is written to `target/release/dialnode`.
+
+### WSL
+
+On WSL the app switches to Mesa's software renderer automatically, unless you've set Mesa variables yourself. WSLg's Wayland compositor can fail to accept new windows (`NoCompositor` or `Connection reset by peer`). If that happens, run the app through X11 instead:
 
 ```bash
-npm run dev
+env -u WAYLAND_DISPLAY cargo run
 ```
 
-#### Build
+### Debug helpers
 
-```bash
-# For Windows
-npm run build:win
+Debug builds read two environment variables, which are handy for checking the UI without clicking through it:
 
-# For macOS
-npm run build:mac
+- `DIALNODE_OPEN=path/to/manifest.dial` opens a repository on startup.
+- `DIALNODE_SCREENSHOT=out.png` saves a screenshot after a moment and then quits.
 
-# For Linux
-npm run build:linux
-```
+`DIALNODE_SEED_DIR=/tmp cargo test seed_sample -- --ignored` writes a sample repository to `/tmp/sample`.
 
 ## License
 This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
