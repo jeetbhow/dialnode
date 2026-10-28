@@ -1,6 +1,7 @@
 //! The node-graph canvas: pan/zoom, node widgets, handles, and edges.
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use eframe::egui::{
     self, Align, Align2, Area, Color32, ComboBox, CornerRadius, DragValue, Frame, Id, Key, Layout,
@@ -136,6 +137,8 @@ enum NodeAction {
 pub struct GraphEnv<'a> {
     pub skills: &'a [Skill],
     pub textures: &'a mut TextureCache,
+    /// Where `res://` portrait paths resolve to.
+    pub godot_project: Option<&'a Path>,
     /// False while a modal is open, so Delete doesn't hit the canvas.
     pub keyboard: bool,
 }
@@ -507,10 +510,6 @@ impl GraphView {
                 continue;
             }
             let child_rect = self.node_ui(ui, graph, &child, child_origin, child_width, id, ctx);
-            if let Some(n) = graph.node_mut(&child) {
-                // Keep the stored position relative to the parent, as before.
-                n.position = (child_origin - origin).to_pos2();
-            }
             y = child_rect.bottom() + CHILD_GAP;
         }
 
@@ -685,7 +684,7 @@ impl GraphView {
                 out.changed = true;
             }
             NodeAction::AddSkillCheck => {
-                let Some(skill) = skills.first().cloned() else {
+                let Some(skill) = skills.first().map(|s| s.name.clone()) else {
                     out.events.push(GraphEvent::Error(
                         "Skill checks require at least 1 skill in the database.".into(),
                     ));
@@ -898,15 +897,16 @@ fn node_body(
             if fields.1 {
                 ui.horizontal(|ui| match &d.portrait {
                     Some(portrait) => {
-                        match env.textures.get(ui.ctx(), &portrait.id, &portrait.data_url) {
+                        match env.textures.get(ui.ctx(), env.godot_project, portrait) {
                             Some(texture) => {
                                 ui.add(
                                     egui::Image::new(&texture).fit_to_exact_size(Vec2::splat(50.0)),
                                 )
-                                .on_hover_text(&portrait.name);
+                                .on_hover_text(portrait);
                             }
                             None => {
-                                ui.label(&portrait.name);
+                                ui.label(portrait.rsplit('/').next().unwrap_or(portrait))
+                                    .on_hover_text(portrait);
                             }
                         }
                         if ui
@@ -933,7 +933,7 @@ fn node_body(
             if fields.0 {
                 ui.horizontal(|ui| match &d.speaker {
                     Some(speaker) => {
-                        ui.label(&speaker.name);
+                        ui.label(speaker);
                         if ui
                             .small_button("-")
                             .on_hover_text("Remove speaker")
@@ -989,19 +989,15 @@ fn node_body(
 
             ui.horizontal(|ui| {
                 let label = ui.label("Skill:");
-                let current = d
-                    .skill
-                    .as_ref()
-                    .map_or("(none)", |s| s.name.as_str())
-                    .to_string();
+                let current = d.skill.clone().unwrap_or_else(|| "(none)".into());
                 ComboBox::from_id_salt(("skill-check-skill", id))
                     .selected_text(current)
                     .show_ui(ui, |ui| {
                         for skill in env.skills {
-                            let is_current = d.skill.as_ref().is_some_and(|s| s.id == skill.id);
+                            let is_current = d.skill.as_deref() == Some(skill.name.as_str());
                             if ui.selectable_label(is_current, &skill.name).clicked() && !is_current
                             {
-                                d.skill = Some(skill.clone());
+                                d.skill = Some(skill.name.clone());
                                 *changed = true;
                             }
                         }
@@ -1162,6 +1158,7 @@ mod tests {
                         GraphEnv {
                             skills: &[],
                             textures: &mut s.textures,
+                            godot_project: None,
                             keyboard: true,
                         },
                     );

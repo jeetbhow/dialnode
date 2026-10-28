@@ -102,7 +102,7 @@ impl RepoScreen {
         row(
             ui,
             "Open a repository",
-            "Open an already existing local Dialnode repository.",
+            "Open an existing Dialnode repository folder.",
             true,
             |ui, _| {
                 open = ui.add(theme::secondary_button("Open")).clicked();
@@ -115,9 +115,8 @@ impl RepoScreen {
         }
         if open
             && let Some(path) = rfd::FileDialog::new()
-                .set_title("Open Repository")
-                .add_filter("Dialnode (.dial)", &["dial"])
-                .pick_file()
+                .set_title("Open Repository Folder")
+                .pick_folder()
         {
             return repository::open(&path).map(Some);
         }

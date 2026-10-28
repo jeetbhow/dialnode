@@ -1,6 +1,6 @@
 //! Debug-build helpers for checking the UI without clicking through it.
 //!
-//! - `DIALNODE_OPEN=<manifest.dial>` opens a repository on startup.
+//! - `DIALNODE_OPEN=<repository folder>` opens a repository on startup.
 //! - `DIALNODE_SCREENSHOT=<file.png>` saves a screenshot after a few frames,
 //!   then quits.
 

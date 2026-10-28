@@ -1,8 +1,8 @@
 //! The database window for portraits, speakers, and skills. It can also be
-//! opened by a text node asking for a speaker or portrait.
+//! opened by a text node asking for a speaker or portrait. Every change is
+//! written to `database.json` straight away.
 
 use std::collections::HashMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
@@ -11,11 +11,11 @@ use eframe::egui::{
     collapsing_header::CollapsingState, vec2,
 };
 
-use crate::db::Database;
 use crate::graph_editor::EntityRequestKind;
-use crate::images::{self, IMAGE_EXTENSIONS, TextureCache};
+use crate::images::{IMAGE_EXTENSIONS, TextureCache};
 use crate::model::{Entities, Portrait, Repository, Skill, SkillCategory, Speaker, new_id};
 use crate::repository;
+use crate::storage;
 use crate::theme;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -45,7 +45,6 @@ pub struct ModalOutput {
 
 struct PendingImage {
     path: PathBuf,
-    bytes: Vec<u8>,
     width: u32,
     height: u32,
 }
@@ -84,12 +83,13 @@ impl DatabaseModal {
     pub fn show(
         &mut self,
         ctx: &egui::Context,
-        db: &Database,
+        root: &Path,
         entities: &mut Entities,
         repo: &Repository,
         textures: &mut TextureCache,
     ) -> ModalOutput {
         let mut out = ModalOutput::default();
+        let before = entities.clone();
         let modal = Modal::new(Id::unique("database-modal")).show(ctx, |ui| {
             let size = (ctx.content_rect().size() * vec2(0.55, 0.65)).max(vec2(560.0, 420.0));
             ui.set_width(size.x);
@@ -147,14 +147,28 @@ impl DatabaseModal {
             }
 
             let result = match self.tab {
-                Tab::Portrait => self.portraits_tab(ui, db, entities, repo, textures, &mut out),
-                Tab::Speaker => self.speakers_tab(ui, db, entities, &mut out),
-                Tab::Skill => self.skills_tab(ui, db, entities),
+                Tab::Portrait => self.portraits_tab(ui, entities, repo, textures, &mut out),
+                Tab::Speaker => self.speakers_tab(ui, entities, &mut out),
+                Tab::Skill => {
+                    self.skills_tab(ui, entities);
+                    Ok(())
+                }
             };
             if let Err(err) = result {
                 self.error = Some(format!("{err:#}"));
             }
         });
+
+        if *entities != before {
+            match storage::save_entities(root, entities) {
+                Ok(()) => self.error = None,
+                Err(err) => {
+                    // Keep memory in step with what's on disk.
+                    *entities = before;
+                    self.error = Some(format!("{err:#}"));
+                }
+            }
+        }
         if modal.should_close() {
             out.close = true;
         }
@@ -164,31 +178,28 @@ impl DatabaseModal {
     fn portraits_tab(
         &mut self,
         ui: &mut Ui,
-        db: &Database,
         entities: &mut Entities,
         repo: &Repository,
         textures: &mut TextureCache,
         out: &mut ModalOutput,
     ) -> Result<()> {
+        let godot = repo.godot_project_location.as_deref().map(Path::new);
         let list_height = (ui.available_height() - 110.0).max(160.0);
-        ui.horizontal_top(|ui| -> Result<()> {
-            ui.allocate_ui(vec2(ui.available_width() * 0.5, list_height), |ui| {
-                self.entity_list(ui, entities.portraits.iter().map(|p| (&p.id, &p.name)))
-            })
-            .inner
-            .map(|id| -> Result<()> {
-                db.delete_portrait(&id)?;
+        ui.horizontal_top(|ui| {
+            let deleted = ui
+                .allocate_ui(vec2(ui.available_width() * 0.5, list_height), |ui| {
+                    self.entity_list(ui, entities.portraits.iter().map(|p| (&p.id, &p.name)))
+                })
+                .inner;
+            if let Some(id) = deleted {
                 entities.portraits.retain(|p| p.id != id);
-                textures.forget(&id);
-                Ok(())
-            })
-            .transpose()?;
+            }
 
             ui.vertical_centered(|ui| {
                 let Some(p) = self.selected_portrait(entities) else {
                     return;
                 };
-                match textures.get(ui.ctx(), &p.id, &p.data_url) {
+                match textures.get(ui.ctx(), godot, &p.virtual_path) {
                     Some(texture) => {
                         ui.add(egui::Image::new(&texture).fit_to_exact_size(Vec2::splat(100.0)));
                     }
@@ -200,9 +211,7 @@ impl DatabaseModal {
                 ui.small(format!("{} x {}", p.width, p.height));
                 ui.small(&p.virtual_path);
             });
-            Ok(())
-        })
-        .inner?;
+        });
 
         if self
             .request
@@ -241,11 +250,9 @@ impl DatabaseModal {
             ui.add(TextEdit::singleline(&mut self.new_portrait).hint_text("Portrait Name"));
             if ui.add(theme::primary_button("Add Portrait")).clicked() {
                 let portrait = self.build_portrait(repo)?;
-                db.create_portrait(&portrait)?;
                 entities.portraits.push(portrait);
                 self.new_portrait.clear();
                 self.pending_image = None;
-                self.error = None;
             }
             Ok(())
         })
@@ -263,22 +270,19 @@ impl DatabaseModal {
         let Ok(rel) = image.path.strip_prefix(godot) else {
             bail!("The image is not contained in the godot project directory.");
         };
-        let rel_path = rel.to_string_lossy().into_owned();
+        let rel_path = rel.to_string_lossy().replace('\\', "/");
         Ok(Portrait {
             id: new_id(),
-            kind: "portrait".into(),
             name: self.new_portrait.trim().to_string(),
-            data_url: images::to_data_url(&image.bytes, images::mime_type(&image.path)),
-            width: image.width,
-            height: image.height,
-            path: image.path.to_string_lossy().into_owned(),
-            virtual_path: format!("res://{}", rel_path.replace('\\', "/")),
+            virtual_path: format!("res://{rel_path}"),
             rel_path,
             filename: image
                 .path
                 .file_name()
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default(),
+            width: image.width,
+            height: image.height,
         })
     }
 
@@ -290,7 +294,6 @@ impl DatabaseModal {
     fn speakers_tab(
         &mut self,
         ui: &mut Ui,
-        db: &Database,
         entities: &mut Entities,
         out: &mut ModalOutput,
     ) -> Result<()> {
@@ -301,7 +304,6 @@ impl DatabaseModal {
             })
             .inner;
         if let Some(id) = deleted {
-            db.delete_speaker(&id)?;
             entities.speakers.retain(|s| s.id != id);
         }
 
@@ -329,16 +331,17 @@ impl DatabaseModal {
         }
 
         ui.separator();
-        ui.horizontal(|ui| -> Result<()> {
+        ui.horizontal(|ui| {
             ui.add(TextEdit::singleline(&mut self.new_speaker).hint_text("Speaker Name"));
             let name = self.new_speaker.trim();
             if ui
                 .add_enabled(!name.is_empty(), theme::primary_button("Add Speaker"))
                 .clicked()
             {
-                let speaker = Speaker::new(name.to_string());
-                db.create_speaker(&speaker)?;
-                entities.speakers.push(speaker);
+                if entities.speakers.iter().any(|s| s.name == name) {
+                    bail!("There's already a speaker called {name:?}.");
+                }
+                entities.speakers.push(Speaker::new(name.to_string()));
                 self.new_speaker.clear();
             }
             Ok(())
@@ -346,7 +349,7 @@ impl DatabaseModal {
         .inner
     }
 
-    fn skills_tab(&mut self, ui: &mut Ui, db: &Database, entities: &mut Entities) -> Result<()> {
+    fn skills_tab(&mut self, ui: &mut Ui, entities: &mut Entities) {
         let list_height = (ui.available_height() - 60.0).max(160.0);
         let mut delete_category = None;
         let mut delete_skill = None;
@@ -386,7 +389,9 @@ impl DatabaseModal {
                                     });
                                 });
                             }
-                            add_skill = add_skill.take().or(self.add_skill_row(ui, category));
+                            if let Some(skill) = self.add_skill_row(ui, &category.id) {
+                                add_skill = Some((category.id.clone(), skill));
+                            }
                         });
                 }
                 if entities.skill_categories.is_empty() {
@@ -417,55 +422,49 @@ impl DatabaseModal {
         });
 
         if let Some(name) = add_category {
-            let id = new_id();
-            db.create_skill_category(&id, &name)?;
             entities.skill_categories.push(SkillCategory {
-                id,
+                id: new_id(),
                 name,
                 skills: Vec::new(),
             });
             self.new_category = None;
         }
-        if let Some(skill) = add_skill {
-            db.create_skill(&skill)?;
-            if let Some(c) = entities
+        if let Some((category_id, skill)) = add_skill
+            && let Some(c) = entities
                 .skill_categories
                 .iter_mut()
-                .find(|c| c.id == skill.category_id)
-            {
-                c.skills.push(skill);
-            }
+                .find(|c| c.id == category_id)
+        {
+            c.skills.push(skill);
         }
         if let Some(id) = delete_skill {
-            db.delete_skill(&id)?;
             for c in &mut entities.skill_categories {
                 c.skills.retain(|s| s.id != id);
             }
         }
         if let Some(id) = delete_category {
-            db.delete_skill_category(&id)?;
             entities.skill_categories.retain(|c| c.id != id);
         }
-        Ok(())
     }
 
     /// The "add skill" controls under a category. Returns a skill to create.
-    fn add_skill_row(&mut self, ui: &mut Ui, category: &SkillCategory) -> Option<Skill> {
+    fn add_skill_row(&mut self, ui: &mut Ui, category_id: &str) -> Option<Skill> {
         let mut result = None;
-        ui.horizontal(|ui| match self.new_skill.get_mut(&category.id) {
+        ui.horizontal(|ui| match self.new_skill.get_mut(category_id) {
             Some(name) => {
                 ui.add(TextEdit::singleline(name).hint_text("Skill Name"));
                 if ui.small_button("Add").clicked() && !name.trim().is_empty() {
-                    result = Some(Skill::new(category.id.clone(), name.trim().to_string()));
+                    result = Some(Skill::new(name.trim().to_string()));
                     name.clear();
                 }
                 if ui.small_button("Cancel").clicked() {
-                    self.new_skill.remove(&category.id);
+                    self.new_skill.remove(category_id);
                 }
             }
             None => {
                 if ui.small_button("+ Add Skill").clicked() {
-                    self.new_skill.insert(category.id.clone(), String::new());
+                    self.new_skill
+                        .insert(category_id.to_string(), String::new());
                 }
             }
         });
@@ -519,14 +518,13 @@ impl DatabaseModal {
 }
 
 fn read_image(path: &Path) -> Result<PendingImage> {
-    let bytes = fs::read(path).with_context(|| format!("failed to read {}", path.display()))?;
-    let (width, height) = image::ImageReader::new(std::io::Cursor::new(&bytes))
+    let (width, height) = image::ImageReader::open(path)
+        .with_context(|| format!("failed to read {}", path.display()))?
         .with_guessed_format()?
         .into_dimensions()
         .context("unsupported image")?;
     Ok(PendingImage {
         path: path.to_path_buf(),
-        bytes,
         width,
         height,
     })
@@ -549,23 +547,22 @@ pub fn pick_godot_project() -> Result<Option<PathBuf>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::Speaker;
     use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable as _;
 
     #[test]
     fn every_tab_renders() {
-        let db = Database::open_in_memory().unwrap();
+        let tmp = tempfile::tempdir().unwrap();
         let mut entities = Entities::default();
         entities.speakers.push(Speaker::new("Jeet".into()));
         entities.skill_categories.push(SkillCategory {
             id: "c".into(),
             name: "Body".into(),
-            skills: vec![Skill::new("c".into(), "Strength".into())],
+            skills: vec![Skill::new("Strength".into())],
         });
         let repo = Repository {
             id: "r".into(),
             name: "repo".into(),
-            location: "/tmp".into(),
             godot_project_location: None,
             created_on: String::new(),
             app_version: String::new(),
@@ -584,9 +581,38 @@ mod tests {
                     true,
                 )
                 .store(ui.ctx());
-                modal.show(ui.ctx(), &db, &mut entities, &repo, &mut textures);
+                modal.show(ui.ctx(), tmp.path(), &mut entities, &repo, &mut textures);
             });
             harness.run();
         }
+    }
+
+    #[test]
+    fn changes_are_written_to_database_json() {
+        let tmp = tempfile::tempdir().unwrap();
+        let mut entities = Entities::default();
+        let repo = Repository {
+            id: "r".into(),
+            name: "repo".into(),
+            godot_project_location: None,
+            created_on: String::new(),
+            app_version: String::new(),
+            format_version: String::new(),
+        };
+        let mut modal = DatabaseModal::new(None);
+        modal.tab = Tab::Speaker;
+        modal.new_speaker = "Jeet".into();
+        let mut textures = TextureCache::default();
+        let mut harness = Harness::new_ui(|ui| {
+            modal.show(ui.ctx(), tmp.path(), &mut entities, &repo, &mut textures);
+        });
+        harness.run();
+        harness.get_by_label("Add Speaker").click();
+        harness.run();
+        drop(harness);
+
+        let saved = storage::load_entities(tmp.path()).unwrap();
+        assert_eq!(saved.speakers.len(), 1);
+        assert_eq!(saved.speakers[0].name, "Jeet");
     }
 }

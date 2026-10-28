@@ -1,38 +1,11 @@
-//! Portrait images: data URLs (the stored format) and egui textures.
+//! Portrait images, loaded from the Godot project and cached as textures.
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use base64::Engine as _;
-use base64::engine::general_purpose::STANDARD;
 use eframe::egui::{self, ColorImage, TextureHandle, TextureOptions};
 
 pub const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "bmp", "webp"];
-
-pub fn mime_type(path: &Path) -> &'static str {
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(str::to_ascii_lowercase);
-    match ext.as_deref() {
-        Some("jpg" | "jpeg") => "image/jpeg",
-        Some("png") => "image/png",
-        Some("gif") => "image/gif",
-        Some("bmp") => "image/bmp",
-        Some("webp") => "image/webp",
-        Some("svg") => "image/svg+xml",
-        _ => "application/octet-stream",
-    }
-}
-
-pub fn to_data_url(bytes: &[u8], mime: &str) -> String {
-    format!("data:{mime};base64,{}", STANDARD.encode(bytes))
-}
-
-pub fn from_data_url(url: &str) -> Option<Vec<u8>> {
-    let (_, payload) = url.split_once(";base64,")?;
-    STANDARD.decode(payload).ok()
-}
 
 pub fn decode(bytes: &[u8]) -> Option<ColorImage> {
     let image = image::load_from_memory(bytes).ok()?.into_rgba8();
@@ -40,26 +13,39 @@ pub fn decode(bytes: &[u8]) -> Option<ColorImage> {
     Some(ColorImage::from_rgba_unmultiplied(size, image.as_raw()))
 }
 
-/// Lazily decoded textures keyed by portrait id. Failed decodes are cached as
-/// `None` so they aren't retried every frame.
+/// Turns `res://a/b.png` into a path inside the Godot project.
+pub fn resolve_res_path(godot_project: &Path, virtual_path: &str) -> Option<PathBuf> {
+    let rel = virtual_path.strip_prefix("res://")?;
+    Some(godot_project.join(rel))
+}
+
+/// Lazily loaded textures keyed by `res://` path. Failures are cached as
+/// `None` so missing files aren't retried every frame.
 #[derive(Default)]
 pub struct TextureCache {
     textures: HashMap<String, Option<TextureHandle>>,
 }
 
 impl TextureCache {
-    pub fn get(&mut self, ctx: &egui::Context, key: &str, data_url: &str) -> Option<TextureHandle> {
+    pub fn get(
+        &mut self,
+        ctx: &egui::Context,
+        godot_project: Option<&Path>,
+        virtual_path: &str,
+    ) -> Option<TextureHandle> {
         self.textures
-            .entry(key.to_string())
+            .entry(virtual_path.to_string())
             .or_insert_with(|| {
-                let image = decode(&from_data_url(data_url)?)?;
-                Some(ctx.load_texture(format!("portrait-{key}"), image, TextureOptions::LINEAR))
+                let path = resolve_res_path(godot_project?, virtual_path)?;
+                let image = decode(&std::fs::read(path).ok()?)?;
+                Some(ctx.load_texture(virtual_path, image, TextureOptions::LINEAR))
             })
             .clone()
     }
 
-    pub fn forget(&mut self, key: &str) {
-        self.textures.remove(key);
+    /// Drops everything, e.g. after the Godot project location changes.
+    pub fn clear(&mut self) {
+        self.textures.clear();
     }
 }
 
@@ -68,9 +54,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn data_url_round_trip() {
-        let url = to_data_url(b"abc", "image/png");
-        assert_eq!(url, "data:image/png;base64,YWJj");
-        assert_eq!(from_data_url(&url).unwrap(), b"abc");
+    fn res_paths() {
+        assert_eq!(
+            resolve_res_path(Path::new("/game"), "res://art/a.png").unwrap(),
+            Path::new("/game/art/a.png")
+        );
+        assert!(resolve_res_path(Path::new("/game"), "art/a.png").is_none());
     }
 }

@@ -1,14 +1,13 @@
-//! Core data types. Field names and JSON shapes match the original Electron
-//! version so existing repositories keep working.
+//! Core data types. Node data mirrors the dialogue file format: speakers,
+//! portraits, and skills are referenced by name / `res://` path.
 
 use eframe::egui::{Pos2, pos2};
 use serde::{Deserialize, Serialize};
 
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const FORMAT_VERSION: &str = "1.0.0";
+pub const FORMAT_VERSION: &str = "2.0.0";
 
 pub const ROOT_ID: &str = "root";
-pub const EDGE_TYPE: &str = "dialogueEdge";
 pub const BRANCH_CONTAINER_MIN_WIDTH: f32 = 240.0;
 pub const BRANCH_CONTAINER_MIN_HEIGHT: f32 = 240.0;
 
@@ -16,24 +15,12 @@ pub fn new_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
 
-fn speaker_kind() -> String {
-    "speaker".into()
-}
-
-fn portrait_kind() -> String {
-    "portrait".into()
-}
-
-fn skill_kind() -> String {
-    "skill".into()
-}
-
+/// The contents of `manifest.dial`.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Repository {
     pub id: String,
     pub name: String,
-    pub location: String,
     pub godot_project_location: Option<String>,
     pub created_on: String,
     pub app_version: String,
@@ -43,18 +30,12 @@ pub struct Repository {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Speaker {
     pub id: String,
-    #[serde(default = "speaker_kind")]
-    pub kind: String,
     pub name: String,
 }
 
 impl Speaker {
     pub fn new(name: String) -> Self {
-        Self {
-            id: new_id(),
-            kind: speaker_kind(),
-            name,
-        }
+        Self { id: new_id(), name }
     }
 }
 
@@ -62,53 +43,46 @@ impl Speaker {
 #[serde(rename_all = "camelCase")]
 pub struct Portrait {
     pub id: String,
-    #[serde(default = "portrait_kind")]
-    pub kind: String,
     pub name: String,
-    #[serde(rename = "dataURL")]
-    pub data_url: String,
-    pub width: u32,
-    pub height: u32,
-    pub path: String,
+    /// Path of the image relative to the Godot project.
     pub rel_path: String,
+    /// `res://` path, which is what dialogue files reference.
     pub virtual_path: String,
     pub filename: String,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
 pub struct Skill {
     pub id: String,
-    #[serde(default = "skill_kind")]
-    pub kind: String,
-    pub category_id: String,
     pub name: String,
 }
 
 impl Skill {
-    pub fn new(category_id: String, name: String) -> Self {
-        Self {
-            id: new_id(),
-            kind: skill_kind(),
-            category_id,
-            name,
-        }
+    pub fn new(name: String) -> Self {
+        Self { id: new_id(), name }
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct SkillCategory {
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub skills: Vec<Skill>,
 }
 
-/// Everything stored in the repository database besides dialogues.
-#[derive(Default)]
+/// The contents of `database.json`.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct Entities {
-    pub portraits: Vec<Portrait>,
+    #[serde(default)]
     pub speakers: Vec<Speaker>,
+    #[serde(default)]
     pub skill_categories: Vec<SkillCategory>,
+    #[serde(default)]
+    pub portraits: Vec<Portrait>,
 }
 
 impl Entities {
@@ -160,47 +134,38 @@ impl NodeType {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartData {
-    #[serde(default)]
     pub next: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextData {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub speaker: Option<Speaker>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub portrait: Option<Portrait>,
-    #[serde(default)]
+    /// Speaker name.
+    pub speaker: Option<String>,
+    /// Portrait `res://` path.
+    pub portrait: Option<String>,
     pub text: String,
-    #[serde(default)]
     pub next: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BranchContainerData {
-    #[serde(default)]
     pub branches: Vec<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BranchData {
-    #[serde(default)]
     pub text: String,
-    #[serde(default)]
     pub next: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SkillCheckData {
-    #[serde(default)]
     pub text: String,
-    #[serde(default)]
-    pub skill: Option<Skill>,
-    #[serde(default)]
+    /// Skill name.
+    pub skill: Option<String>,
     pub difficulty: i64,
-    #[serde(default)]
     pub next: Option<String>,
 }
 
@@ -240,27 +205,14 @@ impl NodeData {
         }
     }
 
-    pub fn to_json(&self) -> String {
-        let result = match self {
-            NodeData::Start(d) => serde_json::to_string(d),
-            NodeData::End => Ok("{}".to_string()),
-            NodeData::Text(d) => serde_json::to_string(d),
-            NodeData::BranchContainer(d) => serde_json::to_string(d),
-            NodeData::Branch(d) => serde_json::to_string(d),
-            NodeData::SkillCheck(d) => serde_json::to_string(d),
-        };
-        result.expect("node data always serializes")
-    }
-
-    pub fn from_json(node_type: NodeType, json: &str) -> serde_json::Result<Self> {
-        Ok(match node_type {
-            NodeType::Start => NodeData::Start(serde_json::from_str(json)?),
-            NodeType::End => NodeData::End,
-            NodeType::Text => NodeData::Text(serde_json::from_str(json)?),
-            NodeType::BranchContainer => NodeData::BranchContainer(serde_json::from_str(json)?),
-            NodeType::Branch => NodeData::Branch(serde_json::from_str(json)?),
-            NodeType::SkillCheck => NodeData::SkillCheck(serde_json::from_str(json)?),
-        })
+    pub fn next(&self) -> Option<&str> {
+        match self {
+            NodeData::Start(d) => d.next.as_deref(),
+            NodeData::Text(d) => d.next.as_deref(),
+            NodeData::Branch(d) => d.next.as_deref(),
+            NodeData::SkillCheck(d) => d.next.as_deref(),
+            NodeData::End | NodeData::BranchContainer(_) => None,
+        }
     }
 
     /// The `next` pointer of a connectable node, or `None` for nodes that
@@ -280,8 +232,7 @@ impl NodeData {
 pub struct GraphNode {
     pub id: String,
     pub parent_id: Option<String>,
-    pub extent: Option<String>,
-    /// Absolute for top-level nodes, relative to the parent for child nodes.
+    /// Canvas position. Child nodes are laid out by their container.
     pub position: Pos2,
     pub width: Option<f32>,
     pub height: Option<f32>,
@@ -294,10 +245,11 @@ impl GraphNode {
     }
 }
 
+/// A drawn connection. The source node's `next` is the source of truth; the
+/// edge also remembers which handles it uses.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Edge {
     pub id: String,
-    pub kind: String,
     pub source: String,
     pub target: String,
     pub source_handle: Option<String>,
@@ -334,7 +286,6 @@ impl Graph {
         self.nodes.push(GraphNode {
             id: id.clone(),
             parent_id: None,
-            extent: None,
             position,
             width,
             height,
@@ -348,7 +299,7 @@ impl Graph {
         &mut self,
         container_id: &str,
         node_type: NodeType,
-        default_skill: Option<Skill>,
+        default_skill: Option<String>,
     ) -> Option<String> {
         debug_assert!(node_type.is_child());
         let id = new_id();
@@ -365,7 +316,6 @@ impl Graph {
         self.nodes.push(GraphNode {
             id: id.clone(),
             parent_id: Some(container_id.to_string()),
-            extent: Some("parent".into()),
             position: pos2(0.0, 0.0),
             width: None,
             height: None,
@@ -440,7 +390,6 @@ impl Graph {
         self.edges.retain(|e| e.source != source);
         self.edges.push(Edge {
             id: new_id(),
-            kind: EDGE_TYPE.into(),
             source: source.to_string(),
             target: target.to_string(),
             source_handle,
@@ -466,9 +415,11 @@ pub enum TreeItemKind {
     Dialogue(Graph),
 }
 
+/// A folder or dialogue file in the repository directory.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TreeItem {
     pub id: String,
+    /// Folder name, or the dialogue's file name without `.json`.
     pub name: String,
     /// `ROOT_ID` for top-level items.
     pub parent: String,
@@ -479,10 +430,19 @@ impl TreeItem {
     pub fn is_folder(&self) -> bool {
         matches!(self.kind, TreeItemKind::Folder)
     }
+
+    /// The name on disk.
+    pub fn file_name(&self) -> String {
+        if self.is_folder() {
+            self.name.clone()
+        } else {
+            format!("{}.json", self.name)
+        }
+    }
 }
 
-/// The folder/dialogue hierarchy shown in the sidebar. Sibling order is the
-/// order of items in `items`.
+/// The folder/dialogue hierarchy shown in the sidebar, mirroring the
+/// repository directory.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DialogueTree {
     pub items: Vec<TreeItem>,
@@ -497,8 +457,12 @@ impl DialogueTree {
         self.items.iter_mut().find(|i| i.id == id)
     }
 
+    /// Children sorted like a file browser: folders first, then by name.
     pub fn children(&self, parent: &str) -> Vec<&TreeItem> {
-        self.items.iter().filter(|i| i.parent == parent).collect()
+        let mut children: Vec<&TreeItem> =
+            self.items.iter().filter(|i| i.parent == parent).collect();
+        children.sort_by_cached_key(|i| (!i.is_folder(), i.name.to_lowercase()));
+        children
     }
 
     pub fn graph(&self, id: &str) -> Option<&Graph> {
@@ -515,15 +479,53 @@ impl DialogueTree {
         }
     }
 
-    pub fn add(&mut self, parent: &str, kind: TreeItemKind) -> String {
+    pub fn insert(&mut self, parent: &str, name: String, kind: TreeItemKind) -> String {
         let id = new_id();
         self.items.push(TreeItem {
             id: id.clone(),
-            name: "Untitled".into(),
+            name,
             parent: parent.to_string(),
             kind,
         });
         id
+    }
+
+    /// The item's path relative to the repository root.
+    pub fn rel_path(&self, id: &str) -> Option<std::path::PathBuf> {
+        let mut parts = Vec::new();
+        let mut current = self.get(id)?;
+        parts.push(current.file_name());
+        while current.parent != ROOT_ID {
+            current = self.get(&current.parent)?;
+            parts.push(current.file_name());
+        }
+        Some(parts.iter().rev().collect())
+    }
+
+    /// Whether a sibling (other than `except`) already uses this file name.
+    /// Case-insensitive, since Windows and macOS file systems usually are.
+    pub fn name_taken(&self, parent: &str, file_name: &str, except: Option<&str>) -> bool {
+        self.children(parent)
+            .iter()
+            .any(|i| Some(i.id.as_str()) != except && i.file_name().eq_ignore_ascii_case(file_name))
+    }
+
+    /// `base`, or `base 2`, `base 3`, … — whichever is free in `parent`.
+    pub fn unique_name(&self, parent: &str, base: &str, folder: bool) -> String {
+        let file_name = |n: &str| {
+            if folder {
+                n.to_string()
+            } else {
+                format!("{n}.json")
+            }
+        };
+        let mut name = base.to_string();
+        let mut i = 2;
+        while self.name_taken(parent, &file_name(&name), None) {
+            name = format!("{base} {i}");
+            i += 1;
+        }
+        name
     }
 
     /// Removes an item and everything below it.
@@ -549,30 +551,33 @@ impl DialogueTree {
         false
     }
 
-    /// Moves an item to the end of `folder`'s children. Refuses moves that
-    /// would put a folder inside itself.
+    /// Whether `id` may move into `folder`: the target must be a folder (or
+    /// the root) and not the item itself or one of its descendants.
+    pub fn can_move(&self, id: &str, folder: &str) -> bool {
+        if id == folder || self.is_descendant(folder, id) || self.get(id).is_none() {
+            return false;
+        }
+        folder == ROOT_ID || self.get(folder).is_some_and(TreeItem::is_folder)
+    }
+
     pub fn move_item(&mut self, id: &str, folder: &str) -> bool {
-        if id == folder || self.is_descendant(folder, id) {
+        if !self.can_move(id, folder) {
             return false;
         }
-        if folder != ROOT_ID && !self.get(folder).is_some_and(TreeItem::is_folder) {
-            return false;
-        }
-        let Some(index) = self.items.iter().position(|i| i.id == id) else {
-            return false;
-        };
-        let mut item = self.items.remove(index);
-        item.parent = folder.to_string();
-        self.items.push(item);
+        self.get_mut(id).expect("checked").parent = folder.to_string();
         true
     }
 
-    /// Items in depth-first pre-order, the order used when saving.
-    pub fn preorder(&self) -> Vec<&TreeItem> {
-        fn visit<'a>(tree: &'a DialogueTree, parent: &str, out: &mut Vec<&'a TreeItem>) {
+    /// Ids of every dialogue, in sidebar order.
+    #[cfg(any(test, debug_assertions))]
+    pub fn dialogues(&self) -> Vec<String> {
+        fn visit(tree: &DialogueTree, parent: &str, out: &mut Vec<String>) {
             for child in tree.children(parent) {
-                out.push(child);
-                visit(tree, &child.id, out);
+                if child.is_folder() {
+                    visit(tree, &child.id, out);
+                } else {
+                    out.push(child.id.clone());
+                }
             }
         }
         let mut out = Vec::new();
@@ -584,6 +589,7 @@ impl DialogueTree {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn remove_node_cleans_up_edges_and_next() {
@@ -639,10 +645,34 @@ mod tests {
     }
 
     #[test]
+    fn tree_paths_and_names() {
+        let mut t = DialogueTree::default();
+        let outer = t.insert(ROOT_ID, "Chapter 1".into(), TreeItemKind::Folder);
+        let inner = t.insert(&outer, "Scene".into(), TreeItemKind::Folder);
+        let d = t.insert(
+            &inner,
+            "Intro".into(),
+            TreeItemKind::Dialogue(Graph::default()),
+        );
+        assert_eq!(
+            t.rel_path(&d).unwrap(),
+            PathBuf::from("Chapter 1").join("Scene").join("Intro.json")
+        );
+        assert!(t.name_taken(&inner, "intro.JSON", None));
+        assert!(!t.name_taken(&inner, "Intro.json", Some(&d)));
+        assert_eq!(t.unique_name(&inner, "Intro", false), "Intro 2");
+        assert_eq!(
+            t.unique_name(&inner, "Intro", true),
+            "Intro",
+            "folders don't clash with files"
+        );
+    }
+
+    #[test]
     fn folders_cannot_move_into_themselves() {
         let mut t = DialogueTree::default();
-        let outer = t.add(ROOT_ID, TreeItemKind::Folder);
-        let inner = t.add(&outer, TreeItemKind::Folder);
+        let outer = t.insert(ROOT_ID, "a".into(), TreeItemKind::Folder);
+        let inner = t.insert(&outer, "b".into(), TreeItemKind::Folder);
         assert!(!t.move_item(&outer, &inner));
         assert!(!t.move_item(&outer, &outer));
         assert!(t.move_item(&inner, ROOT_ID));
@@ -651,13 +681,24 @@ mod tests {
     }
 
     #[test]
-    fn node_data_json_round_trips_original_format() {
-        let json = r#"{"speaker":{"id":"s","kind":"speaker","name":"Jeet"},"portrait":null,"text":"Hi","next":null}"#;
-        let data = NodeData::from_json(NodeType::Text, json).unwrap();
-        let NodeData::Text(t) = &data else { panic!() };
-        assert_eq!(t.speaker.as_ref().unwrap().name, "Jeet");
-        assert!(t.portrait.is_none());
-        let again = NodeData::from_json(NodeType::Text, &data.to_json()).unwrap();
-        assert_eq!(again, data);
+    fn children_sort_folders_first() {
+        let mut t = DialogueTree::default();
+        t.insert(
+            ROOT_ID,
+            "b".into(),
+            TreeItemKind::Dialogue(Graph::default()),
+        );
+        t.insert(ROOT_ID, "z".into(), TreeItemKind::Folder);
+        t.insert(
+            ROOT_ID,
+            "A".into(),
+            TreeItemKind::Dialogue(Graph::default()),
+        );
+        let names: Vec<&str> = t
+            .children(ROOT_ID)
+            .iter()
+            .map(|i| i.name.as_str())
+            .collect();
+        assert_eq!(names, ["z", "A", "b"]);
     }
 }

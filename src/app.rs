@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
 use eframe::egui::{
@@ -11,13 +11,12 @@ use eframe::egui::{
 };
 
 use crate::database_modal::{DatabaseModal, EntityRequest, Fulfilled};
-use crate::db::Database;
-use crate::export::export_graph;
 use crate::graph_editor::{GraphEnv, GraphEvent, GraphView};
 use crate::images::{self, TextureCache};
-use crate::model::{DialogueTree, Entities, NodeData, ROOT_ID, Repository, TreeItemKind};
+use crate::model::{DialogueTree, Entities, Graph, NodeData, ROOT_ID, Repository, TreeItemKind};
 use crate::repo_screen::RepoScreen;
 use crate::repository::{self, OpenRepository};
+use crate::storage;
 use crate::theme;
 
 const SAVE_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::S);
@@ -55,12 +54,7 @@ impl DialnodeApp {
         if let Some(path) = crate::debug_hooks::DebugHooks::repository_to_open() {
             match repository::open(&path).and_then(Editor::load) {
                 Ok(mut editor) => {
-                    editor.open_dialogue = editor
-                        .tree
-                        .preorder()
-                        .into_iter()
-                        .find(|i| !i.is_folder())
-                        .map(|i| i.id.clone());
+                    editor.open_dialogue = editor.tree.dialogues().into_iter().next();
                     editor.open_folders.extend(
                         editor
                             .tree
@@ -98,7 +92,7 @@ impl DialnodeApp {
     }
 
     fn request_exit(&mut self, ctx: &egui::Context, exit: PendingExit) {
-        let dirty = matches!(&self.screen, Screen::Editor(e) if e.dirty);
+        let dirty = matches!(&self.screen, Screen::Editor(e) if e.is_dirty());
         if dirty {
             self.confirm = Some(exit);
         } else {
@@ -152,7 +146,7 @@ impl DialnodeApp {
         let title = match &self.screen {
             Screen::Repository(_) => "Dialnode".to_string(),
             Screen::Editor(e) => {
-                let marker = if e.dirty { " •" } else { "" };
+                let marker = if e.is_dirty() { " •" } else { "" };
                 format!("{}{marker} — Dialnode", e.repo.name)
             }
         };
@@ -168,7 +162,7 @@ impl eframe::App for DialnodeApp {
         let ctx = ui.ctx().clone();
         if ctx.input(|i| i.viewport().close_requested())
             && !self.allow_close
-            && matches!(&self.screen, Screen::Editor(e) if e.dirty)
+            && matches!(&self.screen, Screen::Editor(e) if e.is_dirty())
         {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.confirm = Some(PendingExit::Quit);
@@ -275,15 +269,20 @@ enum TreeAction {
     StartRename(String),
     CommitRename,
     CancelRename,
+    /// Asks before deleting.
     Delete(String),
+    DeleteConfirmed(String),
     Move(String, String),
-    Add { parent: String, folder: bool },
+    Add {
+        parent: String,
+        folder: bool,
+    },
 }
 
 pub struct Editor {
     repo: Repository,
-    manifest_path: PathBuf,
-    db: Database,
+    /// The repository directory.
+    root: PathBuf,
     tree: DialogueTree,
     entities: Entities,
     /// The highlighted sidebar item (folder or dialogue).
@@ -292,61 +291,73 @@ pub struct Editor {
     open_dialogue: Option<String>,
     renaming: Option<(String, String)>,
     focus_rename: bool,
+    confirm_delete: Option<String>,
     open_folders: HashSet<String>,
     views: HashMap<String, GraphView>,
     db_modal: Option<DatabaseModal>,
     textures: TextureCache,
-    dirty: bool,
+    /// Dialogues with changes that haven't been written to disk.
+    dirty: HashSet<String>,
     status: Option<String>,
     error: Option<String>,
 }
 
 impl Editor {
     fn load(open: OpenRepository) -> Result<Self> {
-        let OpenRepository {
-            repository,
-            manifest_path,
-            db,
-        } = open;
-        let tree = db.load_dialogues().context("failed to load dialogues")?;
-        let entities = Entities {
-            portraits: db.all_portraits()?,
-            speakers: db.all_speakers()?,
-            skill_categories: db.all_skill_categories()?,
-        };
+        let OpenRepository { repository, root } = open;
+        let (tree, warnings) = storage::load_tree(&root).context("failed to read dialogues")?;
+        let entities = storage::load_entities(&root)?;
+        let error = (!warnings.is_empty()).then(|| {
+            format!(
+                "Skipped {} file(s) that aren't valid dialogues: {}",
+                warnings.len(),
+                warnings.join("; ")
+            )
+        });
         Ok(Self {
             repo: repository,
-            manifest_path,
-            db,
+            root,
             tree,
             entities,
             selected: None,
             open_dialogue: None,
             renaming: None,
             focus_rename: false,
+            confirm_delete: None,
             open_folders: HashSet::new(),
             views: HashMap::new(),
             db_modal: None,
             textures: TextureCache::default(),
-            dirty: false,
+            dirty: HashSet::new(),
             status: None,
-            error: None,
+            error,
         })
     }
 
-    /// Writes all dialogues to the database. Returns whether it worked.
+    fn is_dirty(&self) -> bool {
+        !self.dirty.is_empty()
+    }
+
+    /// Writes every changed dialogue to its file. Returns whether all of
+    /// them were written.
     fn save(&mut self) -> bool {
-        match self.db.save_dialogues(&self.tree) {
-            Ok(()) => {
-                self.dirty = false;
-                self.status = Some("Saved.".into());
-                true
-            }
-            Err(err) => {
+        let ids: Vec<String> = self.dirty.iter().cloned().collect();
+        for id in ids {
+            let (Some(path), Some(graph)) = (
+                storage::path_of(&self.root, &self.tree, &id),
+                self.tree.graph(&id),
+            ) else {
+                self.dirty.remove(&id);
+                continue;
+            };
+            if let Err(err) = storage::write_dialogue(&path, graph) {
                 self.error = Some(format!("{err:#}"));
-                false
+                return false;
             }
+            self.dirty.remove(&id);
         }
+        self.status = Some("Saved.".into());
+        true
     }
 
     fn export(&mut self) -> Result<()> {
@@ -358,14 +369,14 @@ impl Editor {
             bail!("Only dialogues can be exported.");
         };
         let Some(path) = rfd::FileDialog::new()
-            .set_title("Save JSON")
+            .set_title("Export JSON without layout")
             .set_file_name(format!("{}.json", item.name))
             .add_filter("JSON Files", &["json"])
             .save_file()
         else {
             return Ok(());
         };
-        let json = serde_json::to_string_pretty(&export_graph(graph))?;
+        let json = serde_json::to_string_pretty(&storage::dialogue_json(graph, false))?;
         fs::write(&path, json).with_context(|| format!("failed to write {}", path.display()))?;
         self.status = Some(format!("Exported to {}", path.display()));
         Ok(())
@@ -392,6 +403,7 @@ impl Editor {
                     }
                     if ui
                         .add_enabled(self.open_dialogue.is_some(), egui::Button::new("Export…"))
+                        .on_hover_text("Write the open dialogue without editor layout")
                         .clicked()
                         && let Err(err) = self.export()
                     {
@@ -403,7 +415,7 @@ impl Editor {
                     }
                 });
                 ui.menu_button("Edit", |ui| {
-                    if ui.button("Add Dialogue").clicked() {
+                    if ui.button("New Dialogue").clicked() {
                         self.apply_tree_actions(vec![TreeAction::Add {
                             parent: ROOT_ID.into(),
                             folder: false,
@@ -411,14 +423,14 @@ impl Editor {
                     }
                     let selected = self.selected.clone();
                     if ui
-                        .add_enabled(selected.is_some(), egui::Button::new("Rename Dialogue"))
+                        .add_enabled(selected.is_some(), egui::Button::new("Rename"))
                         .clicked()
                         && let Some(id) = selected.clone()
                     {
                         self.apply_tree_actions(vec![TreeAction::StartRename(id)]);
                     }
                     if ui
-                        .add_enabled(selected.is_some(), egui::Button::new("Remove Dialogue"))
+                        .add_enabled(selected.is_some(), egui::Button::new("Delete"))
                         .clicked()
                         && let Some(id) = selected
                     {
@@ -430,11 +442,12 @@ impl Editor {
                     }
                 });
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    let marker = if self.dirty { " (unsaved)" } else { "" };
+                    let marker = if self.is_dirty() { " (unsaved)" } else { "" };
                     ui.label(
                         RichText::new(format!("{}{marker}", self.repo.name))
                             .color(theme::SMALL_TEXT),
-                    );
+                    )
+                    .on_hover_text(self.root.display().to_string());
                 });
             });
         });
@@ -464,14 +477,15 @@ impl Editor {
         if let Some(modal) = &mut self.db_modal {
             let out = modal.show(
                 &ctx,
-                &self.db,
+                &self.root,
                 &mut self.entities,
                 &self.repo,
                 &mut self.textures,
             );
             if let Some(dir) = out.godot_project {
                 self.repo.godot_project_location = Some(dir.to_string_lossy().into_owned());
-                if let Err(err) = repository::save_manifest(&self.repo, &self.manifest_path) {
+                self.textures.clear();
+                if let Err(err) = repository::save_manifest(&self.repo, &self.root) {
                     self.error = Some(format!("{err:#}"));
                 }
             }
@@ -483,7 +497,43 @@ impl Editor {
             }
         }
 
+        self.delete_dialog(&ctx);
         action
+    }
+
+    fn delete_dialog(&mut self, ctx: &egui::Context) {
+        let Some(id) = self.confirm_delete.clone() else {
+            return;
+        };
+        let Some(item) = self.tree.get(&id) else {
+            self.confirm_delete = None;
+            return;
+        };
+        let what = if item.is_folder() {
+            format!("the folder \"{}\" and everything in it", item.name)
+        } else {
+            format!("\"{}\"", item.file_name())
+        };
+        let mut confirmed = false;
+        let modal = Modal::new(Id::unique("confirm-delete")).show(ctx, |ui| {
+            ui.set_width(360.0);
+            ui.heading("Delete?");
+            ui.label(format!("Move {what} to the trash?"));
+            ui.add_space(8.0);
+            ui.horizontal(|ui| {
+                confirmed = ui.add(theme::primary_button("Move to Trash")).clicked();
+                if ui.button("Cancel").clicked() {
+                    self.confirm_delete = None;
+                }
+            });
+        });
+        if modal.should_close() {
+            self.confirm_delete = None;
+        }
+        if confirmed {
+            self.confirm_delete = None;
+            self.apply_tree_actions(vec![TreeAction::DeleteConfirmed(id)]);
+        }
     }
 
     fn fulfill(&mut self, request: EntityRequest, value: Fulfilled) {
@@ -495,13 +545,13 @@ impl Editor {
             return;
         };
         match value {
-            Fulfilled::Speaker(s) => data.speaker = Some(s),
-            Fulfilled::Portrait(p) => data.portrait = Some(p),
+            Fulfilled::Speaker(s) => data.speaker = Some(s.name),
+            Fulfilled::Portrait(p) => data.portrait = Some(p.virtual_path),
         }
         if let Some(view) = self.views.get_mut(&request.dialogue_id) {
             view.show_text_field(&request.node_id, request.kind);
         }
-        self.dirty = true;
+        self.dirty.insert(request.dialogue_id);
     }
 
     fn canvas(&mut self, ui: &mut Ui, interactive: bool) {
@@ -526,10 +576,16 @@ impl Editor {
             GraphEnv {
                 skills: &skills,
                 textures: &mut self.textures,
-                keyboard: interactive && self.db_modal.is_none() && self.renaming.is_none(),
+                godot_project: self.repo.godot_project_location.as_deref().map(Path::new),
+                keyboard: interactive
+                    && self.db_modal.is_none()
+                    && self.renaming.is_none()
+                    && self.confirm_delete.is_none(),
             },
         );
-        self.dirty |= out.changed;
+        if out.changed {
+            self.dirty.insert(id.clone());
+        }
         for event in out.events {
             match event {
                 GraphEvent::RequestEntity { node_id, kind } => {
@@ -628,7 +684,12 @@ impl Editor {
 
             let open = self.open_folders.contains(&id);
             let selected = self.selected.as_deref() == Some(id.as_str());
-            let resp = tree_row(ui, &name, indent, selected, is_folder.then_some(open));
+            let label = if !is_folder && self.dirty.contains(&id) {
+                format!("{name} •")
+            } else {
+                name
+            };
+            let resp = tree_row(ui, &label, indent, selected, is_folder.then_some(open));
 
             resp.dnd_set_drag_payload(id.clone());
             if resp.clicked() {
@@ -685,100 +746,216 @@ impl Editor {
 
     fn apply_tree_actions(&mut self, actions: Vec<TreeAction>) {
         for action in actions {
-            match action {
-                TreeAction::Select(id) => {
-                    if self.tree.graph(&id).is_some() {
-                        self.open_dialogue = Some(id.clone());
-                    }
-                    self.selected = Some(id);
-                }
-                TreeAction::ToggleFolder(id) => {
-                    if !self.open_folders.remove(&id) {
-                        self.open_folders.insert(id);
-                    }
-                }
-                TreeAction::StartRename(id) => {
-                    if let Some(item) = self.tree.get(&id) {
-                        self.renaming = Some((id, item.name.clone()));
-                        self.focus_rename = true;
-                    }
-                }
-                TreeAction::CommitRename => {
-                    if let Some((id, name)) = self.renaming.take()
-                        && let Some(item) = self.tree.get_mut(&id)
-                        && !name.trim().is_empty()
-                        && item.name != name.trim()
-                    {
-                        item.name = name.trim().to_string();
-                        self.dirty = true;
-                    }
-                }
-                TreeAction::CancelRename => self.renaming = None,
-                TreeAction::Delete(id) => {
-                    self.tree.remove(&id);
-                    if self
-                        .open_dialogue
-                        .as_ref()
-                        .is_some_and(|d| self.tree.get(d).is_none())
-                    {
-                        self.open_dialogue = None;
-                    }
-                    if self
-                        .selected
-                        .as_ref()
-                        .is_some_and(|s| self.tree.get(s).is_none())
-                    {
-                        self.selected = None;
-                    }
-                    self.views.retain(|d, _| self.tree.get(d).is_some());
-                    self.dirty = true;
-                }
-                TreeAction::Move(id, folder) => {
-                    if self.tree.move_item(&id, &folder) {
-                        self.open_folders.insert(folder);
-                        self.dirty = true;
-                    }
-                }
-                TreeAction::Add { parent, folder } => {
-                    let kind = if folder {
-                        TreeItemKind::Folder
-                    } else {
-                        TreeItemKind::Dialogue(Default::default())
-                    };
-                    let id = self.tree.add(&parent, kind);
-                    if parent != ROOT_ID {
-                        self.open_folders.insert(parent);
-                    }
-                    if !folder {
-                        self.open_dialogue = Some(id.clone());
-                    }
-                    self.selected = Some(id.clone());
-                    self.renaming = Some((id, "Untitled".into()));
-                    self.focus_rename = true;
-                    self.dirty = true;
-                }
+            if let Err(err) = self.apply_tree_action(action) {
+                self.error = Some(format!("{err:#}"));
             }
         }
+    }
+
+    /// Applies a sidebar action. Anything that changes the tree changes the
+    /// repository directory first, and the tree only if that worked.
+    fn apply_tree_action(&mut self, action: TreeAction) -> Result<()> {
+        match action {
+            TreeAction::Select(id) => {
+                if self.tree.graph(&id).is_some() {
+                    self.open_dialogue = Some(id.clone());
+                }
+                self.selected = Some(id);
+            }
+            TreeAction::ToggleFolder(id) => {
+                if !self.open_folders.remove(&id) {
+                    self.open_folders.insert(id);
+                }
+            }
+            TreeAction::StartRename(id) => {
+                if let Some(item) = self.tree.get(&id) {
+                    self.renaming = Some((id, item.name.clone()));
+                    self.focus_rename = true;
+                }
+            }
+            TreeAction::CancelRename => self.renaming = None,
+            TreeAction::CommitRename => {
+                let Some((id, input)) = self.renaming.take() else {
+                    return Ok(());
+                };
+                let item = self.tree.get(&id).context("item not found")?;
+                let (folder, parent, old_name) =
+                    (item.is_folder(), item.parent.clone(), item.name.clone());
+                let name = storage::validate_name(&input, folder, parent == ROOT_ID)?;
+                if name == old_name {
+                    return Ok(());
+                }
+                let file_name = if folder {
+                    name.clone()
+                } else {
+                    format!("{name}.json")
+                };
+                if self.tree.name_taken(&parent, &file_name, Some(&id)) {
+                    bail!("Something named \"{file_name}\" already exists here.");
+                }
+                let from = self.path_of(&id)?;
+                self.tree.get_mut(&id).expect("exists").name = name;
+                let to = self.path_of(&id)?;
+                if let Err(err) = storage::rename(&from, &to) {
+                    self.tree.get_mut(&id).expect("exists").name = old_name;
+                    return Err(err);
+                }
+            }
+            TreeAction::Move(id, folder) => {
+                let Some(item) = self.tree.get(&id) else {
+                    return Ok(());
+                };
+                if item.parent == folder || !self.tree.can_move(&id, &folder) {
+                    return Ok(());
+                }
+                let old_parent = item.parent.clone();
+                let file_name = item.file_name();
+                if self.tree.name_taken(&folder, &file_name, Some(&id)) {
+                    bail!("Something named \"{file_name}\" already exists there.");
+                }
+                let from = self.path_of(&id)?;
+                self.tree.move_item(&id, &folder);
+                let to = self.path_of(&id)?;
+                if let Err(err) = storage::rename(&from, &to) {
+                    self.tree.get_mut(&id).expect("exists").parent = old_parent;
+                    return Err(err);
+                }
+                self.open_folders.insert(folder);
+            }
+            TreeAction::Delete(id) => self.confirm_delete = Some(id),
+            TreeAction::DeleteConfirmed(id) => {
+                storage::trash(&self.path_of(&id)?)?;
+                self.tree.remove(&id);
+                let tree = &self.tree;
+                if self
+                    .open_dialogue
+                    .as_ref()
+                    .is_some_and(|d| tree.get(d).is_none())
+                {
+                    self.open_dialogue = None;
+                }
+                if self
+                    .selected
+                    .as_ref()
+                    .is_some_and(|s| tree.get(s).is_none())
+                {
+                    self.selected = None;
+                }
+                self.views.retain(|d, _| tree.get(d).is_some());
+                self.dirty.retain(|d| tree.get(d).is_some());
+            }
+            TreeAction::Add { parent, folder } => {
+                let base = if folder { "New Folder" } else { "Untitled" };
+                let name = self.tree.unique_name(&parent, base, folder);
+                let parent_dir = if parent == ROOT_ID {
+                    self.root.clone()
+                } else {
+                    self.path_of(&parent)?
+                };
+                let file_name = if folder {
+                    name.clone()
+                } else {
+                    format!("{name}.json")
+                };
+                storage::create(&parent_dir.join(file_name), folder)?;
+
+                let kind = if folder {
+                    TreeItemKind::Folder
+                } else {
+                    TreeItemKind::Dialogue(Graph::default())
+                };
+                let id = self.tree.insert(&parent, name.clone(), kind);
+                if parent != ROOT_ID {
+                    self.open_folders.insert(parent);
+                }
+                if !folder {
+                    self.open_dialogue = Some(id.clone());
+                }
+                self.selected = Some(id.clone());
+                self.renaming = Some((id, name));
+                self.focus_rename = true;
+            }
+        }
+        Ok(())
+    }
+
+    fn path_of(&self, id: &str) -> Result<PathBuf> {
+        storage::path_of(&self.root, &self.tree, id).context("item not found")
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{Graph, NodeType, TextData};
+    use crate::model::{NodeType, TextData};
     use eframe::egui::pos2;
     use egui_kittest::Harness;
 
-    #[test]
-    fn editor_renders_and_saves() {
+    fn editor() -> (tempfile::TempDir, Editor) {
         let tmp = tempfile::tempdir().unwrap();
         let open = repository::create("repo", tmp.path(), None).unwrap();
-        let mut editor = Editor::load(open).unwrap();
+        (tmp, Editor::load(open).unwrap())
+    }
 
-        let folder = editor.tree.add(ROOT_ID, TreeItemKind::Folder);
-        let id = editor
-            .tree
-            .add(&folder, TreeItemKind::Dialogue(Graph::default()));
+    fn add(editor: &mut Editor, parent: &str, folder: bool) -> String {
+        editor
+            .apply_tree_action(TreeAction::Add {
+                parent: parent.into(),
+                folder,
+            })
+            .unwrap();
+        editor.renaming = None;
+        editor.selected.clone().unwrap()
+    }
+
+    fn rename(editor: &mut Editor, id: &str, name: &str) -> Result<()> {
+        editor.renaming = Some((id.into(), name.into()));
+        editor.apply_tree_action(TreeAction::CommitRename)
+    }
+
+    #[test]
+    fn sidebar_changes_happen_on_disk() {
+        let (_tmp, mut e) = editor();
+        let root = e.root.clone();
+        let folder = add(&mut e, ROOT_ID, true);
+        let dialogue = add(&mut e, &folder, false);
+        assert!(root.join("New Folder/Untitled.json").is_file());
+
+        rename(&mut e, &folder, "Chapter 1").unwrap();
+        rename(&mut e, &dialogue, "Intro.json").unwrap();
+        assert!(root.join("Chapter 1/Intro.json").is_file());
+        assert!(!root.join("New Folder").exists());
+
+        e.apply_tree_action(TreeAction::Move(dialogue.clone(), ROOT_ID.into()))
+            .unwrap();
+        assert!(root.join("Intro.json").is_file());
+
+        let other = add(&mut e, ROOT_ID, false);
+        assert!(rename(&mut e, &other, "intro").is_err(), "name clash");
+        assert!(rename(&mut e, &other, "a/b").is_err());
+        assert!(rename(&mut e, &other, "database").is_err());
+        assert!(
+            root.join("Untitled.json").is_file(),
+            "failed renames leave the file alone"
+        );
+
+        // Reloading from disk gives the same tree shape.
+        let (reloaded, warnings) = storage::load_tree(&root).unwrap();
+        assert!(warnings.is_empty());
+        let mut names: Vec<String> = reloaded
+            .items
+            .iter()
+            .map(|i| reloaded.rel_path(&i.id).unwrap().display().to_string())
+            .collect();
+        names.sort();
+        assert_eq!(names, ["Chapter 1", "Intro.json", "Untitled.json"]);
+    }
+
+    #[test]
+    fn editor_renders_and_saves() {
+        let (_tmp, mut editor) = editor();
+        let folder = add(&mut editor, ROOT_ID, true);
+        let id = add(&mut editor, &folder, false);
         let graph = editor.tree.graph_mut(&id).unwrap();
         let text = graph.add_node(NodeType::Text, pos2(0.0, 0.0));
         graph.node_mut(&text).unwrap().data = NodeData::Text(TextData {
@@ -789,8 +966,8 @@ mod tests {
         graph.add_child(&container, NodeType::Branch, None);
         graph.add_child(&container, NodeType::SkillCheck, None);
         editor.open_folders.insert(folder);
-        editor.open_dialogue = Some(id);
-        editor.dirty = true;
+        editor.dirty.insert(id.clone());
+        let path = editor.path_of(&id).unwrap();
 
         let mut harness = Harness::builder()
             .with_size(vec2(1200.0, 800.0))
@@ -805,7 +982,8 @@ mod tests {
         harness.run();
 
         let editor = harness.state();
-        assert!(!editor.dirty, "Ctrl+S should save");
-        assert_eq!(editor.db.load_dialogues().unwrap(), editor.tree);
+        assert!(!editor.is_dirty(), "Ctrl+S should save");
+        let on_disk = storage::parse_dialogue(&fs::read_to_string(path).unwrap()).unwrap();
+        assert_eq!(on_disk.nodes, editor.tree.graph(&id).unwrap().nodes);
     }
 }
