@@ -1,6 +1,6 @@
 //! Top-level app state: the menu bar and the editor for the open folder.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
@@ -410,12 +410,21 @@ enum TreeAction {
     },
 }
 
+/// A dialogue in the open folder, with its editor state.
+#[derive(Default)]
+struct Dialogue {
+    graph: Graph,
+    view: GraphView,
+    /// Changed since it was last written to its file.
+    dirty: bool,
+}
+
 pub struct Editor {
     /// The folder's name, shown in the title and menu bar.
     name: String,
     /// The open folder.
     root: PathBuf,
-    tree: DialogueTree,
+    tree: DialogueTree<Dialogue>,
     /// The highlighted sidebar item (folder or dialogue).
     selected: Option<String>,
     /// The dialogue shown on the canvas.
@@ -424,9 +433,6 @@ pub struct Editor {
     focus_rename: bool,
     confirm_delete: Option<String>,
     open_folders: HashSet<String>,
-    views: HashMap<String, GraphView>,
-    /// Dialogues with changes that haven't been written to disk.
-    dirty: HashSet<String>,
     status: Option<String>,
     error: Option<String>,
 }
@@ -435,6 +441,10 @@ impl Editor {
     /// Opens any folder: its dialogue files and subfolders make up the tree.
     fn load(root: &Path) -> Result<Self> {
         let (tree, warnings) = storage::load_tree(root).context("failed to read dialogues")?;
+        let tree = tree.map(|graph| Dialogue {
+            graph,
+            ..Dialogue::default()
+        });
         // A drive root has no name of its own.
         let name = root.file_name().map_or_else(
             || root.display().to_string(),
@@ -457,34 +467,37 @@ impl Editor {
             focus_rename: false,
             confirm_delete: None,
             open_folders: HashSet::new(),
-            views: HashMap::new(),
-            dirty: HashSet::new(),
             status: None,
             error,
         })
     }
 
+    /// Ids of the dialogues with unsaved changes.
+    fn dirty_dialogues(&self) -> impl Iterator<Item = &str> {
+        self.tree.items.iter().filter_map(|item| match &item.kind {
+            TreeItemKind::Dialogue(d) if d.dirty => Some(item.id.as_str()),
+            _ => None,
+        })
+    }
+
     fn is_dirty(&self) -> bool {
-        !self.dirty.is_empty()
+        self.dirty_dialogues().next().is_some()
     }
 
     /// Writes every changed dialogue to its file. Returns whether all of
     /// them were written.
     fn save(&mut self) -> bool {
-        let ids: Vec<String> = self.dirty.iter().cloned().collect();
+        let ids: Vec<String> = self.dirty_dialogues().map(String::from).collect();
         for id in ids {
-            let (Some(path), Some(graph)) = (
-                storage::path_of(&self.root, &self.tree, &id),
-                self.tree.graph(&id),
-            ) else {
-                self.dirty.remove(&id);
+            let Some(path) = storage::path_of(&self.root, &self.tree, &id) else {
                 continue;
             };
-            if let Err(err) = storage::write_dialogue(&path, graph) {
+            let dialogue = self.tree.dialogue_mut(&id).expect("listed above");
+            if let Err(err) = storage::write_dialogue(&path, &dialogue.graph) {
                 self.error = Some(format!("{err:#}"));
                 return false;
             }
-            self.dirty.remove(&id);
+            dialogue.dirty = false;
         }
         self.status = Some("Saved.".into());
         true
@@ -552,10 +565,9 @@ impl Editor {
         let Some(id) = self.open_dialogue.clone() else {
             return;
         };
-        let Some(graph) = self.tree.graph_mut(&id) else {
+        let Some(Dialogue { graph, view, dirty }) = self.tree.dialogue_mut(&id) else {
             return;
         };
-        let view = self.views.entry(id.clone()).or_default();
         if !view.has_selection(graph) {
             return;
         }
@@ -572,7 +584,7 @@ impl Editor {
             })
             .inner;
         if changed {
-            self.dirty.insert(id);
+            *dirty = true;
         }
     }
 
@@ -621,14 +633,13 @@ impl Editor {
             });
             return;
         };
-        let Some(graph) = self.tree.graph_mut(&id) else {
+        let keyboard = interactive && self.renaming.is_none() && self.confirm_delete.is_none();
+        let Some(Dialogue { graph, view, dirty }) = self.tree.dialogue_mut(&id) else {
             self.open_dialogue = None;
             return;
         };
-        let keyboard = interactive && self.renaming.is_none() && self.confirm_delete.is_none();
-        let view = self.views.entry(id.clone()).or_default();
         if view.show(ui, graph, keyboard).changed {
-            self.dirty.insert(id);
+            *dirty = true;
         }
     }
 
@@ -748,7 +759,7 @@ impl Editor {
 
             let open = self.open_folders.contains(&id);
             let selected = self.selected.as_deref() == Some(id.as_str());
-            let label = if !is_folder && self.dirty.contains(&id) {
+            let label = if self.tree.dialogue(&id).is_some_and(|d| d.dirty) {
                 format!("{name} •")
             } else {
                 name
@@ -830,7 +841,7 @@ impl Editor {
     fn apply_tree_action(&mut self, action: TreeAction) -> Result<()> {
         match action {
             TreeAction::Select(id) => {
-                if self.tree.graph(&id).is_some() {
+                if self.tree.dialogue(&id).is_some() {
                     self.open_dialogue = Some(id.clone());
                 }
                 self.selected = Some(id);
@@ -914,8 +925,6 @@ impl Editor {
                 {
                     self.selected = None;
                 }
-                self.views.retain(|d, _| tree.get(d).is_some());
-                self.dirty.retain(|d| tree.get(d).is_some());
             }
             TreeAction::Add { parent, folder } => {
                 let base = if folder { "New Folder" } else { "Untitled" };
@@ -935,7 +944,7 @@ impl Editor {
                 let kind = if folder {
                     TreeItemKind::Folder
                 } else {
-                    TreeItemKind::Dialogue(Graph::default())
+                    TreeItemKind::Dialogue(Dialogue::default())
                 };
                 let id = self.tree.insert(&parent, name.clone(), kind);
                 if parent != ROOT_ID {

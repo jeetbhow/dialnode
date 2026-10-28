@@ -1,6 +1,6 @@
 //! Core data types. Node data mirrors the dialogue file format.
 
-use eframe::egui::{Pos2, pos2};
+use eframe::egui::Pos2;
 
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -52,7 +52,8 @@ pub struct TextData {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct BranchContainerData {
-    pub branches: Vec<String>,
+    /// Branches and skill checks, in display order.
+    pub children: Vec<ChildNode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -129,11 +130,18 @@ impl NodeData {
     }
 }
 
+/// A branch or skill check. It lives inside a branch container, which lays
+/// it out, so it has no position of its own.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ChildNode {
+    pub id: String,
+    pub data: NodeData,
+}
+
+/// A top-level node on the canvas.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GraphNode {
     pub id: String,
-    pub parent_id: Option<String>,
-    /// Canvas position. Child nodes are laid out by their container.
     pub position: Pos2,
     pub width: Option<f32>,
     pub height: Option<f32>,
@@ -146,33 +154,108 @@ impl GraphNode {
     }
 }
 
+/// A container's children, or none for any other node.
+fn children(data: &NodeData) -> &[ChildNode] {
+    match data {
+        NodeData::BranchContainer(d) => &d.children,
+        _ => &[],
+    }
+}
+
+fn children_mut(data: &mut NodeData) -> Option<&mut Vec<ChildNode>> {
+    match data {
+        NodeData::BranchContainer(d) => Some(&mut d.children),
+        _ => None,
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Graph {
+    /// Top-level nodes. Branches and skill checks are inside their
+    /// containers.
     pub nodes: Vec<GraphNode>,
 }
 
 impl Graph {
+    /// Every node, children included, as `(id, data)`.
+    pub fn all_nodes(&self) -> impl Iterator<Item = (&str, &NodeData)> {
+        self.nodes.iter().flat_map(|n| {
+            std::iter::once((n.id.as_str(), &n.data))
+                .chain(children(&n.data).iter().map(|c| (c.id.as_str(), &c.data)))
+        })
+    }
+
+    fn for_each_data_mut(&mut self, mut f: impl FnMut(&mut NodeData)) {
+        for node in &mut self.nodes {
+            if let Some(children) = children_mut(&mut node.data) {
+                for child in children {
+                    f(&mut child.data);
+                }
+            }
+            f(&mut node.data);
+        }
+    }
+
     /// The connections to draw, as `(source id, link)`: every link whose
     /// target exists.
     pub fn edges(&self) -> impl Iterator<Item = (&str, &Link)> {
-        self.nodes.iter().filter_map(|n| {
-            let link = n.data.next()?;
-            self.node(&link.target).map(|_| (n.id.as_str(), link))
+        self.all_nodes().filter_map(|(id, data)| {
+            let link = data.next()?;
+            self.contains(&link.target).then_some((id, link))
         })
     }
 
     /// The node's link, if it's drawn.
     pub fn edge_from(&self, source: &str) -> Option<&Link> {
-        let link = self.node(source)?.data.next()?;
-        self.node(&link.target).map(|_| link)
+        let link = self.data(source)?.next()?;
+        self.contains(&link.target).then_some(link)
     }
 
+    /// Whether any node, top-level or child, has this id.
+    pub fn contains(&self, id: &str) -> bool {
+        self.data(id).is_some()
+    }
+
+    /// A top-level node.
     pub fn node(&self, id: &str) -> Option<&GraphNode> {
         self.nodes.iter().find(|n| n.id == id)
     }
 
+    /// A top-level node.
     pub fn node_mut(&mut self, id: &str) -> Option<&mut GraphNode> {
         self.nodes.iter_mut().find(|n| n.id == id)
+    }
+
+    /// Any node's data, top-level or child.
+    pub fn data(&self, id: &str) -> Option<&NodeData> {
+        self.all_nodes().find(|(i, _)| *i == id).map(|(_, d)| d)
+    }
+
+    pub fn data_mut(&mut self, id: &str) -> Option<&mut NodeData> {
+        for node in &mut self.nodes {
+            if node.id == id {
+                return Some(&mut node.data);
+            }
+            if let Some(children) = children_mut(&mut node.data)
+                && let Some(child) = children.iter_mut().find(|c| c.id == id)
+            {
+                return Some(&mut child.data);
+            }
+        }
+        None
+    }
+
+    /// The container a child node is in.
+    pub fn parent_of(&self, id: &str) -> Option<&str> {
+        self.nodes
+            .iter()
+            .find(|n| children(&n.data).iter().any(|c| c.id == id))
+            .map(|n| n.id.as_str())
+    }
+
+    /// A container's children in display order.
+    pub fn children_of(&self, container_id: &str) -> &[ChildNode] {
+        self.node(container_id).map_or(&[], |n| children(&n.data))
     }
 
     /// Adds a top-level node and returns its id.
@@ -189,7 +272,6 @@ impl Graph {
         };
         self.nodes.push(GraphNode {
             id: id.clone(),
-            parent_id: None,
             position,
             width,
             height,
@@ -202,89 +284,55 @@ impl Graph {
     pub fn add_child(&mut self, container_id: &str, node_type: NodeType) -> Option<String> {
         debug_assert!(node_type.is_child());
         let id = new_id();
-        let container = self.node_mut(container_id)?;
-        let NodeData::BranchContainer(data) = &mut container.data else {
-            return None;
-        };
-        data.branches.push(id.clone());
-
-        self.nodes.push(GraphNode {
+        children_mut(&mut self.node_mut(container_id)?.data)?.push(ChildNode {
             id: id.clone(),
-            parent_id: Some(container_id.to_string()),
-            position: pos2(0.0, 0.0),
-            width: None,
-            height: None,
             data: NodeData::default_for(node_type),
         });
         Some(id)
     }
 
-    /// Ids of a container's children in display order. Falls back to
-    /// `parent_id` for children missing from the container's branch list.
-    pub fn children_of(&self, container_id: &str) -> Vec<String> {
-        let mut ids: Vec<String> = match self.node(container_id).map(|n| &n.data) {
-            Some(NodeData::BranchContainer(d)) => d
-                .branches
-                .iter()
-                .filter(|b| self.node(b).is_some())
-                .cloned()
-                .collect(),
-            _ => Vec::new(),
-        };
-        for node in &self.nodes {
-            if node.parent_id.as_deref() == Some(container_id) && !ids.contains(&node.id) {
-                ids.push(node.id.clone());
-            }
-        }
-        ids
-    }
-
     /// Moves a branch or skill check to position `index` among its container's
     /// children (clamped to the last place). Returns whether the order changed.
     pub fn move_child(&mut self, child_id: &str, index: usize) -> bool {
-        let Some(parent) = self.node(child_id).and_then(|n| n.parent_id.clone()) else {
+        let Some(parent) = self.parent_of(child_id).map(String::from) else {
             return false;
         };
-        let mut order = self.children_of(&parent);
-        let Some(from) = order.iter().position(|c| c == child_id) else {
+        let Some(children) = self
+            .node_mut(&parent)
+            .and_then(|n| children_mut(&mut n.data))
+        else {
             return false;
         };
-        let to = index.min(order.len() - 1);
+        let Some(from) = children.iter().position(|c| c.id == child_id) else {
+            return false;
+        };
+        let to = index.min(children.len() - 1);
         if from == to {
             return false;
         }
-        let child = order.remove(from);
-        order.insert(to, child);
-        match self.node_mut(&parent).map(|n| &mut n.data) {
-            Some(NodeData::BranchContainer(d)) => {
-                d.branches = order;
-                true
-            }
-            _ => false,
-        }
+        let child = children.remove(from);
+        children.insert(to, child);
+        true
     }
 
     /// Removes a node together with its children and any links to them.
     pub fn remove_node(&mut self, id: &str) {
         let mut removed = vec![id.to_string()];
-        removed.extend(self.children_of(id));
+        removed.extend(self.children_of(id).iter().map(|c| c.id.clone()));
 
-        let parent_id = self.node(id).and_then(|n| n.parent_id.clone());
-        if let Some(parent_id) = parent_id
-            && let Some(NodeData::BranchContainer(d)) =
-                self.node_mut(&parent_id).map(|n| &mut n.data)
-        {
-            d.branches.retain(|b| b != id);
-        }
-
-        self.nodes.retain(|n| !removed.contains(&n.id));
+        self.nodes.retain(|n| n.id != id);
         for node in &mut self.nodes {
-            if let Some(next) = node.data.next_mut()
+            if let Some(children) = children_mut(&mut node.data) {
+                children.retain(|c| c.id != id);
+            }
+        }
+        self.for_each_data_mut(|data| {
+            if let Some(next) = data.next_mut()
                 && next.as_ref().is_some_and(|l| removed.contains(&l.target))
             {
                 *next = None;
             }
-        }
+        });
     }
 
     /// Connects `source` to `target`, replacing the source's previous link
@@ -296,10 +344,10 @@ impl Graph {
         target: &str,
         target_handle: Option<String>,
     ) -> bool {
-        if source == target || self.node(target).is_none() {
+        if source == target || !self.contains(target) {
             return false;
         }
-        let Some(next) = self.node_mut(source).and_then(|n| n.data.next_mut()) else {
+        let Some(next) = self.data_mut(source).and_then(NodeData::next_mut) else {
             return false;
         };
         *next = Some(Link {
@@ -312,30 +360,30 @@ impl Graph {
 
     /// Removes `source`'s link.
     pub fn disconnect(&mut self, source: &str) {
-        if let Some(next) = self.node_mut(source).and_then(|n| n.data.next_mut()) {
+        if let Some(next) = self.data_mut(source).and_then(NodeData::next_mut) {
             *next = None;
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TreeItemKind {
+pub enum TreeItemKind<D = Graph> {
     Folder,
-    Dialogue(Graph),
+    Dialogue(D),
 }
 
 /// A folder or dialogue file in the repository directory.
 #[derive(Clone, Debug, PartialEq)]
-pub struct TreeItem {
+pub struct TreeItem<D = Graph> {
     pub id: String,
     /// Folder name, or the dialogue's file name without `.json`.
     pub name: String,
     /// `ROOT_ID` for top-level items.
     pub parent: String,
-    pub kind: TreeItemKind,
+    pub kind: TreeItemKind<D>,
 }
 
-impl TreeItem {
+impl<D> TreeItem<D> {
     pub fn is_folder(&self) -> bool {
         matches!(self.kind, TreeItemKind::Folder)
     }
@@ -353,42 +401,60 @@ impl TreeItem {
 /// The folder/dialogue hierarchy shown in the sidebar, mirroring the
 /// repository directory.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct DialogueTree {
-    pub items: Vec<TreeItem>,
+pub struct DialogueTree<D = Graph> {
+    pub items: Vec<TreeItem<D>>,
 }
 
-impl DialogueTree {
-    pub fn get(&self, id: &str) -> Option<&TreeItem> {
+impl<D> DialogueTree<D> {
+    pub fn get(&self, id: &str) -> Option<&TreeItem<D>> {
         self.items.iter().find(|i| i.id == id)
     }
 
-    pub fn get_mut(&mut self, id: &str) -> Option<&mut TreeItem> {
+    pub fn get_mut(&mut self, id: &str) -> Option<&mut TreeItem<D>> {
         self.items.iter_mut().find(|i| i.id == id)
     }
 
     /// Children sorted like a file browser: folders first, then by name.
-    pub fn children(&self, parent: &str) -> Vec<&TreeItem> {
-        let mut children: Vec<&TreeItem> =
+    pub fn children(&self, parent: &str) -> Vec<&TreeItem<D>> {
+        let mut children: Vec<&TreeItem<D>> =
             self.items.iter().filter(|i| i.parent == parent).collect();
         children.sort_by_cached_key(|i| (!i.is_folder(), i.name.to_lowercase()));
         children
     }
 
-    pub fn graph(&self, id: &str) -> Option<&Graph> {
+    pub fn dialogue(&self, id: &str) -> Option<&D> {
         match &self.get(id)?.kind {
             TreeItemKind::Dialogue(g) => Some(g),
             TreeItemKind::Folder => None,
         }
     }
 
-    pub fn graph_mut(&mut self, id: &str) -> Option<&mut Graph> {
+    pub fn dialogue_mut(&mut self, id: &str) -> Option<&mut D> {
         match &mut self.get_mut(id)?.kind {
             TreeItemKind::Dialogue(g) => Some(g),
             TreeItemKind::Folder => None,
         }
     }
 
-    pub fn insert(&mut self, parent: &str, name: String, kind: TreeItemKind) -> String {
+    /// The same tree, with each dialogue turned into an `E`.
+    pub fn map<E>(self, mut f: impl FnMut(D) -> E) -> DialogueTree<E> {
+        let items = self
+            .items
+            .into_iter()
+            .map(|item| TreeItem {
+                id: item.id,
+                name: item.name,
+                parent: item.parent,
+                kind: match item.kind {
+                    TreeItemKind::Folder => TreeItemKind::Folder,
+                    TreeItemKind::Dialogue(d) => TreeItemKind::Dialogue(f(d)),
+                },
+            })
+            .collect();
+        DialogueTree { items }
+    }
+
+    pub fn insert(&mut self, parent: &str, name: String, kind: TreeItemKind<D>) -> String {
         let id = new_id();
         self.items.push(TreeItem {
             id: id.clone(),
@@ -466,7 +532,7 @@ impl DialogueTree {
         if id == folder || self.is_descendant(folder, id) || self.get(id).is_none() {
             return false;
         }
-        folder == ROOT_ID || self.get(folder).is_some_and(TreeItem::is_folder)
+        folder == ROOT_ID || self.get(folder).is_some_and(|i| i.is_folder())
     }
 
     pub fn move_item(&mut self, id: &str, folder: &str) -> bool {
@@ -480,7 +546,7 @@ impl DialogueTree {
     /// Ids of every dialogue, in sidebar order.
     #[cfg(any(test, debug_assertions))]
     pub fn dialogues(&self) -> Vec<String> {
-        fn visit(tree: &DialogueTree, parent: &str, out: &mut Vec<String>) {
+        fn visit<D>(tree: &DialogueTree<D>, parent: &str, out: &mut Vec<String>) {
             for child in tree.children(parent) {
                 if child.is_folder() {
                     visit(tree, &child.id, out);
@@ -548,23 +614,45 @@ mod tests {
         graph.connect(&branch, None, &end, None);
 
         graph.remove_node(&container);
-        assert!(graph.node(&branch).is_none());
+        assert!(!graph.contains(&branch));
         assert_eq!(graph.node(&a).unwrap().data.next(), None);
         assert_eq!(graph.edges().count(), 0);
     }
 
+    fn child_ids(graph: &Graph, container: &str) -> Vec<String> {
+        graph
+            .children_of(container)
+            .iter()
+            .map(|c| c.id.clone())
+            .collect()
+    }
+
     #[test]
-    fn removing_a_child_takes_it_out_of_the_branch_list() {
+    fn children_can_be_reordered_and_removed() {
         let mut graph = Graph::default();
         let container = graph.add_node(NodeType::BranchContainer, Pos2::ZERO);
         let first = graph.add_child(&container, NodeType::Branch).unwrap();
         let second = graph.add_child(&container, NodeType::SkillCheck).unwrap();
+        assert_eq!(graph.parent_of(&second), Some(container.as_str()));
         assert!(graph.move_child(&second, 0));
+        assert!(!graph.move_child(&second, 0));
         assert_eq!(
-            graph.children_of(&container),
+            child_ids(&graph, &container),
             [second.clone(), first.clone()]
         );
         graph.remove_node(&second);
-        assert_eq!(graph.children_of(&container), [first]);
+        assert_eq!(child_ids(&graph, &container), [first]);
+    }
+
+    #[test]
+    fn children_link_like_top_level_nodes() {
+        let mut graph = Graph::default();
+        let container = graph.add_node(NodeType::BranchContainer, Pos2::ZERO);
+        let branch = graph.add_child(&container, NodeType::Branch).unwrap();
+        let end = graph.add_node(NodeType::End, Pos2::ZERO);
+        assert!(graph.connect(&branch, None, &end, None));
+        assert_eq!(graph.edge_from(&branch).unwrap().target, end);
+        graph.remove_node(&end);
+        assert_eq!(graph.data(&branch).unwrap().next(), None);
     }
 }

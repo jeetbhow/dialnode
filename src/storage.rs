@@ -9,6 +9,7 @@
 //! carry an extra `layout` object (canvas position, container size, and which
 //! handles its outgoing edge uses); games can ignore it.
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -17,8 +18,8 @@ use eframe::egui::pos2;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{
-    BranchContainerData, BranchData, DialogueTree, Graph, GraphNode, Link, NodeData, ROOT_ID,
-    SkillCheckData, StartData, TextData, TreeItemKind,
+    BranchContainerData, BranchData, ChildNode, DialogueTree, Graph, GraphNode, Link, NodeData,
+    ROOT_ID, SkillCheckData, StartData, TextData, TreeItemKind,
 };
 
 const DIALOGUE_EXTENSION: &str = "json";
@@ -104,11 +105,15 @@ impl Layout {
     }
 }
 
-fn to_record(node: &GraphNode) -> NodeRecord {
-    let link = node.data.next();
+/// The record for any node. `layout` holds its placement, if it has one;
+/// the handles its link uses are added here.
+fn to_record(id: &str, data: &NodeData, parent_id: Option<&str>, mut layout: Layout) -> NodeRecord {
+    let link = data.next();
+    layout.source_handle = link.and_then(|l| l.source_handle.clone());
+    layout.target_handle = link.and_then(|l| l.target_handle.clone());
     let next = link.map(|l| l.target.clone());
-    let parent_id = node.parent_id.clone();
-    let body = match &node.data {
+    let parent_id = parent_id.map(String::from);
+    let body = match data {
         NodeData::Start(_) => NodeBody::Start { next },
         NodeData::End => NodeBody::End,
         NodeData::Text(d) => NodeBody::Text {
@@ -117,7 +122,7 @@ fn to_record(node: &GraphNode) -> NodeRecord {
             next,
         },
         NodeData::BranchContainer(d) => NodeBody::BranchContainer {
-            branches: d.branches.clone(),
+            branches: d.children.iter().map(|c| c.id.clone()).collect(),
         },
         NodeData::Branch(d) => NodeBody::Branch {
             parent_id,
@@ -132,27 +137,51 @@ fn to_record(node: &GraphNode) -> NodeRecord {
             next,
         },
     };
-    // Children are positioned by their container, so only top-level nodes
-    // record a position.
-    let top_level = node.parent_id.is_none();
-    let layout = Layout {
-        x: top_level.then_some(node.position.x),
-        y: top_level.then_some(node.position.y),
-        width: node.width.filter(|_| top_level),
-        height: node.height.filter(|_| top_level),
-        source_handle: link.and_then(|l| l.source_handle.clone()),
-        target_handle: link.and_then(|l| l.target_handle.clone()),
-    };
     NodeRecord {
-        id: node.id.clone(),
+        id: id.to_string(),
         body,
         layout,
     }
 }
 
+/// Every node's record, each container followed by its children.
+fn dialogue_records(graph: &Graph) -> Vec<NodeRecord> {
+    let mut records = Vec::new();
+    for node in &graph.nodes {
+        // Children are positioned by their container, so only top-level
+        // nodes record a position.
+        let placement = Layout {
+            x: Some(node.position.x),
+            y: Some(node.position.y),
+            width: node.width,
+            height: node.height,
+            ..Layout::default()
+        };
+        records.push(to_record(&node.id, &node.data, None, placement));
+        for child in graph.children_of(&node.id) {
+            records.push(to_record(
+                &child.id,
+                &child.data,
+                Some(&node.id),
+                Layout::default(),
+            ));
+        }
+    }
+    records
+}
+
+/// A node read from a file, before children are put in their containers.
+struct LoadedNode {
+    node: GraphNode,
+    /// A branch or skill check's `parentId`.
+    parent_id: Option<String>,
+    /// A container's `branches`: the order of its children.
+    branches: Vec<String>,
+}
+
 /// `index` is the node's place in the file, used to spread out nodes that
 /// have no position.
-fn from_record(index: usize, record: NodeRecord) -> GraphNode {
+fn from_record(index: usize, record: NodeRecord) -> LoadedNode {
     let NodeRecord { id, body, layout } = record;
     let link = |next: Option<String>| {
         next.map(|target| Link {
@@ -161,80 +190,109 @@ fn from_record(index: usize, record: NodeRecord) -> GraphNode {
             target_handle: layout.target_handle.clone(),
         })
     };
-    let (parent_id, data) = match body {
-        NodeBody::Start { next } => (None, NodeData::Start(StartData { next: link(next) })),
-        NodeBody::End => (None, NodeData::End),
+    let mut parent_id = None;
+    let mut branches = Vec::new();
+    let data = match body {
+        NodeBody::Start { next } => NodeData::Start(StartData { next: link(next) }),
+        NodeBody::End => NodeData::End,
         NodeBody::Text {
             text,
             speaker,
             next,
-        } => (
-            None,
-            NodeData::Text(TextData {
-                speaker,
-                text,
-                next: link(next),
-            }),
-        ),
-        NodeBody::BranchContainer { branches } => (
-            None,
-            NodeData::BranchContainer(BranchContainerData { branches }),
-        ),
+        } => NodeData::Text(TextData {
+            speaker,
+            text,
+            next: link(next),
+        }),
+        NodeBody::BranchContainer { branches: order } => {
+            branches = order;
+            NodeData::BranchContainer(BranchContainerData::default())
+        }
         NodeBody::Branch {
-            parent_id,
+            parent_id: parent,
             text,
             next,
-        } => (
-            parent_id,
+        } => {
+            parent_id = parent;
             NodeData::Branch(BranchData {
                 text,
                 next: link(next),
-            }),
-        ),
+            })
+        }
         NodeBody::SkillCheck {
-            parent_id,
+            parent_id: parent,
             text,
             skill,
             difficulty,
             next,
-        } => (
-            parent_id,
+        } => {
+            parent_id = parent;
             NodeData::SkillCheck(SkillCheckData {
                 text,
                 skill,
                 difficulty,
                 next: link(next),
-            }),
-        ),
+            })
+        }
     };
-    let fallback = if parent_id.is_some() {
-        pos2(0.0, 0.0)
-    } else {
-        pos2(index as f32 * AUTO_LAYOUT_STEP, 0.0)
-    };
-    GraphNode {
+    let node = GraphNode {
         id,
-        parent_id,
         position: pos2(
-            layout.x.unwrap_or(fallback.x),
-            layout.y.unwrap_or(fallback.y),
+            layout.x.unwrap_or(index as f32 * AUTO_LAYOUT_STEP),
+            layout.y.unwrap_or(0.0),
         ),
         width: layout.width,
         height: layout.height,
         data,
+    };
+    LoadedNode {
+        node,
+        parent_id,
+        branches,
     }
 }
 
 /// Reads a dialogue file. Links to nodes that don't exist are kept, and just
-/// don't draw.
+/// don't draw. A branch or skill check whose parent isn't a container in
+/// the file stays on the canvas as a top-level node.
 pub fn parse_dialogue(text: &str) -> Result<Graph> {
     let records: Vec<NodeRecord> = serde_json::from_str(text)?;
-    let nodes = records
+    let loaded: Vec<LoadedNode> = records
         .into_iter()
         .enumerate()
         .map(|(index, record)| from_record(index, record))
         .collect();
-    Ok(Graph { nodes })
+    let orders: HashMap<String, Vec<String>> = loaded
+        .iter()
+        .filter(|l| matches!(l.node.data, NodeData::BranchContainer(_)))
+        .map(|l| (l.node.id.clone(), l.branches.clone()))
+        .collect();
+
+    let mut graph = Graph::default();
+    let mut children = Vec::new();
+    for l in loaded {
+        match l.parent_id.filter(|p| orders.contains_key(p)) {
+            Some(parent) => children.push((parent, l.node)),
+            None => graph.nodes.push(l.node),
+        }
+    }
+    // Children go in the order their container lists them, then any it
+    // doesn't list in file order.
+    children.sort_by_key(|(parent, child)| {
+        orders[parent]
+            .iter()
+            .position(|b| *b == child.id)
+            .unwrap_or(usize::MAX)
+    });
+    for (parent, child) in children {
+        if let Some(NodeData::BranchContainer(d)) = graph.data_mut(&parent) {
+            d.children.push(ChildNode {
+                id: child.id,
+                data: child.data,
+            });
+        }
+    }
+    Ok(graph)
 }
 
 /// Writes through a temporary file so a crash can't leave a half-written
@@ -246,7 +304,7 @@ fn write_atomic(path: &Path, contents: &str) -> Result<()> {
 }
 
 fn dialogue_text(graph: &Graph) -> Result<String> {
-    let records: Vec<NodeRecord> = graph.nodes.iter().map(to_record).collect();
+    let records = dialogue_records(graph);
     let mut text = serde_json::to_string_pretty(&records)?;
     text.push('\n');
     Ok(text)
@@ -366,7 +424,7 @@ pub fn trash(path: &Path) -> Result<()> {
     trash::delete(path).with_context(|| format!("couldn't move {} to the trash", path.display()))
 }
 
-pub fn path_of(root: &Path, tree: &DialogueTree, id: &str) -> Option<PathBuf> {
+pub fn path_of<D>(root: &Path, tree: &DialogueTree<D>, id: &str) -> Option<PathBuf> {
     tree.rel_path(id).map(|rel| root.join(rel))
 }
 
@@ -476,7 +534,7 @@ mod tests {
         assert_eq!(d.speaker.as_deref(), Some("Jeet"));
         let choice = graph.node("choice").unwrap();
         assert_eq!((choice.width, choice.height), (Some(260.0), Some(300.0)));
-        assert_eq!(graph.children_of("choice"), ["blue", "check"]);
+        assert_eq!(child_ids(&graph, "choice"), ["blue", "check"]);
         assert_eq!(
             targets(&graph),
             [
@@ -501,7 +559,7 @@ mod tests {
         let a = graph.node("a").unwrap();
         assert_eq!(a.data, NodeData::Text(TextData::default()));
         assert_eq!(a.position, pos2(0.0, 0.0));
-        let NodeData::SkillCheck(b) = &graph.node("b").unwrap().data else {
+        let Some(NodeData::SkillCheck(b)) = graph.data("b") else {
             panic!("b is a skill check");
         };
         assert_eq!(b.difficulty, 1);
@@ -510,7 +568,7 @@ mod tests {
             graph.node("c").unwrap().position,
             pos2(2.0 * AUTO_LAYOUT_STEP, 0.0)
         );
-        assert_eq!(graph.children_of("c"), ["b"]);
+        assert_eq!(child_ids(&graph, "c"), ["b"]);
     }
 
     #[test]
@@ -528,5 +586,45 @@ mod tests {
         assert!(parse_dialogue(r#"[{"type": "end"}]"#).is_err());
         assert!(parse_dialogue(r#"[{"id": "a", "type": "nope"}]"#).is_err());
         assert!(parse_dialogue(r#"[{"id": "a"}]"#).is_err());
+    }
+
+    fn child_ids(graph: &Graph, container: &str) -> Vec<String> {
+        graph
+            .children_of(container)
+            .iter()
+            .map(|c| c.id.clone())
+            .collect()
+    }
+
+    #[test]
+    fn orders_children_by_the_branch_list_then_the_file() {
+        let graph = parse_dialogue(
+            r#"[
+                {"id": "x", "type": "branch", "parentId": "c"},
+                {"id": "y", "type": "branch", "parentId": "c"},
+                {"id": "c", "type": "branchContainer", "branches": ["y", "gone"]},
+                {"id": "z", "type": "skillCheck", "parentId": "c"}
+            ]"#,
+        )
+        .unwrap();
+        assert_eq!(child_ids(&graph, "c"), ["y", "x", "z"]);
+        assert_eq!(graph.nodes.len(), 1);
+        // Saving writes the container's children right after it.
+        let saved = parse_dialogue(&dialogue_text(&graph).unwrap()).unwrap();
+        assert_eq!(saved, graph);
+    }
+
+    #[test]
+    fn keeps_children_without_a_container_on_the_canvas() {
+        let graph = parse_dialogue(
+            r#"[
+                {"id": "a", "type": "end"},
+                {"id": "b", "type": "branch", "parentId": "a", "text": "Hi"}
+            ]"#,
+        )
+        .unwrap();
+        let b = graph.node("b").expect("b is top-level");
+        assert_eq!(b.position, pos2(AUTO_LAYOUT_STEP, 0.0));
+        assert_eq!(graph.parent_of("b"), None);
     }
 }

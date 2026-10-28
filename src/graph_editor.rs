@@ -203,7 +203,7 @@ impl GraphView {
     pub fn has_selection(&self, graph: &Graph) -> bool {
         self.selected
             .as_deref()
-            .is_some_and(|id| graph.node(id).is_some())
+            .is_some_and(|id| graph.contains(id))
     }
 
     fn xf(&self, canvas: Rect) -> Xf {
@@ -363,13 +363,8 @@ impl GraphView {
 
         let mut handles = Vec::new();
         let mut release = None;
-        let top_level: Vec<String> = graph
-            .nodes
-            .iter()
-            .filter(|n| n.parent_id.as_ref().is_none_or(|p| graph.node(p).is_none()))
-            .map(|n| n.id.clone())
-            .collect();
-        self.rects.retain(|id, _| graph.node(id).is_some());
+        let top_level: Vec<String> = graph.nodes.iter().map(|n| n.id.clone()).collect();
+        self.rects.retain(|id, _| graph.contains(id));
 
         for id in &top_level {
             let mut ctx = NodeCtx {
@@ -420,11 +415,8 @@ impl GraphView {
         // While a node is dragged, its links stand out and the rest recede.
         // A container's links are its branches' links.
         let dragged = self.dragging.as_deref();
-        let moves_with_drag = |node: &str| {
-            dragged.is_some_and(|d| {
-                node == d || graph.node(node).and_then(|n| n.parent_id.as_deref()) == Some(d)
-            })
-        };
+        let moves_with_drag =
+            |node: &str| dragged.is_some_and(|d| node == d || graph.parent_of(node) == Some(d));
 
         let arrow = ARROW_SIZE * xf.zoom;
         let mut shapes = Vec::new();
@@ -486,8 +478,8 @@ impl GraphView {
             };
             let points = bezier(c.from, c.side, end, end_side).map(|p| xf.to_screen(p));
             let color = graph
-                .node(&c.source)
-                .map_or(theme::EDGE_HOVER, |n| node_accent(n.node_type()));
+                .data(&c.source)
+                .map_or(theme::EDGE_HOVER, |d| node_accent(d.node_type()));
             // Snapped onto an input, its own arrowhead does the pointing;
             // otherwise the loose end needs one.
             let arrow = if snap.is_some() { 0.0 } else { arrow };
@@ -516,10 +508,7 @@ impl GraphView {
         ctx: &mut NodeCtx<'_>,
     ) -> Rect {
         let egui_id = Id::unique(("dialnode-node", id));
-        let (size, content) = {
-            let node = graph.node(id).expect("caller checked");
-            measure_card(ui, id, &node.data, width)
-        };
+        let (size, content) = measure_card(ui, id, graph.data(id).expect("caller checked"), width);
         let rect = Rect::from_min_size(origin, size);
         self.rects.insert(id.to_string(), rect);
         // Where the card is in the layout; this is what picks up the drag.
@@ -542,8 +531,8 @@ impl GraphView {
         }
 
         let zoom = xf.zoom;
-        let node = graph.node(id).expect("caller checked");
-        let accent = node_accent(node.node_type());
+        let data = graph.data(id).expect("caller checked");
+        let accent = node_accent(data.node_type());
         ui.scope_builder(
             UiBuilder::new()
                 .id_salt(egui_id)
@@ -556,7 +545,7 @@ impl GraphView {
                 node_frame(selected, lifted, zoom, accent).show(ui, |ui| {
                     ui.set_width(content.x * zoom);
                     ui.set_min_height(content.y * zoom);
-                    node_body(ui, &node.data);
+                    node_body(ui, data);
                 });
             },
         );
@@ -574,10 +563,7 @@ impl GraphView {
         const SIDEWAYS: f32 = 20.0;
         let (Some(rect), Some(parent)) = (
             self.rects.get(child),
-            graph
-                .node(child)
-                .and_then(|n| n.parent_id.as_deref())
-                .and_then(|p| self.rects.get(p)),
+            graph.parent_of(child).and_then(|p| self.rects.get(p)),
         ) else {
             return Vec2::ZERO;
         };
@@ -595,14 +581,14 @@ impl GraphView {
     /// its siblings, and the world y of the gap it would go in. `None` when
     /// it has no siblings to be ordered against.
     fn drop_target(&self, graph: &Graph, child: &str) -> Option<(usize, f32)> {
-        let parent = graph.node(child)?.parent_id.clone()?;
+        let parent = graph.parent_of(child)?;
         let rect = *self.rects.get(child)?;
         let centre = rect.center().y + self.pulled_offset(graph, child).y;
         let others: Vec<Rect> = graph
-            .children_of(&parent)
+            .children_of(parent)
             .iter()
-            .filter(|sibling| sibling.as_str() != child)
-            .filter_map(|sibling| self.rects.get(sibling).copied())
+            .filter(|sibling| sibling.id != child)
+            .filter_map(|sibling| self.rects.get(&sibling.id).copied())
             .collect();
         if others.is_empty() {
             return None;
@@ -662,19 +648,14 @@ impl GraphView {
         let mut y = origin.y + CONTAINER_HEADER;
         // A branch being dragged is drawn last, so it passes over the others.
         let mut pulled = None;
-        for child in graph.children_of(id) {
+        let children: Vec<String> = graph.children_of(id).iter().map(|c| c.id.clone()).collect();
+        for child in children {
             let child_origin = pos2(origin.x + CHILD_INSET, y);
             let child_width = width - 2.0 * CHILD_INSET;
-            let child_type = graph.node(&child).expect("listed").node_type();
-            if !child_type.is_child() {
-                continue;
-            }
             if self.dragging.as_deref() == Some(child.as_str()) {
                 // Its slot keeps its place in the layout until it's dropped.
-                let size = {
-                    let node = graph.node(&child).expect("listed");
-                    measure_card(ui, &child, &node.data, child_width).0
-                };
+                let data = graph.data(&child).expect("listed");
+                let size = measure_card(ui, &child, data, child_width).0;
                 y = Rect::from_min_size(child_origin, size).bottom() + CHILD_GAP;
                 self.rects
                     .insert(child.clone(), Rect::from_min_size(child_origin, size));
@@ -796,7 +777,7 @@ impl GraphView {
         rect: Rect,
         ctx: &mut NodeCtx<'_>,
     ) {
-        let node_type = graph.node(id).expect("caller checked").node_type();
+        let node_type = graph.data(id).expect("caller checked").node_type();
         let defs = handle_defs(node_type);
         // A text node only offers the source handle it's already using.
         let used_source = graph
@@ -1008,17 +989,17 @@ impl GraphView {
             return None;
         }
         let selected = self.selected.as_deref()?;
-        let node = graph.node(selected)?;
+        let selected_type = graph.data(selected)?.node_type();
         // Branches and skill checks sit in a container, so go after that.
         let anchor = *self
             .rects
-            .get(node.parent_id.as_deref().unwrap_or(selected))?;
+            .get(graph.parent_of(selected).unwrap_or(selected))?;
         let row = self.rects.get(selected).map_or(anchor.top(), |r| r.top());
 
         let size = vec2(node_width(new_type), nominal_height(new_type));
         let pos = self.clear_of_nodes(pos2(anchor.right() + SPAWN_GAP, row), size);
 
-        let source_handle = match node.node_type() {
+        let source_handle = match selected_type {
             NodeType::Text => Some("right-source".to_string()),
             NodeType::Start | NodeType::Branch | NodeType::SkillCheck => None,
             NodeType::End | NodeType::BranchContainer => {
@@ -1175,19 +1156,20 @@ impl GraphView {
     /// The panel that edits the selected node; draws nothing without a
     /// selection. Returns whether the graph changed.
     pub fn inspector(&mut self, ui: &mut Ui, graph: &mut Graph) -> bool {
-        let Some(node) = self.selected.as_deref().and_then(|id| graph.node_mut(id)) else {
+        let Some(id) = self.selected.clone() else {
             return false;
         };
-        let id = node.id.clone();
+        let Some(data) = graph.data_mut(&id) else {
+            return false;
+        };
         let mut changed = false;
         let mut action = None;
 
+        let node_type = data.node_type();
         ui.add_space(8.0);
-        ui.heading(
-            RichText::new(node_title(node.node_type())).color(node_accent(node.node_type())),
-        );
+        ui.heading(RichText::new(node_title(node_type)).color(node_accent(node_type)));
         // Field state (cursor, scroll) belongs to one node.
-        ui.push_id(&id, |ui| match &mut node.data {
+        ui.push_id(&id, |ui| match data {
             NodeData::Start(_) | NodeData::End => {
                 ui.add_space(6.0);
                 ui.label(RichText::new("This node has nothing to edit.").color(theme::SMALL_TEXT));
