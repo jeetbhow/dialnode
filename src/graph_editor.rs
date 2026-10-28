@@ -5,8 +5,8 @@ use std::path::Path;
 
 use eframe::egui::{
     self, Align, Align2, Area, Color32, ComboBox, CornerRadius, DragValue, Frame, Id, Key, Layout,
-    Order, Pos2, Rect, Scene, Sense, Shadow, Shape, Stroke, TextEdit, TextStyle, Ui, UiBuilder,
-    Vec2, containers::DragPanButtons, epaint::CubicBezierShape, pos2, vec2,
+    Order, Pos2, Rect, Scene, Sense, Shadow, Shape, Stroke, TextEdit, Ui, UiBuilder, Vec2,
+    containers::DragPanButtons, epaint::CubicBezierShape, pos2, vec2,
 };
 
 use crate::images::TextureCache;
@@ -958,7 +958,6 @@ fn node_body(
             let resp = ui.add(
                 TextEdit::multiline(&mut d.text)
                     .hint_text("Enter the dialogue text.")
-                    .font(TextStyle::Monospace)
                     .desired_rows(2)
                     .desired_width(f32::INFINITY),
             );
@@ -971,7 +970,6 @@ fn node_body(
             let resp = ui.add(
                 TextEdit::singleline(&mut d.text)
                     .hint_text("Branch text")
-                    .font(TextStyle::Monospace)
                     .desired_width(f32::INFINITY),
             );
             *changed |= resp.changed();
@@ -982,7 +980,6 @@ fn node_body(
             let resp = ui.add(
                 TextEdit::singleline(&mut d.text)
                     .hint_text("Enter skill check text.")
-                    .font(TextStyle::Monospace)
                     .desired_width(f32::INFINITY),
             );
             *changed |= resp.changed();

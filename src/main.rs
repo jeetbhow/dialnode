@@ -10,9 +10,7 @@ mod repository;
 mod storage;
 mod theme;
 
-use std::sync::Arc;
-
-use eframe::egui::{self, FontData, FontDefinitions, FontFamily};
+use eframe::egui;
 
 fn main() -> eframe::Result {
     #[cfg(target_os = "linux")]
@@ -34,7 +32,6 @@ fn main() -> eframe::Result {
         "Dialnode",
         options,
         Box::new(|cc| {
-            install_fonts(&cc.egui_ctx);
             theme::apply(&cc.egui_ctx);
             Ok(Box::new(app::DialnodeApp::new(cc)))
         }),
@@ -71,21 +68,4 @@ fn configure_wsl_graphics() {
             std::env::remove_var("WAYLAND_DISPLAY");
         }
     }
-}
-
-/// Iosevka is the text-field font from the original app.
-fn install_fonts(ctx: &egui::Context) {
-    let mut fonts = FontDefinitions::default();
-    fonts.font_data.insert(
-        "iosevka".into(),
-        Arc::new(FontData::from_static(include_bytes!(
-            "../assets/Iosevka-Regular.ttf"
-        ))),
-    );
-    fonts
-        .families
-        .entry(FontFamily::Monospace)
-        .or_default()
-        .insert(0, "iosevka".into());
-    ctx.set_fonts(fonts);
 }
